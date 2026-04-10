@@ -5,6 +5,11 @@
 
 <PageTitle>SPIRYTUS - 装置別ロット一覧</PageTitle>
 
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" />
+}
+
 <MudText Typo="Typo.h6" Class="mb-2">装置別ロット一覧 (EN0150)</MudText>
 
 @* ── 検索条件 ─────────────────────────────────────────────── *@
@@ -42,11 +47,19 @@
                 <MudItem xs="6">
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
-                               StartIcon="@Icons.Material.Filled.Refresh"
                                OnClick="LoadAsync"
                                Disabled="_loading"
                                FullWidth="true">
-                        再表示
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            <span>送信中...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-1" Size="Size.Small" />
+                            <span>再表示</span>
+                        }
                     </MudButton>
                 </MudItem>
                 <MudItem xs="6">
