@@ -22,7 +22,7 @@ public sealed class SpirytusMqService : IDisposable
 
     private IConnectionFactory? _factory;
     private IConnection?        _connection;
-    private ISession?           _session;
+    private Apache.NMS.ISession? _session;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private bool _disposed;
 

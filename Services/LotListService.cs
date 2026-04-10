@@ -10,12 +10,13 @@ public sealed class LotListService(SpirytusMqService mq, ILogger<LotListService>
     // 公開 DTO
     // ──────────────────────────────────────────────────────────────
 
-    public sealed record LotListRequest(
-        string MsgVer        = "12.01",
-        string SbId          = "",
-        string WpId          = "",
-        string ClassDivision = ""
-    );
+    public sealed record LotListRequest
+    {
+        public string MsgVer { get; set; } = "12.01";
+        public string SbId { get; set; } = "";
+        public string WpId { get; set; } = "";
+        public string ClassDivision { get; set; } = "";
+    }
 
     public sealed record LotListResponse(
         bool   IsSuccess,
