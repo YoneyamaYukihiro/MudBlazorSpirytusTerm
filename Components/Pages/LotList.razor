@@ -1,34 +1,83 @@
-﻿@page "/lot-list"
+@page "/lot-list"
 @inject LotListService LotListSvc
+@inject EquipmentService EquipmentSvc
 @inject ISnackbar Snackbar
 
-<PageTitle>SPIRYTUS - 装置別ロット一覧</PageTitle>
+<PageTitle>SPIRYTUS - 装置別ロット一覧 (EN0150)</PageTitle>
 
+@* ────────────────────── ローディングバー ────────────────────── *@
 @if (_loading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" />
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
 }
 
-<MudText Typo="Typo.h6" Class="mb-2">装置別ロット一覧 (EN0150)</MudText>
-
-<MudPaper Class="pa-3 mb-3" Elevation="1">
+@* ────────────────────── 検索エリア ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
     <MudGrid Spacing="2">
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_req.SbId" Label="システムブロックID" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        @* 装置グループ選択 *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="EquipmentService.McGroup"
+                       Label="装置グループ"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedGroup"
+                       ValueChanged="OnGroupChanged"
+                       Disabled="_groupsLoading"
+                       ToStringFunc="@(g => g is null ? "" : g.Name)"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_groupsLoading)
+                {
+                    <MudSelectItem T="EquipmentService.McGroup" Value="null" Disabled="true">
+                        読み込み中...
+                    </MudSelectItem>
+                }
+                else
+                {
+                    foreach (var g in _groups)
+                    {
+                        <MudSelectItem T="EquipmentService.McGroup" Value="g">@g.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
         </MudItem>
+
+        @* 装置選択 *@
         <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_req.WpId" Label="装置ID (WPID)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudSelect T="EquipmentService.Equipment"
+                       Label="装置名"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedEquipment"
+                       ValueChanged="OnEquipmentChanged"
+                       Disabled="@(_equipmentsLoading || _selectedGroup is null)"
+                       ToStringFunc="@(e => e is null ? "" : $"{e.WpName}  ({e.WpId})")"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_equipmentsLoading)
+                {
+                    <MudSelectItem T="EquipmentService.Equipment" Value="null" Disabled="true">
+                        読み込み中...
+                    </MudSelectItem>
+                }
+                else
+                {
+                    foreach (var e in _equipments)
+                    {
+                        <MudSelectItem T="EquipmentService.Equipment" Value="e">
+                            @e.WpName  (@e.WpId)
+                        </MudSelectItem>
+                    }
+                }
+            </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_req.ClassDivision" Label="区分" Variant="Variant.Outlined" Margin="Margin.Dense" />
-        </MudItem>
-        <MudItem xs="12" sm="12" md="4">
+
+        @* ボタン群 *@
+        <MudItem xs="12" sm="5">
             <MudGrid Spacing="1">
                 <MudItem xs="6">
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="LoadAsync"
-                               Disabled="_loading"
+                               Disabled="@(_loading || string.IsNullOrEmpty(_req.WpId))"
                                FullWidth="true">
                         @if (_loading)
                         {
@@ -38,7 +87,7 @@
                         else
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-1" Size="Size.Small" />
-                            <span>再表示</span>
+                            <span>最新取得</span>
                         }
                     </MudButton>
                 </MudItem>
@@ -56,44 +105,213 @@
     </MudGrid>
 </MudPaper>
 
-@if (!string.IsNullOrWhiteSpace(_error))
+@* ────────────────────── ステータスバー ────────────────────── *@
+@if (_response?.IsSuccess == true)
 {
-    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+    <MudPaper Class="pa-2 mb-2 d-flex flex-wrap gap-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default);">
+        <MudText Typo="Typo.body2">
+            <b>情報取得日時:</b> @_fetchTime.ToString("yyyy/MM/dd HH:mm:ss")
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>件数:</b> @_response.LotList.Count 件
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>装置状態:</b> @(string.IsNullOrEmpty(_response.WpStatusName) ? "-" : _response.WpStatusName)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>用途:</b> @(string.IsNullOrEmpty(_response.UseName) ? "-" : _response.UseName)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>運用モード:</b> @(string.IsNullOrEmpty(_response.MesModeId) ? "-" : _response.MesModeId)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>装置タイプ:</b> @(string.IsNullOrEmpty(_response.McType) ? "-" : _response.McType)
+        </MudText>
+    </MudPaper>
 }
 
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrWhiteSpace(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── 色凡例 ────────────────────── *@
+<MudPaper Class="pa-2 mb-2 d-flex flex-wrap gap-2" Elevation="0" Style="font-size:0.78rem;">
+    <span style="background:#FFFF99;padding:1px 6px;border:1px solid #ccc;">保留/停止</span>
+    <span style="background:#D3D3D3;padding:1px 6px;border:1px solid #ccc;">処理限定レシピ</span>
+    <span style="background:#90EE90;padding:1px 6px;border:1px solid #ccc;">FRレシピ処理不可</span>
+    <span style="background:#FFA500;color:#fff;padding:1px 6px;border:1px solid #ccc;">ダミーロット</span>
+</MudPaper>
+
+@* ────────────────────── ロット一覧グリッド ────────────────────── *@
 <MudDataGrid T="LotListService.LotInfo"
              Items="@(_response?.LotList ?? Array.Empty<LotListService.LotInfo>())"
              Dense="true"
-             Striped="true"
+             Striped="false"
              Hover="true"
              Bordered="true"
              Loading="_loading"
-             Height="calc(100vh - 320px)">
+             RowStyleFunc="@GetRowStyle"
+             Height="calc(100vh - 300px)"
+             FixedHeader="true">
     <Columns>
-        <PropertyColumn Property="x => x.Status" Title="状態" />
-        <PropertyColumn Property="x => x.CarrierId" Title="キャリアID" />
-        <PropertyColumn Property="x => x.LotId" Title="ロットID" />
-        <PropertyColumn Property="x => x.PdId" Title="機種" />
-        <PropertyColumn Property="x => x.OpId" Title="大工程" />
-        <PropertyColumn Property="x => x.StepId" Title="小工程" />
-        <PropertyColumn Property="x => x.RecipeId" Title="レシピ" />
-        <PropertyColumn Property="x => x.WfNum" Title="WF枚数" />
-        <PropertyColumn Property="x => x.ChipQuantity" Title="チップ数" />
-        <PropertyColumn Property="x => x.LotLastUpdate" Title="最終更新" />
+        <TemplateColumn T="LotListService.LotInfo" Title="保/停" StickyLeft="true" HeaderStyle="min-width:44px;max-width:44px;" CellStyle="min-width:44px;max-width:44px;text-align:center;font-weight:bold;">
+            <CellTemplate>
+                @{
+                    var kb = GetKbText(context.Item);
+                    var kbColor = context.Item.WfPartialRecipeFlag == "1" ? "color:red;" : "";
+                }
+                <span style="@kbColor">@kb</span>
+            </CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.Status" Title="状態" HeaderStyle="min-width:80px;" StickyLeft="true" />
+        <TemplateColumn T="LotListService.LotInfo" Title="時間制限" HeaderStyle="min-width:150px;">
+            <CellTemplate>
+                @{
+                    var lt = context.Item.LimitTime;
+                    var wt = context.Item.WarnTime;
+                    var ltColor = "";
+                    if (!string.IsNullOrEmpty(lt) && long.TryParse(lt, out var ltMin))
+                    {
+                        if (ltMin < 0)
+                        {
+                            ltColor = "color:red;font-weight:bold;";
+                        }
+                        else if (!string.IsNullOrEmpty(wt) && long.TryParse(wt, out var wtMin) && wtMin < 0)
+                        {
+                            ltColor = "color:purple;font-weight:bold;";
+                        }
+                    }
+                }
+                <span style="@ltColor">@FormatLimitTime(context.Item)</span>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn T="LotListService.LotInfo" Title="キャリアID" HeaderStyle="min-width:75px;">
+            <CellTemplate>@GetDisplayCarrierId(context.Item)</CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn T="LotListService.LotInfo" Title="キャリア位置" HeaderStyle="min-width:120px;">
+            <CellTemplate>@GetCarrierPosition(context.Item)</CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.LotId" Title="ロットID" HeaderStyle="min-width:110px;" />
+        <PropertyColumn Property="x => x.PdId" Title="機種" HeaderStyle="min-width:60px;" />
+        <PropertyColumn Property="x => x.FlowClass" Title="種別" HeaderStyle="min-width:40px;" />
+        <PropertyColumn Property="x => x.LotPriority" Title="優" HeaderStyle="min-width:40px;" />
+        <PropertyColumn Property="x => x.OpId" Title="大工程" HeaderStyle="min-width:120px;" />
+        <PropertyColumn Property="x => x.StepId" Title="小工程" HeaderStyle="min-width:120px;" />
+        <PropertyColumn Property="x => x.RecipeId" Title="レシピ" HeaderStyle="min-width:180px;" />
+        <TemplateColumn T="LotListService.LotInfo" Title="処理開始予実" HeaderStyle="min-width:120px;">
+            <CellTemplate>@FormatDispatchStartTime(context.Item.DispatchStartTime)</CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.LotManagerName" Title="ロット担当" HeaderStyle="min-width:100px;" />
+        <PropertyColumn Property="x => x.WfNum" Title="WF枚数" HeaderStyle="min-width:70px;" />
+        <PropertyColumn Property="x => x.ChipQuantity" Title="チップ数" HeaderStyle="min-width:70px;" />
+        <TemplateColumn T="LotListService.LotInfo" Title="コメント" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+            <CellTemplate>
+                @if (context.Item.LotCommentsFlag == "1")
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <PropertyColumn Property="x => x.LCarrierId" Title="ロードキャリア" HeaderStyle="min-width:75px;" />
+        <PropertyColumn Property="x => x.UCarrierId" Title="アンロードキャリア" HeaderStyle="min-width:80px;" />
+        <PropertyColumn Property="x => x.AltNumber" Title="代替番号" HeaderStyle="min-width:60px;" />
+        <PropertyColumn Property="x => x.LotLastUpdate" Title="最終更新日時" HeaderStyle="min-width:130px;" />
+        <TemplateColumn T="LotListService.LotInfo" Title="リワーク" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+            <CellTemplate>
+                @{
+                    var rw = context.Item.ReworkFlag;
+                }
+                @if (rw == "1") { <span>リ</span> }
+                else if (rw == "2") { <span>追</span> }
+            </CellTemplate>
+        </TemplateColumn>
     </Columns>
     <NoRecordsContent>
         @if (!_loading)
         {
-            <MudText Color="Color.Secondary">データがありません。</MudText>
+            <MudText Color="Color.Secondary">
+                データがありません。装置IDを指定して「最新取得」を押してください。
+            </MudText>
         }
     </NoRecordsContent>
 </MudDataGrid>
 
 @code {
+    // ── 状態 ──────────────────────────────────────────────────────
     private LotListService.LotListRequest _req = new();
     private LotListService.LotListResponse? _response;
     private bool _loading;
     private string _error = string.Empty;
+    private DateTime _fetchTime;
+
+    // 装置グループ・装置セレクト用
+    private IReadOnlyList<EquipmentService.McGroup>     _groups     = [];
+    private IReadOnlyList<EquipmentService.Equipment>   _equipments = [];
+    private EquipmentService.McGroup?    _selectedGroup;
+    private EquipmentService.Equipment?  _selectedEquipment;
+    private bool _groupsLoading;
+    private bool _equipmentsLoading;
+
+    // ── 初期化 ────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groupsLoading = true;
+        try
+        {
+            _groups = await EquipmentSvc.GetMcGroupListAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"装置グループ取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _groupsLoading = false;
+        }
+    }
+
+    // ── グループ選択変更 → 装置一覧を再取得 ─────────────────────────
+
+    private async Task OnGroupChanged(EquipmentService.McGroup? group)
+    {
+        _selectedGroup     = group;
+        _selectedEquipment = null;
+        _equipments        = [];
+        _req.WpId          = string.Empty;
+        _response          = null;
+
+        if (group is null) return;
+
+        _equipmentsLoading = true;
+        try
+        {
+            _equipments = await EquipmentSvc.GetEquipmentListAsync(group.Id);
+        }
+        catch (Exception ex)
+        {
+            _error = $"装置一覧取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _equipmentsLoading = false;
+        }
+    }
+
+    // ── 装置選択変更 ─────────────────────────────────────────────
+
+    private void OnEquipmentChanged(EquipmentService.Equipment? equipment)
+    {
+        _selectedEquipment = equipment;
+        _req.WpId          = equipment?.WpId ?? string.Empty;
+        _response          = null;
+    }
+
+    // ── データ取得 ──────────────────────────────────────────────────
 
     private async Task LoadAsync()
     {
@@ -103,14 +321,15 @@
         try
         {
             _response = await LotListSvc.GetLotListAsync(_req);
-            if (!_response.IsSuccess)
+            if (_response.IsSuccess)
             {
-                _error = _response.ErrorMessage;
-                Snackbar.Add(_response.ErrorMessage, Severity.Error);
+                _fetchTime = DateTime.Now;
+                Snackbar.Add($"{_response.LotList.Count} 件取得", Severity.Success);
             }
             else
             {
-                Snackbar.Add($"{_response.LotList.Count} 件取得", Severity.Success);
+                _error = _response.ErrorMessage;
+                Snackbar.Add(_response.ErrorMessage, Severity.Error);
             }
         }
         catch (Exception ex)
@@ -126,8 +345,103 @@
 
     private void ClearFilter()
     {
-        _req = new();
-        _response = null;
-        _error = string.Empty;
+        _selectedGroup     = null;
+        _selectedEquipment = null;
+        _equipments        = [];
+        _req               = new();
+        _response          = null;
+        _error             = string.Empty;
+    }
+
+    // ── 行スタイル ────────────────────────────────────────────────
+    // VBソース prvVsfAreaEquipment_Disp の背景色ロジックを移植。
+    // 優先度（後勝ち）: 白 < ダミー < FR不可 < 処理限定 < 保留/停止
+
+    private static string GetRowStyle(LotListService.LotInfo item, int _)
+    {
+        // 最優先: 停止 or 保留 → 黄色 (CPlngHoldLotColor)
+        if (item.LotStopFlag == "1" || item.LotHoldFlag == "1")
+            return "background-color:#FFFF99;";
+
+        // 処理限定レシピ → グレー (CPlngGridGray)
+        if (item.AvailableRecipeFlag == "1")
+            return "background-color:#D3D3D3;";
+
+        // FRレシピ処理不可 → ライトグリーン (CPlngFrNgColor)
+        if (item.FrRecipeFlag == "1")
+            return "background-color:#90EE90;";
+
+        // ダミーロット (FD/SD/ED) → オレンジ (CPlngVbColorOrange)
+        var fc = item.FlowClass;
+        if (fc is "FD" or "SD" or "ED")
+            return "background-color:#FFA500;color:#fff;";
+
+        return string.Empty;
+    }
+
+    // ── 表示ヘルパー ──────────────────────────────────────────────
+
+    /// <summary>保/停区分セルのテキスト (VB: mlngvsfAreaEqColKb)</summary>
+    private static string GetKbText(LotListService.LotInfo item)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (item.LotHoldFlag == "1") sb.Append("保");
+        if (item.LotStopFlag == "1") sb.Append("停");
+        if (item.ReworkFlag == "1")  sb.Append("リ");
+        if (item.ReworkFlag == "2")  sb.Append("追");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// キャリアID表示。後処理状態ならアンロードキャリアIDを表示。
+    /// VBソース: CPstrAfterProgressSt = "後処理"
+    /// </summary>
+    private static string GetDisplayCarrierId(LotListService.LotInfo item)
+    {
+        if (!string.IsNullOrEmpty(item.ToCarrierId) && item.Status == "後処理")
+            return item.ToCarrierId;
+        return item.CarrierId;
+    }
+
+    /// <summary>
+    /// キャリア位置表示。搬送中(MOVE/STKOUT/STKIN)は "→ 搬送先" を表示。
+    /// VBソース: CPstrCarrierStatMove = "MOVE" etc.
+    /// </summary>
+    private static string GetCarrierPosition(LotListService.LotInfo item)
+    {
+        var statId = item.CarrierStatId;
+        if (statId is "MOVE" or "STKOUT" or "STKIN" && !string.IsNullOrEmpty(item.DestName))
+            return "→ " + item.DestName;
+        return item.CarrierPositionName;
+    }
+
+    /// <summary>
+    /// 時間制限の表示フォーマット。
+    /// VBソース: pubstrLimitTime_Set → "小工程 まで X時間YY分 以内"
+    /// </summary>
+    private static string FormatLimitTime(LotListService.LotInfo item)
+    {
+        var lt = item.LimitTime;
+        if (string.IsNullOrEmpty(lt)) return string.Empty;
+        if (!long.TryParse(lt, out var totalMinutes)) return lt;
+
+        var absMin = Math.Abs(totalMinutes);
+        var hours = absMin / 60;
+        var mins  = absMin % 60;
+        var sign  = totalMinutes < 0 ? "-" : string.Empty;
+        var timeStr = hours > 0 ? $"{sign}{hours}時間{mins:D2}分" : $"{sign}{mins}分";
+
+        var prefix = string.Empty;
+        if (!string.IsNullOrEmpty(item.ToStepId))
+            prefix = item.ToStepId + " まで ";
+
+        return $"{prefix}{timeStr} 以内";
+    }
+
+    /// <summary>処理開始予実の日付フォーマット (M/d HH:mm)</summary>
+    private static string FormatDispatchStartTime(string? raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return string.Empty;
+        return DateTime.TryParse(raw, out var dt) ? dt.ToString("M/d HH:mm") : raw;
     }
 }

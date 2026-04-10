@@ -13,7 +13,8 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         public string MsgVer { get; set; } = "12.01";
         public string SbId { get; set; } = "";
         public string WpId { get; set; } = "";
-        public string ClassDivision { get; set; } = "";
+        /// <summary>処理区分。装置別ロット一覧は "26" 固定。</summary>
+        public string ClassDivision { get; set; } = "26";
     }
 
     public sealed record LotListResponse(
@@ -30,6 +31,7 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
     );
 
     public sealed record LotInfo(
+        // ── 基本情報 ──
         string LotId,
         string FlowClass,
         string OpId,
@@ -44,13 +46,30 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         string LotPriority,
         string RecipeId,
         string LotLastUpdate,
+        // ── 時間制限 ──
         string LimitTime,
         string WarnTime,
+        string ToOpId,
+        string ToStepId,
+        // ── キャリア ──
         string CarrierId,
+        string CarrierStatId,
+        string CarrierPositionName,
+        string ToCarrierId,
+        string DestName,
+        string LCarrierId,
+        string UCarrierId,
+        // ── 機種・レシピ ──
         string PdId,
         string WfId,
-        string LCarrierId,
-        string UCarrierId
+        string AltNumber,
+        // ── フラグ ──
+        string ReworkFlag,
+        string WfPartialRecipeFlag,
+        string AvailableRecipeFlag,
+        string FrRecipeFlag,
+        // ── 処理開始予実 ──
+        string DispatchStartTime
     );
 
     public async Task<LotListResponse> GetLotListAsync(LotListRequest req, CancellationToken ct = default)
@@ -152,11 +171,23 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
                 LotLastUpdate: item.GetString(Tags.LotLastUpdate),
                 LimitTime: item.GetString(Tags.LimitTime),
                 WarnTime: item.GetString(Tags.WarnTime),
+                ToOpId: item.GetString(Tags.ToOpId),
+                ToStepId: item.GetString(Tags.ToStepId),
                 CarrierId: item.GetString(Tags.CarrierId),
+                CarrierStatId: item.GetString(Tags.CarrierStatId),
+                CarrierPositionName: item.GetString(Tags.CurrentPositionName),
+                ToCarrierId: item.GetString(Tags.ToCarrierId),
+                DestName: item.GetString(Tags.DestName),
+                LCarrierId: item.GetString(Tags.LCarrierId),
+                UCarrierId: item.GetString(Tags.UCarrierId),
                 PdId: item.GetString(Tags.PdId),
                 WfId: item.GetString(Tags.WfId),
-                LCarrierId: item.GetString(Tags.LCarrierId),
-                UCarrierId: item.GetString(Tags.UCarrierId)
+                AltNumber: item.GetString(Tags.AltNumber),
+                ReworkFlag: item.GetString(Tags.ReworkFlag),
+                WfPartialRecipeFlag: item.GetString(Tags.WfPartialRecipeFlag),
+                AvailableRecipeFlag: item.GetString(Tags.AvailableRecipeFlag),
+                FrRecipeFlag: item.GetString(Tags.FrRecipeFlag),
+                DispatchStartTime: item.GetString(Tags.DispatchStartTime)
             ));
         }
 

@@ -18,6 +18,12 @@ else
 }
 
 builder.Services.AddScoped<LotListService>();
+builder.Services.AddScoped<EquipmentService>();
+builder.Services.AddScoped<TerminalService>();
+builder.Services.AddScoped<LotActionService>();
+builder.Services.AddScoped<WorkService>();
+builder.Services.AddScoped<CarrierService>();
+builder.Services.AddScoped<BatchService>();
 
 var app = builder.Build();
 

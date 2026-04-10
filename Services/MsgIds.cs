@@ -13,10 +13,10 @@ public static class MsgIds
     public const string EqAreaCurList = "eq__.areacurlist";
     public const string MasMcGroupList = "mas_.mcgrouplist";
 
-    public const string WrkStart = "wrk_.start___";
-    public const string WrkEnd = "wrk_.end_____";
-    public const string PrcStart = "prc_.start___";
-    public const string PrcEnd = "prc_.end_____";
+    public const string WrkStart = "lot_.wrkstart";
+    public const string WrkEnd = "lot_.wrkend__";
+    public const string PrcStart = "lot_.prcstart";
+    public const string PrcEnd = "lot_.prcend__";
 
     public const string CarrList = "carr.list____";
     public const string CarrCurState = "carr.curstate";
@@ -30,4 +30,6 @@ public static class MsgIds
 
     public const string UtilRefTmInfo = "util.reftminfo";
     public const string UtilRegTmInfo = "util.regtminfo";
+
+    public const string MasStockerList = "mas_.stockerlist";
 }
