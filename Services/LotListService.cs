@@ -1,14 +1,12 @@
-namespace MudBlazorSpirytusTerm.Services;
+﻿namespace MudBlazorSpirytusTerm.Services;
 
 /// <summary>
 /// EN0150 装置別ロット一覧の API 呼び出しサービス。
-/// VBソース basxxMG0150.vb の pubblnLotList_Sel に相当する。
 /// </summary>
-public sealed class LotListService(SpirytusMqService mq, ILogger<LotListService> logger)
+public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILogger<LotListService> logger)
 {
-    // ──────────────────────────────────────────────────────────────
-    // 公開 DTO
-    // ──────────────────────────────────────────────────────────────
+    private readonly string _defaultSbId = cfg["Spirytus:DefaultSbId"] ?? string.Empty;
+    private readonly string _defaultWpId = cfg["Spirytus:DefaultWpId"] ?? string.Empty;
 
     public sealed record LotListRequest
     {
@@ -19,7 +17,7 @@ public sealed class LotListService(SpirytusMqService mq, ILogger<LotListService>
     }
 
     public sealed record LotListResponse(
-        bool   IsSuccess,
+        bool IsSuccess,
         string WpTypeFlag,
         string UseId,
         string UseName,
@@ -36,7 +34,7 @@ public sealed class LotListService(SpirytusMqService mq, ILogger<LotListService>
         string FlowClass,
         string OpId,
         string StepId,
-        string Status,          // NOW_ST
+        string Status,
         string LotManagerName,
         string WfNum,
         string ChipQuantity,
@@ -55,99 +53,173 @@ public sealed class LotListService(SpirytusMqService mq, ILogger<LotListService>
         string UCarrierId
     );
 
-    // ──────────────────────────────────────────────────────────────
-    // 公開メソッド
-    // ──────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// ロット一覧を取得する（VB: pubblnLotList_Sel）。
-    /// </summary>
-    public async Task<LotListResponse> GetLotListAsync(
-        LotListRequest req, CancellationToken ct = default)
+    public async Task<LotListResponse> GetLotListAsync(LotListRequest req, CancellationToken ct = default)
     {
-        // ── リクエスト作成 ──────────────────────────────────────────
-        var rMsg = new TfMsg();
-        rMsg.AddString(Tags.MsgVer,        req.MsgVer);
-        rMsg.AddString(Tags.ClassDivision, req.ClassDivision);
-        rMsg.AddString(Tags.SbId,          req.SbId);
-        rMsg.AddString(Tags.WpId,          req.WpId);
+        var sbId = string.IsNullOrWhiteSpace(req.SbId) ? _defaultSbId : req.SbId;
+        var wpId = string.IsNullOrWhiteSpace(req.WpId) ? _defaultWpId : req.WpId;
 
-        // ── 送信 ────────────────────────────────────────────────────
+        logger.LogInformation("LotList request start. SbId={SbId}, WpId={WpId}, ClassDivision={ClassDivision}",
+            sbId, wpId, req.ClassDivision);
+
+        var rMsg = new TfMsg();
+        rMsg.AddString(Tags.MsgVer, req.MsgVer);
+        rMsg.AddString(Tags.ClassDivision, req.ClassDivision);
+        rMsg.AddString(Tags.SbId, sbId);
+        rMsg.AddString(Tags.WpId, wpId);
+
         TfMsg aMsg;
+        string primaryRaw = string.Empty;
         try
         {
-            aMsg = await mq.SendRequestAsync(MsgIds.LotList, rMsg, ct);
+            primaryRaw = await mq.SendMessageAsync(MsgIds.LotList, rMsg.ToTfString(), ct);
+            aMsg = ParseReplyOrError(primaryRaw);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "LotList SendRequest failed");
-            return Fail($"通信エラー: {ex.Message}");
+            logger.LogWarning(ex, "LotList primary request failed. Subject={Subject}", MsgIds.LotList);
+            aMsg = new TfMsg();
+            aMsg.AddString(Tags.Ret, Tags.False);
+            aMsg.AddString(Tags.ErrMsg, ex.Message);
         }
 
-        // ── レスポンス解析 ──────────────────────────────────────────
+        // Fallback: if primary request failed (exception or RET!=TRUE), retry ALD endpoint.
+        if (aMsg.GetString(Tags.Ret) != Tags.True)
+        {
+            try
+            {
+                var altReplyText = await mq.SendMessageAsync(MsgIds.LotListAld, rMsg.ToTfString(), ct);
+                var altMsg = ParseReplyOrError(altReplyText);
+                if (altMsg.GetString(Tags.Ret) == Tags.True)
+                {
+                    logger.LogInformation("LotList fallback succeeded. Subject={Subject}", MsgIds.LotListAld);
+                    aMsg = altMsg;
+                    primaryRaw = altReplyText;
+                }
+                else
+                {
+                    logger.LogWarning("LotList fallback failed. Subject={Subject}, Ret={Ret}, Err={Err}",
+                        MsgIds.LotListAld, altMsg.GetString(Tags.Ret), altMsg.GetString(Tags.ErrMsg));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "LotList fallback request failed. Subject={Subject}", MsgIds.LotListAld);
+                return Fail($"通信エラー: {ex.Message}");
+            }
+        }
+
         var ret = aMsg.GetString(Tags.Ret);
         if (ret != Tags.True)
         {
             var errMsg = aMsg.GetString(Tags.ErrMsg);
             logger.LogWarning("LotList returned FALSE: {Err}", errMsg);
-            return Fail(errMsg.Length > 0 ? errMsg : "ロット一覧取得に失敗しました");
+            if (errMsg.Length > 0)
+            {
+                return Fail(errMsg);
+            }
+
+            var rawSummary = SummarizeRaw(primaryRaw);
+            return Fail($"ロット一覧取得に失敗しました (RET={ret}) RAW={rawSummary}");
         }
 
-        var wpTypeFlag  = aMsg.GetString(Tags.WpTypeFlag);
-        var useId       = aMsg.GetString(Tags.UseId);
-        var useName     = aMsg.GetString(Tags.UseName);
-        var mesModeId   = aMsg.GetString(Tags.MesModeId);
-        var wpStopFlag  = aMsg.GetString(Tags.WpStopFlag);
-        var wpStatus    = aMsg.GetString(Tags.WpStatusName);
-        var mcType      = aMsg.GetString(Tags.McType);
+        var wpTypeFlag = aMsg.GetString(Tags.WpTypeFlag);
+        var useId = aMsg.GetString(Tags.UseId);
+        var useName = aMsg.GetString(Tags.UseName);
+        var mesModeId = aMsg.GetString(Tags.MesModeId);
+        var wpStopFlag = aMsg.GetString(Tags.WpStopFlag);
+        var wpStatus = aMsg.GetString(Tags.WpStatusName);
+        var mcType = aMsg.GetString(Tags.McType);
 
-        // ── ロット配列解析 ──────────────────────────────────────────
-        var ary     = aMsg.GetMsgAry(Tags.LotList);
+        var ary = aMsg.GetMsgAry(Tags.LotList);
         var lotList = new List<LotInfo>(ary.Count);
 
         foreach (var item in ary)
         {
             lotList.Add(new LotInfo(
-                LotId:           item.GetString(Tags.LotId),
-                FlowClass:       item.GetString(Tags.FlowClass),
-                OpId:            item.GetString(Tags.OpId),
-                StepId:          item.GetString(Tags.StepId),
-                Status:          item.GetString(Tags.NowSt),
-                LotManagerName:  item.GetString(Tags.EngEmpName),
-                WfNum:           item.GetString(Tags.WfNum),
-                ChipQuantity:    item.GetString(Tags.ChipQuantity),
+                LotId: item.GetString(Tags.LotId),
+                FlowClass: item.GetString(Tags.FlowClass),
+                OpId: item.GetString(Tags.OpId),
+                StepId: item.GetString(Tags.StepId),
+                Status: item.GetString(Tags.NowSt),
+                LotManagerName: item.GetString(Tags.EngEmpName),
+                WfNum: item.GetString(Tags.WfNum),
+                ChipQuantity: item.GetString(Tags.ChipQuantity),
                 LotCommentsFlag: item.GetString(Tags.LotCommentsFlag),
-                LotHoldFlag:     item.GetString(Tags.LotHoldFlag),
-                LotStopFlag:     item.GetString(Tags.LotStopFlag),
-                LotPriority:     item.GetString(Tags.LotPriority),
-                RecipeId:        item.GetString(Tags.RecipeId),
-                LotLastUpdate:   item.GetString(Tags.LotLastUpdate),
-                LimitTime:       item.GetString(Tags.LimitTime),
-                WarnTime:        item.GetString(Tags.WarnTime),
-                CarrierId:       item.GetString(Tags.CarrierId),
-                PdId:            item.GetString(Tags.PdId),
-                WfId:            item.GetString(Tags.WfId),
-                LCarrierId:      item.GetString(Tags.LCarrierId),
-                UCarrierId:      item.GetString(Tags.UCarrierId)
+                LotHoldFlag: item.GetString(Tags.LotHoldFlag),
+                LotStopFlag: item.GetString(Tags.LotStopFlag),
+                LotPriority: item.GetString(Tags.LotPriority),
+                RecipeId: item.GetString(Tags.RecipeId),
+                LotLastUpdate: item.GetString(Tags.LotLastUpdate),
+                LimitTime: item.GetString(Tags.LimitTime),
+                WarnTime: item.GetString(Tags.WarnTime),
+                CarrierId: item.GetString(Tags.CarrierId),
+                PdId: item.GetString(Tags.PdId),
+                WfId: item.GetString(Tags.WfId),
+                LCarrierId: item.GetString(Tags.LCarrierId),
+                UCarrierId: item.GetString(Tags.UCarrierId)
             ));
         }
 
         return new LotListResponse(
-            IsSuccess:   true,
-            WpTypeFlag:  wpTypeFlag,
-            UseId:       useId,
-            UseName:     useName,
-            MesModeId:   mesModeId,
-            WpStopFlag:  wpStopFlag,
+            IsSuccess: true,
+            WpTypeFlag: wpTypeFlag,
+            UseId: useId,
+            UseName: useName,
+            MesModeId: mesModeId,
+            WpStopFlag: wpStopFlag,
             WpStatusName: wpStatus,
-            McType:      mcType,
-            LotList:     lotList
+            McType: mcType,
+            LotList: lotList
         );
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // ヘルパー
-    // ──────────────────────────────────────────────────────────────
+    private static TfMsg ParseReplyOrError(string? replyText)
+    {
+        var text = (replyText ?? string.Empty).Trim();
+        if (text.Length == 0)
+        {
+            var empty = new TfMsg();
+            empty.AddString(Tags.Ret, Tags.False);
+            empty.AddString(Tags.ErrMsg, "空の応答を受信しました。");
+            return empty;
+        }
+
+        if (!text.StartsWith("(", StringComparison.Ordinal))
+        {
+            var nonTf = new TfMsg();
+            nonTf.AddString(Tags.Ret, Tags.False);
+            nonTf.AddString(Tags.ErrMsg, text);
+            return nonTf;
+        }
+
+        try
+        {
+            return TfMsg.FromTfString(text);
+        }
+        catch (Exception ex)
+        {
+            var parseErr = new TfMsg();
+            parseErr.AddString(Tags.Ret, Tags.False);
+            parseErr.AddString(Tags.ErrMsg, $"応答解析エラー: {ex.Message}");
+            return parseErr;
+        }
+    }
+
+    private static string SummarizeRaw(string? raw)
+    {
+        var s = (raw ?? string.Empty).Trim();
+        if (s.Length == 0)
+        {
+            return "(empty)";
+        }
+
+        if (s.Length > 200)
+        {
+            return s[..200] + "...";
+        }
+
+        return s;
+    }
 
     private static LotListResponse Fail(string message) =>
         new(false, "", "", "", "", "", "", "", [], message);

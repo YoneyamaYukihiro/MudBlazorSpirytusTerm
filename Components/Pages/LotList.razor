@@ -1,5 +1,4 @@
-@page "/lot-list"
-@rendermode InteractiveServer
+﻿@page "/lot-list"
 @inject LotListService LotListSvc
 @inject ISnackbar Snackbar
 
@@ -12,35 +11,16 @@
 
 <MudText Typo="Typo.h6" Class="mb-2">装置別ロット一覧 (EN0150)</MudText>
 
-@* ── 検索条件 ─────────────────────────────────────────────── *@
-<MudPaper Class="mb-3 pa-3" Elevation="1">
-    <MudGrid Spacing="2" AlignItems="Center">
-        <MudItem xs="12" sm="4" md="3">
-            <MudTextField @bind-Value="_req.WpId"
-                          Label="装置ID (WPID)"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense" />
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_req.SbId" Label="システムブロックID" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" sm="4" md="3">
-            <MudTextField @bind-Value="_req.SbId"
-                          Label="システムブロックID"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense" />
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_req.WpId" Label="装置ID (WPID)" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" sm="4" md="2">
-            <MudSelect @bind-Value="_filterStatus"
-                       Label="状態フィルタ"
-                       Variant="Variant.Outlined"
-                       Margin="Margin.Dense">
-                <MudSelectItem Value="@("")">全て</MudSelectItem>
-                <MudSelectItem Value="@("前処理待")">前処理待</MudSelectItem>
-                <MudSelectItem Value="@("前処理中")">前処理中</MudSelectItem>
-                <MudSelectItem Value="@("処理待")">処理待</MudSelectItem>
-                <MudSelectItem Value="@("処理中")">処理中</MudSelectItem>
-                <MudSelectItem Value="@("後処理待")">後処理待</MudSelectItem>
-                <MudSelectItem Value="@("後処理中")">後処理中</MudSelectItem>
-                <MudSelectItem Value="@("保留")">保留</MudSelectItem>
-            </MudSelect>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_req.ClassDivision" Label="区分" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
         <MudItem xs="12" sm="12" md="4">
             <MudGrid Spacing="1">
@@ -76,164 +56,67 @@
     </MudGrid>
 </MudPaper>
 
-@* ── 装置状態バー ─────────────────────────────────────────── *@
-@if (_response is not null && _response.IsSuccess)
+@if (!string.IsNullOrWhiteSpace(_error))
 {
-    <MudPaper Class="mb-2 pa-2" Elevation="0" Outlined="true">
-        <MudGrid Spacing="1">
-            <MudItem xs="6" sm="3">
-                <MudText Typo="Typo.caption">用途：<b>@_response.UseName</b></MudText>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <MudText Typo="Typo.caption">運用モード：<b>@_response.MesModeId</b></MudText>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <MudText Typo="Typo.caption">装置状態：
-                    <MudChip T="string" Size="Size.Small" Label="true"
-                             Color="@(_response.WpStopFlag == "1" ? Color.Error : Color.Success)">
-                        @_response.WpStatusName
-                    </MudChip>
-                </MudText>
-            </MudItem>
-            <MudItem xs="6" sm="3">
-                <MudText Typo="Typo.caption">装置タイプ：<b>@_response.McType</b></MudText>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
 }
 
-@* ── ロット一覧テーブル ───────────────────────────────────── *@
 <MudDataGrid T="LotListService.LotInfo"
-             Items="@FilteredItems"
+             Items="@(_response?.LotList ?? Array.Empty<LotListService.LotInfo>())"
              Dense="true"
              Striped="true"
              Hover="true"
              Bordered="true"
-             FixedHeader="true"
              Loading="_loading"
-             Height="calc(100vh - 370px)"
-             SortMode="SortMode.Multiple"
-             SelectedItemChanged="OnRowSelected">
+             Height="calc(100vh - 320px)">
     <Columns>
-        <TemplateColumn Title="保/停" CellStyle="text-align:center; width:48px">
-            <CellTemplate>
-                @if (context.Item.LotHoldFlag == "1")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Pause"
-                             Color="Color.Warning" Size="Size.Small" Title="保留" />
-                }
-                else if (context.Item.LotStopFlag == "1")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Stop"
-                             Color="Color.Error" Size="Size.Small" Title="停止" />
-                }
-            </CellTemplate>
-        </TemplateColumn>
-        <PropertyColumn Property="x => x.Status" Title="状態">
-            <CellTemplate>
-                <MudChip T="string" Size="Size.Small" Label="true"
-                         Color="@GetStatusColor(context.Item.Status)">
-                    @context.Item.Status
-                </MudChip>
-            </CellTemplate>
-        </PropertyColumn>
-        <PropertyColumn Property="x => x.CarrierId"      Title="キャリアID"  />
-        <PropertyColumn Property="x => x.LotId"          Title="ロットID"    />
-        <PropertyColumn Property="x => x.PdId"           Title="機種"        />
-        <PropertyColumn Property="x => x.FlowClass"      Title="種別"        />
-        <PropertyColumn Property="x => x.WfId"           Title="WFID"        />
-        <PropertyColumn Property="x => x.LotPriority"    Title="優先"        CellStyle="text-align:center" />
-        <PropertyColumn Property="x => x.OpId"           Title="大工程"      />
-        <PropertyColumn Property="x => x.StepId"         Title="小工程"      />
-        <PropertyColumn Property="x => x.RecipeId"       Title="レシピ"      />
-        <PropertyColumn Property="x => x.LimitTime"      Title="時間制限"    />
-        <PropertyColumn Property="x => x.WfNum"          Title="WF枚数"      CellStyle="text-align:right" />
-        <PropertyColumn Property="x => x.ChipQuantity"   Title="チップ数"    CellStyle="text-align:right" />
-        <TemplateColumn Title="コメント" CellStyle="text-align:center; width:64px">
-            <CellTemplate>
-                @if (context.Item.LotCommentsFlag == "1")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Comment"
-                             Color="Color.Info" Size="Size.Small" />
-                }
-            </CellTemplate>
-        </TemplateColumn>
-        <PropertyColumn Property="x => x.LotManagerName" Title="ロット担当"  />
-        <PropertyColumn Property="x => x.LotLastUpdate"  Title="最終更新"    />
+        <PropertyColumn Property="x => x.Status" Title="状態" />
+        <PropertyColumn Property="x => x.CarrierId" Title="キャリアID" />
+        <PropertyColumn Property="x => x.LotId" Title="ロットID" />
+        <PropertyColumn Property="x => x.PdId" Title="機種" />
+        <PropertyColumn Property="x => x.OpId" Title="大工程" />
+        <PropertyColumn Property="x => x.StepId" Title="小工程" />
+        <PropertyColumn Property="x => x.RecipeId" Title="レシピ" />
+        <PropertyColumn Property="x => x.WfNum" Title="WF枚数" />
+        <PropertyColumn Property="x => x.ChipQuantity" Title="チップ数" />
+        <PropertyColumn Property="x => x.LotLastUpdate" Title="最終更新" />
     </Columns>
     <NoRecordsContent>
-        @if (!_loading && _response is not null)
+        @if (!_loading)
         {
-            <MudText>該当データがありません。</MudText>
-        }
-        else if (!_loading)
-        {
-            <MudText Color="Color.Secondary">再表示ボタンを押してください。</MudText>
+            <MudText Color="Color.Secondary">データがありません。</MudText>
         }
     </NoRecordsContent>
-    <LoadingContent>
-        <MudText>読み込み中...</MudText>
-    </LoadingContent>
 </MudDataGrid>
 
-@* ── 選択ロット詳細 ───────────────────────────────────────── *@
-@if (_selectedLot is not null)
-{
-    <MudPaper Class="mt-2 pa-3" Elevation="1">
-        <MudText Typo="Typo.subtitle2" Class="mb-1">選択ロット詳細</MudText>
-        <MudGrid Spacing="1">
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>ロットID：</b>@_selectedLot.LotId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>キャリアID：</b>@_selectedLot.CarrierId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>機種：</b>@_selectedLot.PdId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>状態：</b>@_selectedLot.Status</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>大工程：</b>@_selectedLot.OpId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>小工程：</b>@_selectedLot.StepId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>レシピ：</b>@_selectedLot.RecipeId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>WF枚数：</b>@_selectedLot.WfNum</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>ローダキャリア：</b>@_selectedLot.LCarrierId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>アンローダキャリア：</b>@_selectedLot.UCarrierId</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>時間制限：</b>@_selectedLot.LimitTime</MudText></MudItem>
-            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>最終更新：</b>@_selectedLot.LotLastUpdate</MudText></MudItem>
-        </MudGrid>
-    </MudPaper>
-}
-
 @code {
-    private LotListService.LotListRequest _req    = new();
+    private LotListService.LotListRequest _req = new();
     private LotListService.LotListResponse? _response;
-    private LotListService.LotInfo?         _selectedLot;
-    private string _filterStatus = "";
-    private bool   _loading;
-
-    private IEnumerable<LotListService.LotInfo> FilteredItems =>
-        (_response?.LotList ?? [])
-        .Where(x => string.IsNullOrEmpty(_filterStatus) || x.Status == _filterStatus);
-
-    protected override async Task OnInitializedAsync()
-    {
-        // 初期ロードは行わない（ユーザーが装置IDを指定してから再表示）
-        await Task.CompletedTask;
-    }
+    private bool _loading;
+    private string _error = string.Empty;
 
     private async Task LoadAsync()
     {
-        _loading      = true;
-        _selectedLot  = null;
-        _response     = null;
-        StateHasChanged();
+        _loading = true;
+        _error = string.Empty;
 
         try
         {
             _response = await LotListSvc.GetLotListAsync(_req);
-
             if (!_response.IsSuccess)
             {
+                _error = _response.ErrorMessage;
                 Snackbar.Add(_response.ErrorMessage, Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add($"{_response.LotList.Count} 件取得", Severity.Success);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"エラー: {ex.Message}", Severity.Error);
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -243,23 +126,8 @@
 
     private void ClearFilter()
     {
-        _req          = new();
-        _filterStatus = "";
-        _response     = null;
-        _selectedLot  = null;
+        _req = new();
+        _response = null;
+        _error = string.Empty;
     }
-
-    private void OnRowSelected(LotListService.LotInfo lot) => _selectedLot = lot;
-
-    private static Color GetStatusColor(string status) => status switch
-    {
-        "処理中"   => Color.Success,
-        "前処理中" => Color.Info,
-        "後処理中" => Color.Info,
-        "処理待"   => Color.Warning,
-        "前処理待" => Color.Warning,
-        "後処理待" => Color.Warning,
-        "保留"     => Color.Error,
-        _          => Color.Default,
-    };
 }

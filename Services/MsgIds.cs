@@ -1,41 +1,33 @@
-namespace MudBlazorSpirytusTerm.Services;
+﻿namespace MudBlazorSpirytusTerm.Services;
 
 /// <summary>
-/// VBソースの CPstr*** メッセージID定数に相当する。
-/// CtsbasxxCM0010.vb の宣言を C# 定数に変換したもの。
+/// VBソースの CPstr*** メッセージID定数に対応する。
 /// </summary>
 public static class MsgIds
 {
-    // ──────── ロット ────────
-    public const string LotList        = "lot_.list____";  // CPstrlot_list____
-    public const string LotListAld     = "lot_.listald_";  // CPstrlot_listald_
-    public const string LotChgCtlwp    = "lot_.chgctlwp";  // CPstrlot_chgctlwp
+    public const string LotList = "lot_.list____";
+    public const string LotListAld = "lot_.listald_";
+    public const string LotChgCtlwp = "lot_.chgctlwp";
 
-    // ──────── 装置・エリア ────────
-    public const string EqState        = "eq__.state___";  // CPstreq__state___
-    public const string EqAreaCurList  = "eq__.areacurlist"; // CPstreq__areacurlist
-    public const string MasMcGroupList = "mas_.mcgrouplist"; // CPstrmas_mcgrouplist
+    public const string EqState = "eq__.state___";
+    public const string EqAreaCurList = "eq__.areacurlist";
+    public const string MasMcGroupList = "mas_.mcgrouplist";
 
-    // ──────── 作業 ────────
-    public const string WrkStart       = "wrk_.start___";
-    public const string WrkEnd         = "wrk_.end_____";
-    public const string PrcStart       = "prc_.start___";
-    public const string PrcEnd         = "prc_.end_____";
+    public const string WrkStart = "wrk_.start___";
+    public const string WrkEnd = "wrk_.end_____";
+    public const string PrcStart = "prc_.start___";
+    public const string PrcEnd = "prc_.end_____";
 
-    // ──────── キャリア ────────
-    public const string CarrList       = "carr.list____"; // CPstrcarrlist____
-    public const string CarrCurState   = "carr.curstate"; // CPstrcarrcurstate
-    public const string CarrManuOutPort = "carr.manuoutport"; // CPstrcarrmanuoutport
+    public const string CarrList = "carr.list____";
+    public const string CarrCurState = "carr.curstate";
+    public const string CarrManuOutPort = "carr.manuoutport";
 
-    // ──────── ダミー ────────
-    public const string DumyCarOut     = "dumy.carout__"; // CPstrdumycarout__
+    public const string DumyCarOut = "dumy.carout__";
 
-    // ──────── バッチ ────────
-    public const string BatLotList     = "bat_.lotlist_"; // CPstrbat_lotlist_
-    public const string BatPrcStart    = "bat_.prcstart"; // CPstrbat_prcstart
-    public const string BatPrcEnd      = "bat_.prcend__"; // CPstrbat_prcend__
+    public const string BatLotList = "bat_.lotlist_";
+    public const string BatPrcStart = "bat_.prcstart";
+    public const string BatPrcEnd = "bat_.prcend__";
 
-    // ──────── ユーティリティ ────────
-    public const string UtilRefTmInfo  = "util.reftminfo"; // CPstrutilreftminfo
-    public const string UtilRegTmInfo  = "util.regtminfo"; // CPstrutilregtminfo
+    public const string UtilRefTmInfo = "util.reftminfo";
+    public const string UtilRegTmInfo = "util.regtminfo";
 }
