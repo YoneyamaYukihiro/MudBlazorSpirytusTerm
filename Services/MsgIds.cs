@@ -7,14 +7,14 @@ namespace MudBlazorSpirytusTerm.Services;
 public static class MsgIds
 {
     // ──────── ロット ────────
-    public const string LotList        = "lot.list____";   // CPstrlot_list____
-    public const string LotListAld     = "lot.listald_";   // CPstrlot_listald_
-    public const string LotChgCtlwp   = "lot.chgctlwp";   // CPstrlot_chgctlwp
+    public const string LotList        = "lot_.list____";  // CPstrlot_list____
+    public const string LotListAld     = "lot_.listald_";  // CPstrlot_listald_
+    public const string LotChgCtlwp    = "lot_.chgctlwp";  // CPstrlot_chgctlwp
 
     // ──────── 装置・エリア ────────
     public const string EqState        = "eq__.state___";  // CPstreq__state___
     public const string EqAreaCurList  = "eq__.areacurlist"; // CPstreq__areacurlist
-    public const string MasMcGroupList = "mas_.McGrouplist"; // CPstrmas_McGrouplist
+    public const string MasMcGroupList = "mas_.mcgrouplist"; // CPstrmas_mcgrouplist
 
     // ──────── 作業 ────────
     public const string WrkStart       = "wrk_.start___";
