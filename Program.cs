@@ -1,29 +1,39 @@
 using MudBlazor.Services;
 using MudBlazorSpirytusTerm.Components;
+using MudBlazorSpirytusTerm.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add MudBlazor services
+// ── MudBlazor ────────────────────────────────────────────────────
 builder.Services.AddMudServices();
 
-// Add services to the container.
+// ── Blazor ───────────────────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// ── ActiveMQ / SPIRYTUS サービス ─────────────────────────────────
+builder.Services.Configure<ActiveMqOptions>(
+    builder.Configuration.GetSection(ActiveMqOptions.SectionName));
+
+// SpirytusMqService は接続を保持するためシングルトン
+builder.Services.AddSingleton<SpirytusMqService>();
+
+// 各画面サービスはスコープ（リクエスト単位）
+builder.Services.AddScoped<LotListService>();
+
+// ─────────────────────────────────────────────────────────────────
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ── パイプライン ──────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-
 app.UseHttpsRedirection();
-
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
