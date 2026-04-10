@@ -1,10 +1,12 @@
-﻿
+
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-    
-    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
-
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">メインメニュー</MudNavLink>
+    <MudDivider Class="my-2" />
+    <MudText Typo="Typo.overline" Class="px-4 mud-text-secondary">流動系</MudText>
+    <MudNavLink Href="/lot-list" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">装置別ロット一覧</MudNavLink>
+    <MudNavLink Href="/work-start" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PlayArrow">作業開始</MudNavLink>
+    <MudDivider Class="my-2" />
+    <MudText Typo="Typo.overline" Class="px-4 mud-text-secondary">その他</MudText>
+    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">カウンター</MudNavLink>
+    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.WbSunny">天気</MudNavLink>
 </MudNavMenu>
-
-

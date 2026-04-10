@@ -1,0 +1,180 @@
+@page "/lot-list"
+@rendermode InteractiveServer
+
+<PageTitle>SPIRYTUS - 装置別ロット一覧</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-2">装置別ロット一覧 (EN0150)</MudText>
+
+<MudPaper Class="mb-3 pa-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="Center">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField @bind-Value="_filterEquipGroup"
+                          Label="装置グループ"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField @bind-Value="_filterLotId"
+                          Label="ロットID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect @bind-Value="_filterStatus"
+                       Label="状態"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense">
+                <MudSelectItem Value="@("")">全て</MudSelectItem>
+                <MudSelectItem Value="@("前処理待")">前処理待</MudSelectItem>
+                <MudSelectItem Value="@("前処理中")">前処理中</MudSelectItem>
+                <MudSelectItem Value="@("処理待")">処理待</MudSelectItem>
+                <MudSelectItem Value="@("処理中")">処理中</MudSelectItem>
+                <MudSelectItem Value="@("後処理待")">後処理待</MudSelectItem>
+                <MudSelectItem Value="@("後処理中")">後処理中</MudSelectItem>
+                <MudSelectItem Value="@("保留")">保留</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="12" md="3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadData"
+                       FullWidth="true">
+                再表示
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudDataGrid T="LotInfo"
+             Items="@FilteredItems"
+             Dense="true"
+             Striped="true"
+             Hover="true"
+             Bordered="true"
+             FixedHeader="true"
+             Height="calc(100vh - 320px)"
+             SortMode="SortMode.Multiple"
+             FilterMode="DataGridFilterMode.ColumnFilterRow"
+             SelectedItemChanged="OnRowSelected">
+    <Columns>
+        <PropertyColumn Property="x => x.No"          Title="№"          InitialDirection="SortDirection.Ascending" />
+        <PropertyColumn Property="x => x.HoldStopKbn" Title="保/停区分"   CellStyle="font-size:0.75rem" />
+        <PropertyColumn Property="x => x.Status"      Title="状態">
+            <CellTemplate>
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@GetStatusColor(context.Item.Status)"
+                         Label="true">
+                    @context.Item.Status
+                </MudChip>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.CarrierId"   Title="キャリアID"   />
+        <PropertyColumn Property="x => x.CarrierPos"  Title="キャリア位置" />
+        <PropertyColumn Property="x => x.LotId"       Title="ロットID"    />
+        <PropertyColumn Property="x => x.ProductId"   Title="機種"        />
+        <PropertyColumn Property="x => x.FlowClass"   Title="種別"        />
+        <PropertyColumn Property="x => x.WfId"        Title="WFID"        />
+        <PropertyColumn Property="x => x.Priority"    Title="優先"        />
+        <PropertyColumn Property="x => x.OpId"        Title="大工程"      />
+        <PropertyColumn Property="x => x.StepId"      Title="小工程"      />
+        <PropertyColumn Property="x => x.Recipe"      Title="レシピ"      />
+        <PropertyColumn Property="x => x.WfCount"     Title="WF枚数"      />
+        <PropertyColumn Property="x => x.LotManager"  Title="ロット担当"  />
+        <PropertyColumn Property="x => x.LastUpdate"  Title="最終更新"    Format="MM/dd HH:mm:ss" />
+    </Columns>
+    <NoRecordsContent>
+        <MudText>該当データがありません。</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>読み込み中...</MudText>
+    </LoadingContent>
+</MudDataGrid>
+
+@if (_selectedLot is not null)
+{
+    <MudPaper Class="mt-3 pa-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">選択ロット詳細</MudText>
+        <MudGrid Spacing="1">
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>ロットID：</b>@_selectedLot.LotId</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>キャリアID：</b>@_selectedLot.CarrierId</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>機種：</b>@_selectedLot.ProductId</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>状態：</b>@_selectedLot.Status</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>大工程：</b>@_selectedLot.OpId</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>小工程：</b>@_selectedLot.StepId</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>レシピ：</b>@_selectedLot.Recipe</MudText></MudItem>
+            <MudItem xs="6" md="3"><MudText Typo="Typo.body2"><b>WF枚数：</b>@_selectedLot.WfCount</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    private string _filterEquipGroup = "";
+    private string _filterLotId = "";
+    private string _filterStatus = "";
+    private LotInfo? _selectedLot;
+    private List<LotInfo> _allItems = [];
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+    }
+
+    private void LoadData()
+    {
+        // サンプルデータ（実際はAPIから取得）
+        _allItems =
+        [
+            new(1,  "",   "処理中",   "CA001", "LOAD-01",  "LOT-2025-001", "PROD-A",  "基板", "WF001", 1,  "CVD工程",  "CVD-01",    "RECIPE-001", 25, "田中",    DateTime.Now.AddMinutes(-30)),
+            new(2,  "",   "処理待",   "CA002", "STOCKER-1","LOT-2025-002", "PROD-B",  "基板", "WF002", 2,  "PVD工程",  "PVD-01",    "RECIPE-002", 20, "鈴木",    DateTime.Now.AddMinutes(-45)),
+            new(3,  "保", "保留",     "CA003", "STOCKER-2","LOT-2025-003", "PROD-A",  "組立", "WF003", 3,  "組立工程", "ASSEM-01",  "RECIPE-003", 30, "佐藤",    DateTime.Now.AddMinutes(-60)),
+            new(4,  "",   "前処理中", "CA004", "LOAD-02",  "LOT-2025-004", "PROD-C",  "基板", "WF004", 1,  "CVD工程",  "CVD-02",    "RECIPE-001", 18, "伊藤",    DateTime.Now.AddMinutes(-15)),
+            new(5,  "",   "後処理待", "CA005", "UNLOAD-01","LOT-2025-005", "PROD-D",  "基板", "WF005", 2,  "PVD工程",  "PVD-02",    "RECIPE-004", 22, "渡辺",    DateTime.Now.AddMinutes(-20)),
+            new(6,  "",   "処理待",   "CA006", "STOCKER-3","LOT-2025-006", "PROD-A",  "基板", "WF006", 1,  "CVD工程",  "CVD-01",    "RECIPE-001", 25, "田中",    DateTime.Now.AddMinutes(-90)),
+            new(7,  "",   "処理中",   "CA007", "LOAD-03",  "LOT-2025-007", "PROD-B",  "組立", "WF007", 3,  "組立工程", "ASSEM-02",  "RECIPE-005", 28, "中村",    DateTime.Now.AddMinutes(-10)),
+            new(8,  "停", "保留",     "CA008", "STOCKER-4","LOT-2025-008", "PROD-E",  "基板", "WF008", 4,  "洗浄工程", "WASH-01",   "RECIPE-006", 15, "小林",    DateTime.Now.AddMinutes(-120)),
+            new(9,  "",   "後処理中", "CA009", "UNLOAD-02","LOT-2025-009", "PROD-A",  "基板", "WF009", 1,  "CVD工程",  "CVD-03",    "RECIPE-001", 25, "加藤",    DateTime.Now.AddMinutes(-5)),
+            new(10, "",   "処理待",   "CA010", "STOCKER-5","LOT-2025-010", "PROD-C",  "組立", "WF010", 2,  "組立工程", "ASSEM-01",  "RECIPE-003", 30, "吉田",    DateTime.Now.AddMinutes(-35)),
+        ];
+    }
+
+    private IEnumerable<LotInfo> FilteredItems => _allItems.Where(x =>
+        (string.IsNullOrEmpty(_filterLotId) || x.LotId.Contains(_filterLotId, StringComparison.OrdinalIgnoreCase)) &&
+        (string.IsNullOrEmpty(_filterStatus) || x.Status == _filterStatus));
+
+    private void OnRowSelected(LotInfo lot) => _selectedLot = lot;
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "処理中"   => Color.Success,
+        "前処理中" => Color.Info,
+        "後処理中" => Color.Info,
+        "処理待"   => Color.Warning,
+        "前処理待" => Color.Warning,
+        "後処理待" => Color.Warning,
+        "保留"     => Color.Error,
+        _          => Color.Default,
+    };
+
+    private record LotInfo(
+        int      No,
+        string   HoldStopKbn,
+        string   Status,
+        string   CarrierId,
+        string   CarrierPos,
+        string   LotId,
+        string   ProductId,
+        string   FlowClass,
+        string   WfId,
+        int      Priority,
+        string   OpId,
+        string   StepId,
+        string   Recipe,
+        int      WfCount,
+        string   LotManager,
+        DateTime LastUpdate
+    );
+}
