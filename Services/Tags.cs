@@ -152,6 +152,171 @@ public static class Tags
     public const string AfterCleanUseCount   = "AFTER_CLEAN_USE_COUNT";
     public const string SlotSize             = "SLOT_SIZE";
 
+    // ──────── ロット属性 (lot_.attribute / lot_.chgattribute / lot_.cancelplan) ────────
+    public const string OrderNum                = "ORDER_NUM";
+    public const string GrbClass                = "GRB_CLASS";
+    public const string EntryId                 = "ENTRY_ID";
+    public const string EntryName               = "ENTRY_NAME";
+    public const string SpecialFlag             = "S_FLAG";
+    public const string MaxWfCount              = "MAX_WF_COUNT";
+    public const string EngEmpId                = "ENG_EMP_ID";
+    public const string LotPriorityName         = "LOT_PRIORITY_NAME";
+    public const string PrOrderId               = "PR_ORDER_ID";
+    public const string LotSendFlag             = "LOT_SEND_FLAG";
+    public const string SendSbName              = "SEND_SB_NAME";
+    public const string CfFlag                  = "CF_FLAG";
+    public const string LpFlag                  = "LP_FLAG";
+    public const string DivideFlag              = "DIVIDE_FLAG";
+    public const string PlanShipDate            = "PLAN_SHIP_DATE";
+    public const string FirstPhotoWpId          = "FIRST_PHOTO_WP_ID";
+    public const string FirstPhotoWpName        = "FIRST_PHOTO_WP_NAME";
+    public const string PlanThrowinDate         = "PLAN_THROWIN_DATE";
+    public const string PlanThrowinQuantity     = "PLAN_THROWIN_QUANTITY";
+    public const string PlanAssThrowinDate      = "PLAN_ASSEMBLE_THROWIN_DATE";
+    public const string SectionPriorityFlag     = "SECTION_PRIORITY_FLAG";
+    public const string AtlasFlowNumber         = "ATLAS_FLOW_NUMBER";
+    public const string ScreenSizeId            = "SCREEN_SIZE_ID";
+    public const string CfScreenSizeId          = "CF_SCREEN_SIZE_ID";
+
+    // ──────── 装置モード変更 (eq__.chgmode_ / eq__.chguse__ / etc.) ────────
+    public const string OldUseId            = "OLD_USE_ID";
+    public const string EntryTime           = "ENTRY_TIME";
+    public const string MessageId           = "MESSAGE_ID";
+    public const string MessageText         = "MESSAGE";           // CPstrMESSAGE
+    public const string UseList             = "USE_LIST";
+    public const string UseEnableMode       = "USE_ENABLE_MODE";
+    public const string UseStopFlag         = "USE_STOP_FLAG";
+    public const string NormalStateFlag     = "NORMAL_STATE_FLAG";
+    public const string CollectTypeList     = "COLLECT_TYPE_LIST";
+    public const string CollectTypeNum      = "COLLECT_TYPE_NUM";
+    public const string TransServiceStatus  = "TRANS_SERVICE_STATUS";
+    public const string ChamberId           = "CHAMBER_ID";
+    public const string ChamberUseId        = "CHAMBER_USE_ID";
+    public const string ChamberUseList      = "CHAMBER_USE_LIST";
+    public const string ProcessingList      = "PROCESSING_LIST";
+    public const string ProcessingName      = "PROCESSING_NAME";
+    public const string DispOnFlag          = "DISP_ON_FLAG";
+    public const string ProcessingUseList   = "PROCESSING_USE_LIST";
+    public const string OldChamberId        = "OLD_CHAMBER_ID";
+    public const string OldChamberUseId     = "OLD_CHAMBER_USE_ID";
+    public const string EditTime            = "EDIT_TIME";
+    public const string MsgList             = "MSG_LIST";
+    public const string No                  = "NO";
+
+    // ──────── アクション予約 (mas_.stepusedwplist / lot_.traveler / mas_.pdtraveler / lot_.actinfo_ / lot_.actrsv__ / lot_.delact__) ────────
+    public const string WfActionFlag         = "WF_ACTION_FLAG";
+    public const string StepList             = "STEP_LIST";
+    public const string StepNum              = "STEP_NUM";
+    public const string AltStepFlag          = "ALT_STEP_FLAG";
+    public const string ReworkStepFlag       = "REWORK_STEP_FLAG";
+    public const string ReworkRouteId        = "REWORK_ROUTE_ID";
+    public const string SpecialStepFlag      = "SPECIAL_STEP_FLAG";
+    public const string SpecialRouteId       = "SPECIAL_ROUTE_ID";
+    public const string LotActionTypeId      = "LOT_ACTION_TYPE_ID";
+    public const string ItemName             = "ITEM_NAME";
+    public const string ActionTrigger        = "ACTION_TRIGGER";
+    public const string LotActionId          = "LOT_ACTION_ID";
+    public const string WorkDirectionId      = "WORK_DIRECTION_ID";
+    public const string StopHoldFlag         = "STOP_HOLD_FLAG";
+    public const string HoldReasonId         = "HOLD_REASON_ID";
+    public const string EndTime              = "END_TIME";
+    public const string HoldComments         = "HOLD_COMMENTS";
+    public const string HoldPeriod           = "HOLD_PERIOD";
+    public const string HoldEmpId            = "HOLD_EMP_ID";
+    public const string HoldEmpName          = "HOLD_EMP_NAME";
+    public const string WfList               = "WF_LIST";
+    public const string ExecTime             = "EXEC_TIME";
+
+    // ──────── 在庫管理 (lot_.asmdivide / lot_.holdlist / inv_.* / lot_.cancelsend / lot_.send____) ────────
+    public const string DivideWfMapList      = "DIVIDE_WF_MAP_LIST";
+    public const string DivideWfMapList2     = "DIVIDE_WF_MAP_LIST2";
+    public const string SlotPosition         = "SLOT_POSITION";
+    public const string DivideLotId1         = "DIVIDE_LOT_ID1";
+    public const string DivideLotId2         = "DIVIDE_LOT_ID2";
+    public const string ToCarrierId1         = "TO_CARRIER_ID1";
+    public const string ToCarrierId2         = "TO_CARRIER_ID2";
+    public const string FlowClassId          = "FLOW_CLASS_ID";
+    public const string WfQuantity           = "WF_QUANTITY";
+    public const string StayTime             = "STAY_TIME";
+    public const string RecordTime           = "RECORD_TIME";
+    public const string EmpName              = "EMP_NAME";
+    public const string ReasonCode           = "REASON_CODE";
+    public const string ReasonName           = "REASON_NAME";
+    public const string HoldStayDate         = "HOLD_STAY_DATE";
+    public const string HoldTermDate         = "HOLD_TERM_DATE";
+    public const string SbName               = "SB_NAME";
+    public const string AtlasPoint           = "ATLAS_POINT";
+    public const string SendAtlasPoint       = "SEND_ATLAS_POINT";
+    public const string SendDate             = "SEND_DATE";
+    public const string BoxNo                = "BOX_NO";
+    public const string ExtPartCode          = "EXT_PART_CODE";
+    public const string AtlasOrderNo         = "ATLAS_ORDER_NO";
+    public const string InvComments          = "INV_COMMENTS";
+    public const string WfThrowinDate        = "WF_THROWIN_DATE";
+    public const string WfThrowinQuantity    = "WF_THROWIN_QUANTITY";
+    public const string WfFinishDate         = "WF_FINISH_DATE";
+    public const string WfFinishQuantity     = "WF_FINISH_QUANTITY";
+    public const string WfOutQuantity        = "WF_OUT_QUANTITY";
+    public const string WfIssueQuantity      = "WF_ISSUE_QUANTITY";
+    public const string ChipThrowinQuantity  = "CHIP_THROWIN_QUANTITY";
+    public const string ChipOutQuantity      = "CHIP_OUT_QUANTITY";
+    public const string GoodChipRatio        = "GOOD_CHIP_RATIO";
+    public const string RegenerationCount    = "REGENERATION_COUNT";
+    public const string ThicknessList        = "THICKNESS_LIST";
+    public const string ThicknessCode        = "THICKNESS_CODE";
+    public const string EventClass           = "EVENT_CLASS";
+
+    // ──────── ロット投入予約 (lot_.throwrsv / lot_.approve_) ────────
+    public const string CopySeqLotId         = "COPY_SEQ_LOT_ID";
+    public const string MasPdVersion         = "MAS_PD_VERSION";
+
+    // ──────── 流動票バージョンアップ (lot_.chgtrvlist / lot_.chgtraveler / lot_.chgtrvprohibit / lot_.chkContEtApc) ────────
+    public const string LotFlowStatusId      = "LOT_FLOW_STATUS_ID";
+    public const string PdList               = "PD_LIST";
+    public const string FlowClassList        = "FLOW_CLASS_LIST";
+    public const string CommitFlag           = "COMMIT_FLAG";
+    public const string ProcChangeFlag       = "PROC_CHANGE_FLAG";
+    public const string VersionChangeFlag    = "VERSION_CHANGE_FLAG";
+    public const string WfRecipeFlag         = "WF_RECIPE_FLAG";
+    public const string LotRecipeFlag        = "LOT_RECIPE_FLAG";
+    public const string MasEntryId           = "MAS_ENTRY_ID";
+    public const string SwapFlag             = "SWAP_FLAG";
+    public const string AltFlag              = "ALT_FLAG";
+    public const string WfCarryFlag          = "WF_CARRY_FLAG";
+    public const string VerUpProhibitedFlag  = "VERUP_PROHIBITED_FLAG";
+    public const string ProhibitedEmpName    = "PROHIBITED_EMP_NAME";
+    public const string ProhibitedDeptName   = "PROHIBITED_DEPT_NAME";
+    public const string ReworkCount          = "REWORK_COUNT";
+    public const string SamplingFlag         = "SAMPLING_FLAG";
+    public const string Result               = "RESULT";
+
+    // ──────── ロット流動票 (lot_.detaillist / lot_.eventcomment / lot_.userecp_) ────────
+    public const string StartSeqNum          = "START_SEQ_NUM";
+    public const string BeforeNum            = "BEFORE_NUM";
+    public const string AfterNum             = "AFTER_NUM";
+    public const string CurrentSeqNum        = "CURRENT_SEQ_NUM";
+    public const string HoldFlag             = "HOLD_FLAG";
+    public const string LastSeqNum           = "LAST_SEQ_NUM";
+    public const string DetailList           = "DETAIL_LIST";
+    public const string SeqNum               = "SEQ_NUM";
+    public const string CollectionFlag       = "COLLECTION_FLAG";
+    public const string ChipNum              = "CHIP_NUM";
+    public const string StartEmpName         = "START_EMP_NAME";
+    public const string EndEmpName           = "END_EMP_NAME";
+    public const string CommentFlag          = "COMMENT_FLAG";
+    public const string CommentTime          = "COMMENT_TIME";
+    public const string CdenClass            = "CDEN_CLASS";
+    public const string PortName             = "PORT_NAME";
+    public const string SelectConditionId    = "SELECT_CONDITION_ID";
+    public const string HistoryFlag          = "HISTORY_FLAG";
+    public const string RecipeList           = "RECIPE_LIST";
+    public const string DefaultFlag          = "DEFAULT_FLAG";
+    public const string RecipeComments       = "RECIPE_COMMENTS";
+    public const string RecipeBodyList       = "RECIPE_BODY_LIST";
+    public const string RecipeValue          = "RECIPE_VALUE";
+    public const string RecipeItem           = "RECIPE_ITEM";
+    public const string ValueType            = "VALUE_TYPE";
+
     // ──────── バッチ ────────
     public const string BatchId              = "BATCH_ID";
     public const string BatchList            = "BATCH_LIST";

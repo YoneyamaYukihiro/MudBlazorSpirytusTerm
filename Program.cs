@@ -24,6 +24,13 @@ builder.Services.AddScoped<LotActionService>();
 builder.Services.AddScoped<WorkService>();
 builder.Services.AddScoped<CarrierService>();
 builder.Services.AddScoped<BatchService>();
+builder.Services.AddScoped<EquipmentModeService>();
+builder.Services.AddScoped<LotAttributeService>();
+builder.Services.AddScoped<LotActionReservationService>();
+builder.Services.AddScoped<LotDetailListService>();
+builder.Services.AddScoped<LotTravelerVersionUpService>();
+builder.Services.AddScoped<LotThrowRsvService>();
+builder.Services.AddScoped<InventoryService>();
 
 var app = builder.Build();
 
