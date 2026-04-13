@@ -1,0 +1,240 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="vsfOpList.ColumnInfo" xml:space="preserve">
+    <value>3,0,0,0,0,105,Columns:0{Width:33;Caption:"№";Style:"DataType:System.Decimal;";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:367;Caption:"大工程名";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:60;Caption:"状態";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfOpList.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:Window;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Highlight;ForeColor:HighlightText;Trimming:EllipsisCharacter;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfStepList.ColumnInfo" xml:space="preserve">
+    <value>3,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:367;Caption:"小工程名";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:72;Caption:"状態";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfStepList.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:Window;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Highlight;ForeColor:HighlightText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfConditionList1.ColumnInfo" xml:space="preserve">
+    <value>9,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:250;Caption:"処理条件セットID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:67;Caption:"Ver.";Style:"DataType:System.Int32;TextAlign:GeneralCenter;";StyleFixed:"TextAlign:CenterCenter;";}	3{Width:72;Caption:"状態";StyleFixed:"TextAlign:CenterCenter;";}	4{Width:72;Caption:"作業条件";StyleFixed:"TextAlign:CenterCenter;";}	5{Width:72;Caption:"ｽｷｯﾌﾟﾌﾗｸﾞ";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;ImageAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	6{Width:72;Caption:"ﾎﾟｰﾄ属性";StyleFixed:"TextAlign:CenterCenter;";}	7{Width:72;Caption:"移載ﾓｰﾄﾞ";StyleFixed:"TextAlign:CenterCenter;";}	8{Width:72;Caption:"最新Verﾌﾗｸﾞ";Visible:False;Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;ImageAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfConditionList1.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:Window;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Highlight;ForeColor:HighlightText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfConditionList2.ColumnInfo" xml:space="preserve">
+    <value>7,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:138;Caption:"装置名";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:88;Caption:"WFID";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	3{Width:133;Caption:"レシピ";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	4{Width:72;Caption:"ﾃﾞﾌｫﾙﾄﾌﾗｸﾞ";Visible:False;}	5{Width:72;Caption:"装置ID";Visible:False;}	6{Width:72;Caption:"ﾚｼﾋﾟﾊﾞｰｼﾞｮﾝ";Visible:False;}	</value>
+  </data>
+  <data name="vsfConditionList2.StyleInfo" xml:space="preserve">
+    <value>Normal{BackColor:224, 224, 224;Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:224, 224, 224;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:192, 192, 255;ForeColor:WindowText;}	Focus{BackColor:224, 224, 224;ForeColor:WindowText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfConditionList3.ColumnInfo" xml:space="preserve">
+    <value>7,0,0,0,0,105,Columns:0{Width:33;Caption:"№";Visible:False;StyleFixed:"TextAlign:CenterCenter;";}	1{Width:138;Caption:"装置名";Visible:False;Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:88;Caption:"WFID";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	3{Width:133;Caption:"レシピ";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	4{Width:72;Caption:"ﾃﾞﾌｫﾙﾄﾌﾗｸﾞ";Visible:False;}	5{Width:72;Caption:"装置ID";Visible:False;}	6{Width:72;Caption:"ﾚｼﾋﾟﾊﾞｰｼﾞｮﾝ";Visible:False;}	</value>
+  </data>
+  <data name="vsfConditionList3.StyleInfo" xml:space="preserve">
+    <value>Normal{BackColor:224, 224, 224;Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:224, 224, 224;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:192, 192, 255;ForeColor:WindowText;}	Focus{BackColor:224, 224, 224;ForeColor:WindowText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfConditionWP.ColumnInfo" xml:space="preserve">
+    <value>4,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:26;Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:72;Caption:"WPID";Visible:False;StyleFixed:"TextAlign:CenterCenter;";}	3{Width:167;Caption:"装置名";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfConditionWP.StyleInfo" xml:space="preserve">
+    <value>Normal{BackColor:224, 224, 224;Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:224, 224, 224;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:192, 192, 255;ForeColor:WindowText;}	Focus{BackColor:224, 224, 224;ForeColor:WindowText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfSelectCondition.ColumnInfo" xml:space="preserve">
+    <value>8,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:255;Caption:"WF選択条件";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:72;Caption:"選択ルール";Visible:False;}	3{Width:72;Caption:"スロットNo";Visible:False;}	4{Width:72;Caption:"WF枚数上";Visible:False;}	5{Width:72;Caption:"WF枚数中";Visible:False;}	6{Width:72;Caption:"WF枚数下";Visible:False;}	7{Width:72;Caption:"ユーザ選択";Visible:False;}	</value>
+  </data>
+  <data name="vsfSelectCondition.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:None;}	Alternate{BackColor:White;}	Fixed{BackColor:Navy;ForeColor:Yellow;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Highlight;ForeColor:HighlightText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfCollectionPara.ColumnInfo" xml:space="preserve">
+    <value>2,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:133;Caption:"パラメータID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfCollectionPara.StyleInfo" xml:space="preserve">
+    <value>Normal{BackColor:224, 224, 224;Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:224, 224, 224;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:192, 192, 255;ForeColor:WindowText;}	Focus{BackColor:224, 224, 224;ForeColor:WindowText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfCollectionList.ColumnInfo" xml:space="preserve">
+    <value>4,0,0,0,0,105,Columns:0{Width:33;Caption:"№";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:287;Caption:"作業記録セットID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:67;Caption:"Ver.";StyleFixed:"TextAlign:CenterCenter;";}	3{Width:60;Caption:"状態";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfCollectionList.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:Window;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Highlight;ForeColor:HighlightText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfScrapList.ColumnInfo" xml:space="preserve">
+    <value>2,0,0,0,0,105,Columns:0{Width:56;Caption:"表示順";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:133;Caption:"不良項目";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfScrapList.StyleInfo" xml:space="preserve">
+    <value>Normal{Display:Stack;BackColor:224, 224, 224;Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:224, 224, 224;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:192, 192, 255;ForeColor:MenuText;}	Focus{BackColor:224, 224, 224;ForeColor:MenuText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfLotScrapSetID.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:None;}	Alternate{BackColor:White;}	Fixed{BackColor:Navy;ForeColor:Yellow;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Highlight;ForeColor:HighlightText;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Black;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfFlowList0.ColumnInfo" xml:space="preserve">
+    <value>62,0,0,0,0,105,Columns:0{Width:33;Caption:"№";Style:"DataType:System.String;TextAlign:RightCenter;";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:33;Caption:"abs";}	2{Width:120;Caption:"大工程名";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	3{Width:120;Caption:"小工程名";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	4{Width:120;Caption:"処理条件ｾｯﾄID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	5{Width:138;Caption:"処理条件Ver.";StyleFixed:"TextAlign:CenterCenter;";}	6{Width:41;Caption:"個別";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	7{Width:120;Caption:"WF選択条件";Style:"DataType:System.String;";StyleFixed:"TextAlign:CenterCenter;";}	8{Width:120;Caption:"作業記録ｾｯﾄID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	9{Width:97;Caption:"収集項目Ver.";StyleFixed:"TextAlign:CenterCenter;";}	10{Width:120;Caption:"不良項目ｾｯﾄID";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	11{Width:87;Caption:"ﾘﾜｰｸﾙｰﾄID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	12{Width:102;Caption:"ﾘﾜｰｸﾙｰﾄ戻り大工程";StyleFixed:"TextAlign:CenterCenter;";}	13{Width:102;Caption:"ﾘﾜｰｸﾙｰﾄ戻り小工程";StyleFixed:"TextAlign:CenterCenter;";}	14{Width:87;Caption:"特殊ﾙｰﾄID";StyleFixed:"TextAlign:CenterCenter;";}	15{Width:102;Caption:"特殊ﾙｰﾄ戻り大工程";StyleFixed:"TextAlign:CenterCenter;";}	16{Width:102;Caption:"特殊ﾙｰﾄ戻り小工程";StyleFixed:"TextAlign:CenterCenter;";}	17{Width:73;Caption:"入替可能工程";Style:"TextAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	18{Width:103;Caption:"入替工程退避";StyleFixed:"TextAlign:CenterCenter;";}	19{Width:96;Caption:"代替工程";Style:"TextAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	20{Width:78;Caption:"代替ﾎﾟｲﾝﾀ";StyleFixed:"TextAlign:CenterCenter;";}	21{Width:102;Caption:"代替開始ﾌﾗｸﾞ";StyleFixed:"TextAlign:CenterCenter;";}	22{Width:104;Caption:"代替終了ﾌﾗｸﾞ";StyleFixed:"TextAlign:CenterCenter;";}	23{Width:78;Caption:"GRB限定工程設定";StyleFixed:"TextAlign:CenterCenter;";}	24{Width:80;Caption:"時間制限";Style:"DataType:System.String;";StyleFixed:"TextAlign:CenterCenter;";}	25{Width:129;Caption:"時間制約Flag";Style:"TextAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	26{Width:94;Caption:"ﾛｯﾄ個別ﾚｼﾋﾟ 設定ﾌﾗｸﾞ";}	27{Width:84;Caption:"WF個別ﾚｼﾋﾟ 設定ﾌﾗｸﾞ";}	28{Width:106;Caption:"特殊特性ﾌﾗｸﾞ";}	29{Width:72;Caption:"ｴﾝﾄﾘID";}	30{Width:67;Caption:"工順変更ﾚｼﾋﾟﾌﾗｸﾞ";}	31{Width:72;Caption:"作業条件";}	32{Width:72;Caption:"号機指定";}	33{Width:72;Caption:"SPC";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	34{Width:72;Caption:"APC設定";}	35{Width:72;Caption:"枚葉設定";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	36{Width:72;Caption:"F/B適用外";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	37{Width:72;Caption:"F/B計算除外";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	38{Width:72;Caption:"TEOS F/B設定グループ№";Style:"TextAlign:CenterCenter;";}	39{Width:72;Caption:"TEOS F/B設定グループ内№";Style:"TextAlign:CenterCenter;";}	40{Width:72;Caption:"TEOS F/B設定計算除外";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	41{Width:72;Caption:"TEOS F/B設定タイプ";Visible:False;}	42{Width:72;Caption:"TEOS PrismAPC設定";}	43{Width:72;Caption:"処理号機";}	44{Width:72;Caption:"号機変更";}	45{Width:72;Caption:"状態(STATE)";}	46{Width:72;Caption:"編集可否(PERMIT)";}	47{Width:72;Caption:"変更区分(CHANGE)";}	48{Width:72;Caption:"大工程有効";}	49{Width:72;Caption:"小工程有効";}	50{Width:72;Caption:"処理条件有効";}	51{Width:72;Caption:"収集項目有効";}	52{Width:72;Caption:"ﾘﾜｰｸﾙｰﾄ有効";}	53{Width:72;Caption:"特殊ﾙｰﾄ有効";}	54{Width:72;Caption:"限定工程設定";}	55{Width:72;Caption:"TPAL設定";Visible:False;}	56{Width:72;Caption:"ｷｬﾘｱｶﾃｺﾞﾘ";Visible:False;}	57{Width:72;Caption:"APC枚葉設定可否";Visible:False;Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 11.25pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	58{Width:72;Caption:"ﾏｯﾌﾟ適用";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	59{Width:72;Caption:"優先度";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	60{Width:72;Caption:"実績報告工程";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	61{Width:94;Caption:"ﾚｼﾋﾟ選択APC設定";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfFlowList0.StyleInfo" xml:space="preserve">
+    <value>Normal{BackColor:Window;Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:White;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Window;ForeColor:WindowText;}	Editor{Trimming:None;}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Window;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <data name="vsfFlowList1.ColumnInfo" xml:space="preserve">
+    <value>62,0,0,0,0,105,Columns:0{Width:33;Caption:"№";Style:"DataType:System.String;TextAlign:RightCenter;";StyleFixed:"TextAlign:CenterCenter;";}	1{Width:33;Caption:"abs";StyleFixed:"TextAlign:CenterCenter;";}	2{Width:120;Caption:"大工程名";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	3{Width:120;Caption:"小工程名";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	4{Width:120;Caption:"処理条件ｾｯﾄID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	5{Width:138;Caption:"処理条件Ver.";StyleFixed:"TextAlign:CenterCenter;";}	6{Width:41;Caption:"個別";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	7{Width:120;Caption:"WF選択条件";Style:"DataType:System.String;";StyleFixed:"TextAlign:CenterCenter;";}	8{Width:120;Caption:"作業記録ｾｯﾄID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	9{Width:97;Caption:"収集項目Ver.";StyleFixed:"TextAlign:CenterCenter;";}	10{Width:120;Caption:"不良項目ｾｯﾄID";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	11{Width:87;Caption:"ﾘﾜｰｸﾙｰﾄID";Style:"DataType:System.String;TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	12{Width:102;Caption:"ﾘﾜｰｸﾙｰﾄ戻り大工程";StyleFixed:"TextAlign:CenterCenter;";}	13{Width:102;Caption:"ﾘﾜｰｸﾙｰﾄ戻り小工程";StyleFixed:"TextAlign:CenterCenter;";}	14{Width:87;Caption:"特殊ﾙｰﾄID";StyleFixed:"TextAlign:CenterCenter;";}	15{Width:102;Caption:"特殊ﾙｰﾄ戻り大工程";StyleFixed:"TextAlign:CenterCenter;";}	16{Width:102;Caption:"特殊ﾙｰﾄ戻り小工程";StyleFixed:"TextAlign:CenterCenter;";}	17{Width:73;Caption:"入替可能工程";Style:"TextAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	18{Width:103;Caption:"入替工程退避";StyleFixed:"TextAlign:CenterCenter;";}	19{Width:96;Caption:"代替工程";Style:"TextAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	20{Width:78;Caption:"代替ﾎﾟｲﾝﾀ";StyleFixed:"TextAlign:CenterCenter;";}	21{Width:102;Caption:"代替開始ﾌﾗｸﾞ";StyleFixed:"TextAlign:CenterCenter;";}	22{Width:104;Caption:"代替終了ﾌﾗｸﾞ";StyleFixed:"TextAlign:CenterCenter;";}	23{Width:93;Caption:"GRB限定工程設定";StyleFixed:"TextAlign:CenterCenter;";}	24{Width:80;Caption:"時間制限";Style:"DataType:System.String;";StyleFixed:"TextAlign:CenterCenter;";}	25{Width:129;Caption:"時間制約Flag";Style:"TextAlign:CenterCenter;";StyleFixed:"TextAlign:CenterCenter;";}	26{Width:94;Caption:"ﾛｯﾄ個別ﾚｼﾋﾟ 設定ﾌﾗｸﾞ";}	27{Width:84;Caption:"WF個別ﾚｼﾋﾟ 設定ﾌﾗｸﾞ";}	28{Width:106;Caption:"特殊特性ﾌﾗｸﾞ";}	29{Width:72;Caption:"ｴﾝﾄﾘID";}	30{Width:67;Caption:"工順変更ﾚｼﾋﾟﾌﾗｸﾞ";}	31{Width:72;Caption:"作業条件";}	32{Width:72;Caption:"号機指定";}	33{Width:72;Caption:"SPC";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	34{Width:72;Caption:"APC設定";}	35{Width:72;Caption:"APC枚葉設定";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	36{Width:72;Caption:"F/B適用外";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	37{Width:72;Caption:"F/B計算除外";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	38{Width:79;Caption:"TEOS F/B設定グループ№";}	39{Width:72;Caption:"TEOS F/B設定グループ内№";}	40{Width:72;Caption:"TEOS F/B設定計算除外";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	41{Width:72;Caption:"TEOS F/B設定タイプ";Visible:False;}	42{Width:72;Caption:"TEOS PrismAPC設定";}	43{Width:72;Caption:"処理号機";}	44{Width:72;Caption:"号機変更";}	45{Width:72;Caption:"状態(STATE)";}	46{Width:72;Caption:"編集可否(PERMIT)";}	47{Width:72;Caption:"変更区分(CHANGE)";}	48{Width:72;Caption:"大工程有効";}	49{Width:72;Caption:"小工程有効";}	50{Width:72;Caption:"処理条件有効";}	51{Width:72;Caption:"収集項目有効";}	52{Width:72;Caption:"ﾜｰｸﾙｰﾄ有効";}	53{Width:72;Caption:"特殊ﾙｰﾄ有効";}	54{Width:72;Caption:"限定工程設定";}	55{Width:72;Caption:"TPAL設定";Visible:False;}	56{Width:72;Caption:"ｷｬﾘｱｶﾃｺﾞﾘ";Visible:False;}	57{Width:72;Caption:"APC枚葉設定可否";Visible:False;Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 11.25pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	58{Width:72;Caption:"ﾏｯﾌﾟ適用";Style:"DataType:System.Boolean;Font:ＭＳ ゴシック, 9pt;TextAlign:LeftCenter;TextEffect:Flat;TextDirection:Normal;ImageAlign:CenterCenter;Trimming:EllipsisCharacter;";}	59{Width:72;Caption:"区間優先度";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	60{Width:72;Caption:"実績報告工程";Style:"TextAlign:LeftCenter;";StyleFixed:"TextAlign:CenterCenter;";}	61{Width:94;Caption:"ﾚｼﾋﾟ選択APC設定";StyleFixed:"TextAlign:CenterCenter;";}	</value>
+  </data>
+  <data name="vsfFlowList1.StyleInfo" xml:space="preserve">
+    <value>Normal{Margins:0, 0, 0, 0;Trimming:EllipsisCharacter;}	Alternate{BackColor:White;}	Fixed{BackColor:Navy;ForeColor:Yellow;Trimming:None;Border:Flat,1,ControlDark,Both;}	Highlight{BackColor:Highlight;ForeColor:HighlightText;}	Focus{BackColor:Window;ForeColor:WindowText;Trimming:EllipsisCharacter;}	Editor{}	Search{BackColor:Highlight;ForeColor:HighlightText;}	Frozen{BackColor:Window;ForeColor:Black;}	FrozenAlternate{}	NewRow{ForeColor:GrayText;}	EmptyArea{BackColor:AppWorkspace;Border:Flat,1,ControlDarkDark,Both;}	SelectedColumnHeader{}	SelectedRowHeader{}	GrandTotal{BackColor:Black;ForeColor:White;}	Subtotal0{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal1{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal2{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal3{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal4{BackColor:ControlDarkDark;ForeColor:White;}	Subtotal5{BackColor:ControlDarkDark;ForeColor:White;}	FilterEditor{}	FirstCustomStyle{}	</value>
+  </data>
+  <metadata name="mnu1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
+  <metadata name="mnu2.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>91, 15</value>
+  </metadata>
+  <metadata name="mnu3.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>183, 17</value>
+  </metadata>
+  <metadata name="mnu4.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>266, 17</value>
+  </metadata>
+  <metadata name="mnu5.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>349, 17</value>
+  </metadata>
+  <metadata name="mnu6.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>431, 17</value>
+  </metadata>
+  <metadata name="mnu7.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>515, 17</value>
+  </metadata>
+  <metadata name="mnu8.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>590, 17</value>
+  </metadata>
+  <metadata name="$this.TrayHeight" type="System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>66</value>
+  </metadata>
+  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
+  <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        AAABAAEAICAQAAEABADoAgAAFgAAACgAAAAgAAAAQAAAAAEABAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAA
+        AAAAAAAAgAAAAPr6+gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABEREREREREREREREREREAARERERER
+        ERERERERERERAAEREREREREREREREREREQABESIiIiIiIiIiIiIiIREAAREiIiIiIRERIiIiIiERAAER
+        IiIiIiERESIiIiIhEQABESIiIiIRERESIiIiIREAAREiERIhERERESIREiERAAERIhIREREREREREhIh
+        EQABESIRERERERERERESIREAAREiEREREREREREREiERAAERIhESIiIiIiIiERIhEQABESIREiIiIiIi
+        IhESIREAAREiERIiIiIiIiIREiERAAERIhESIiIiIiIiERIhEQABESIREiIiIiIiIhESIREAAREiERIi
+        IiIiIiIREiERAAERIhESIiIiIiIiERIhEQABESIREiIiIiIiIhESIREAAREiERIiIiIiIiIREiERAAER
+        IhERERERERERERIhEQABESISERERERERERISIREAAREiERIiIiIiIiIREiERAAERIiIiIiIiIiIiIiIh
+        EQABESIiIiIiIiIiIiIiIREAARERERERERERERERERERAAEREREREREREREREREREQABERERERERERER
+        EREREREAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//////////4AAAAOAAAADgAAAA4AA
+        AAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AA
+        AAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAOAAAADgAAAA4AAAAP//////////w==
+</value>
+  </data>
+</root>

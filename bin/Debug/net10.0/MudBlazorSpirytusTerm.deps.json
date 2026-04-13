@@ -1,0 +1,75 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "MudBlazorSpirytusTerm/1.0.0": {
+        "dependencies": {
+          "MudBlazor": "9.3.0",
+          "System.Resources.Extensions": "10.0.5"
+        },
+        "runtime": {
+          "MudBlazorSpirytusTerm.dll": {}
+        }
+      },
+      "MudBlazor/9.3.0": {
+        "runtime": {
+          "lib/net10.0/MudBlazor.dll": {
+            "assemblyVersion": "9.3.0.0",
+            "fileVersion": "9.3.0.0"
+          }
+        }
+      },
+      "System.Formats.Nrbf/10.0.5": {
+        "runtime": {
+          "lib/net10.0/System.Formats.Nrbf.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.526.15411"
+          }
+        }
+      },
+      "System.Resources.Extensions/10.0.5": {
+        "dependencies": {
+          "System.Formats.Nrbf": "10.0.5"
+        },
+        "runtime": {
+          "lib/net10.0/System.Resources.Extensions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.526.15411"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "MudBlazorSpirytusTerm/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "MudBlazor/9.3.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-7EMI5HRvi7SNh1e80RWoS4yXb71BmJbqyx/ccP5T21q3ceLx5AP+SSIfTzqI5Iv6CbcJQQYLp1uwWtvohIeZrA==",
+      "path": "mudblazor/9.3.0",
+      "hashPath": "mudblazor.9.3.0.nupkg.sha512"
+    },
+    "System.Formats.Nrbf/10.0.5": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-yyh2BSlJZWiEiHI5+l3tFsAPmPMglJHkoHMm6KK94uSgunkonTa64a5JH7QJ8Tzo1moReia7udrIBqHUeKvkag==",
+      "path": "system.formats.nrbf/10.0.5",
+      "hashPath": "system.formats.nrbf.10.0.5.nupkg.sha512"
+    },
+    "System.Resources.Extensions/10.0.5": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-I0kh4mWB3kl/dDKpF0CKvqOvsS74cp/BSji0b3cFP4J5kzDEjPljPlol7GjK9ISHMZMIhcUkpsfwK8Q0msCf0A==",
+      "path": "system.resources.extensions/10.0.5",
+      "hashPath": "system.resources.extensions.10.0.5.nupkg.sha512"
+    }
+  }
+}

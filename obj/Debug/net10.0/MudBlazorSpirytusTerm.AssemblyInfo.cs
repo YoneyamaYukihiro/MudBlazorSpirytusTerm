@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MudBlazorSpirytusTerm")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a5141011e9f64c1b202bc566557d523ee507450f")]
 [assembly: System.Reflection.AssemblyProductAttribute("MudBlazorSpirytusTerm")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MudBlazorSpirytusTerm")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

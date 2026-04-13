@@ -1,0 +1,40 @@
+﻿<Project>
+  <ItemGroup>
+    <StaticWebAssetEndpoint Include="_content/MudBlazor/MudBlazor.min.cf158k2j5i.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\MudBlazor.min.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"cf158k2j5i"},{"Name":"integrity","Value":"sha256-eE4vNh0w0D1v6t34qSz3NxH2sZdko1JF7vFMe/XhHTY="},{"Name":"label","Value":"_content/MudBlazor/MudBlazor.min.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"65657"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022eE4vNh0w0D1v6t34qSz3NxH2sZdko1JF7vFMe/XhHTY=\u0022"},{"Name":"Last-Modified","Value":"Wed, 08 Apr 2026 01:24:55 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/MudBlazor/MudBlazor.min.css">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\MudBlazor.min.css'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-4U4VjN2yYuSv0hJWjfrPs9iSFsZ5W0YiXR4AQnFkLGQ="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"608259"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u00224U4VjN2yYuSv0hJWjfrPs9iSFsZ5W0YiXR4AQnFkLGQ=\u0022"},{"Name":"Last-Modified","Value":"Wed, 08 Apr 2026 01:24:56 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/MudBlazor/MudBlazor.min.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\MudBlazor.min.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-eE4vNh0w0D1v6t34qSz3NxH2sZdko1JF7vFMe/XhHTY="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"65657"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022eE4vNh0w0D1v6t34qSz3NxH2sZdko1JF7vFMe/XhHTY=\u0022"},{"Name":"Last-Modified","Value":"Wed, 08 Apr 2026 01:24:55 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/MudBlazor/MudBlazor.min.js.jsf39xodda.map">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\MudBlazor.min.js.map'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"jsf39xodda"},{"Name":"integrity","Value":"sha256-TQCgpSIKzI2pq61mDxZfI3hZ5xI1\u002BWQ5tL19KrbNv3k="},{"Name":"label","Value":"_content/MudBlazor/MudBlazor.min.js.map"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"239050"},{"Name":"Content-Type","Value":"text/plain"},{"Name":"ETag","Value":"\u0022TQCgpSIKzI2pq61mDxZfI3hZ5xI1\u002BWQ5tL19KrbNv3k=\u0022"},{"Name":"Last-Modified","Value":"Wed, 08 Apr 2026 01:24:55 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/MudBlazor/MudBlazor.min.js.map">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\MudBlazor.min.js.map'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-TQCgpSIKzI2pq61mDxZfI3hZ5xI1\u002BWQ5tL19KrbNv3k="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"239050"},{"Name":"Content-Type","Value":"text/plain"},{"Name":"ETag","Value":"\u0022TQCgpSIKzI2pq61mDxZfI3hZ5xI1\u002BWQ5tL19KrbNv3k=\u0022"},{"Name":"Last-Modified","Value":"Wed, 08 Apr 2026 01:24:55 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/MudBlazor/MudBlazor.min.nq21ts4qye.css">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\MudBlazor.min.css'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"nq21ts4qye"},{"Name":"integrity","Value":"sha256-4U4VjN2yYuSv0hJWjfrPs9iSFsZ5W0YiXR4AQnFkLGQ="},{"Name":"label","Value":"_content/MudBlazor/MudBlazor.min.css"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"608259"},{"Name":"Content-Type","Value":"text/css"},{"Name":"ETag","Value":"\u00224U4VjN2yYuSv0hJWjfrPs9iSFsZ5W0YiXR4AQnFkLGQ=\u0022"},{"Name":"Last-Modified","Value":"Wed, 08 Apr 2026 01:24:56 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+  </ItemGroup>
+</Project>

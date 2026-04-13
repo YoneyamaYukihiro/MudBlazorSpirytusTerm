@@ -1,0 +1,11 @@
+C:\Users\5001699\source\repos\YoneyamaYukihiro\MudBlazorSpirytusTerm\Properties\launchSettings.json からの起動設定を使用中...
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5123
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\5001699\source\repos\YoneyamaYukihiro\MudBlazorSpirytusTerm
+warn: Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionMiddleware[3]
+      Failed to determine the https port for redirect.
