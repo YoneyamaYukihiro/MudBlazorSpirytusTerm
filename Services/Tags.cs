@@ -10,6 +10,7 @@ public static class Tags
     public const string Ret            = "RET";
     public const string MsgVer         = "MSG_VER";
     public const string ErrMsg         = "ERR_MSG";
+    public const string ErrCode        = "ERR_CODE";
     public const string Msg            = "MSG";
     public const string MsgCode        = "MSG_CODE";
     public const string MsgNull        = "";          // CPstrMsgNull

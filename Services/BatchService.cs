@@ -89,6 +89,14 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         string LimitTime = "",
         string WarnTime  = "",
         IReadOnlyList<BatchLotResult>? LotList = null,
+        string ErrorCode    = "",
+        string ErrorMessage = ""
+    );
+
+    /// <summary>バッチ処理開始/終了結果</summary>
+    public sealed record BatchProcessResult(
+        bool   IsSuccess,
+        string ErrorCode    = "",
         string ErrorMessage = ""
     );
 
@@ -120,6 +128,7 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         string GuidanceMsg     = "",
         string GuidanceMsgCode = "",
         IReadOnlyList<BatchLotResult>? LotList = null,
+        string ErrorCode       = "",
         string ErrorMessage    = ""
     );
 
@@ -243,10 +252,11 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errMsg = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("BatStartWrk returned non-TRUE. BatchId={BatchId}, Err={Err}",
-                request.BatchId, errMsg);
-            return new BatchWorkStartResult(false, ErrorMessage: errMsg);
+            var errCode = msg.GetString(Tags.ErrCode);
+            var errMsg  = msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("BatStartWrk returned non-TRUE. BatchId={BatchId}, ErrCode={ErrCode}, Err={Err}",
+                request.BatchId, errCode, errMsg);
+            return new BatchWorkStartResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
         }
 
         var resAry = msg.GetMsgAry(Tags.LotList);
@@ -272,7 +282,7 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
     /// バッチ処理開始を登録する。
     /// VBソース: BatPrcStartEnd 構造体 (CtsbasxxCM0030.vb), MsgVer="03.01"
     /// </summary>
-    public async Task<bool> BatchProcessStartAsync(
+    public async Task<BatchProcessResult> BatchProcessStartAsync(
         BatchProcessRequest request, CancellationToken ct = default)
         => await SendBatchProcessAsync(MsgIds.BatPrcStart, request, ct);
 
@@ -282,7 +292,7 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
     /// バッチ処理終了を登録する。
     /// VBソース: BatPrcStartEnd 構造体 (CtsbasxxCM0030.vb), MsgVer="02.00"
     /// </summary>
-    public async Task<bool> BatchProcessEndAsync(
+    public async Task<BatchProcessResult> BatchProcessEndAsync(
         BatchProcessRequest request, CancellationToken ct = default)
         => await SendBatchProcessAsync(MsgIds.BatPrcEnd, request, ct);
 
@@ -331,10 +341,11 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errMsg = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("BatEndWrk returned non-TRUE. BatchId={BatchId}, Err={Err}",
-                request.BatchId, errMsg);
-            return new BatchWorkEndResult(false, ErrorMessage: errMsg);
+            var errCode = msg.GetString(Tags.ErrCode);
+            var errMsg  = msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("BatEndWrk returned non-TRUE. BatchId={BatchId}, ErrCode={ErrCode}, Err={Err}",
+                request.BatchId, errCode, errMsg);
+            return new BatchWorkEndResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
         }
 
         var resAry = msg.GetMsgAry(Tags.LotList);
@@ -354,7 +365,7 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
 
-    private async Task<bool> SendBatchProcessAsync(
+    private async Task<BatchProcessResult> SendBatchProcessAsync(
         string subject, BatchProcessRequest request, CancellationToken ct)
     {
         var req = new TfMsg();
@@ -386,18 +397,20 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         {
             logger.LogError(ex, "BatchProcess request failed. Subject={Subject}, BatchId={BatchId}",
                 subject, request.BatchId);
-            return false;
+            return new BatchProcessResult(false, ErrorMessage: ex.Message);
         }
 
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            logger.LogWarning("BatchProcess returned non-TRUE. Subject={Subject}, BatchId={BatchId}, Raw={Raw}",
-                subject, request.BatchId, Summarize(raw));
-            return false;
+            var errCode = msg.GetString(Tags.ErrCode);
+            var errMsg  = msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("BatchProcess returned non-TRUE. Subject={Subject}, BatchId={BatchId}, ErrCode={ErrCode}, Err={Err}",
+                subject, request.BatchId, errCode, errMsg);
+            return new BatchProcessResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
         }
 
-        return true;
+        return new BatchProcessResult(true);
     }
 
     private static TfMsg ParseOrEmpty(string? raw)
