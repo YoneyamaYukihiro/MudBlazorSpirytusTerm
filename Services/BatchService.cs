@@ -2,10 +2,11 @@ namespace MudBlazorSpirytusTerm.Services;
 
 /// <summary>
 /// バッチ処理サービス。
-/// ・バッチ組ロット情報取得 (bat_.lotlist_)
-/// ・バッチ処理開始          (bat_.prcstart)
-/// ・バッチ処理終了          (bat_.prcend__)
-/// VBソース: pubblnBatLotList_Sel (CtsbasxxCM0050.vb), BatPrcStartEnd 構造体 (CtsbasxxCM0030.vb)
+/// ・バッチ組ロット情報取得 (bat_.lotlist_)  VBソース: pubblnBatLotList_Sel    (CtsbasxxCM0050.vb)
+/// ・バッチ作業開始          (bat_.startwrk)  VBソース: pubblnBatStartWrk_Ins  (CtsbasxxMG00I0.vb)
+/// ・バッチ処理開始          (bat_.prcstart)  VBソース: BatPrcStartEnd 構造体   (CtsbasxxCM0030.vb)
+/// ・バッチ処理終了          (bat_.prcend__)  VBソース: BatPrcStartEnd 構造体   (CtsbasxxCM0030.vb)
+/// ・バッチ作業終了          (bat_.endwrk__)  VBソース: pubblnbatEndWrk_Upd    (CtsbasxxMG00K0.vb)
 /// </summary>
 public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogger<BatchService> logger)
 {
@@ -60,7 +61,38 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         string LotKind = ""
     );
 
-    /// <summary>バッチ処理開始/終了要求。VBソース: BatPrcStartEnd 構造体</summary>
+    /// <summary>バッチ作業開始要求。VBソース: BatStartWrk 構造体 (CtsbasxxCM0030.vb)</summary>
+    public sealed record BatchWorkStartRequest(
+        string BatchId,
+        string EmpId,
+        string EqType,
+        IReadOnlyList<BatchLotRef> Lots,
+        string WpId          = "",
+        string RecipeId      = "",
+        string ClassDivision = "",
+        string Comments      = "",
+        string MsgVer        = "03.01"
+    );
+
+    /// <summary>バッチ作業開始結果ロット</summary>
+    public sealed record BatchLotResult(
+        string LotId,
+        string LotLastUpdate,
+        string ResultFlag
+    );
+
+    /// <summary>バッチ作業開始結果</summary>
+    public sealed record BatchWorkStartResult(
+        bool   IsSuccess,
+        string ToOpId    = "",
+        string ToStepId  = "",
+        string LimitTime = "",
+        string WarnTime  = "",
+        IReadOnlyList<BatchLotResult>? LotList = null,
+        string ErrorMessage = ""
+    );
+
+    /// <summary>バッチ処理開始/終了要求。VBソース: BatPrcStartEnd 構造体 (CtsbasxxCM0030.vb)</summary>
     public sealed record BatchProcessRequest(
         string BatchId,
         string EmpId,
@@ -68,14 +100,34 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         IReadOnlyList<BatchLotRef> Lots,
         string ClassDivision = "",
         string Comments      = "",
-        string MsgVer        = "03.00"
+        string MsgVer        = "03.01"
+    );
+
+    /// <summary>バッチ作業終了要求。VBソース: BatEndWrk 構造体 (CtsbasxxCM0030.vb)</summary>
+    public sealed record BatchWorkEndRequest(
+        string BatchId,
+        string EmpId,
+        string EqType,
+        IReadOnlyList<BatchLotRef> Lots,
+        string ClassDivision = "",
+        string Comments      = "",
+        string MsgVer        = "03.01"
+    );
+
+    /// <summary>バッチ作業終了結果</summary>
+    public sealed record BatchWorkEndResult(
+        bool   IsSuccess,
+        string GuidanceMsg     = "",
+        string GuidanceMsgCode = "",
+        IReadOnlyList<BatchLotResult>? LotList = null,
+        string ErrorMessage    = ""
     );
 
     // ──────── バッチ組ロット情報取得 ─────────────────────────────
 
     /// <summary>
     /// バッチ組ロット情報を取得する。
-    /// VBソース: CPstrbat_lotlist_
+    /// VBソース: pubblnBatLotList_Sel (CtsbasxxCM0050.vb), MsgVer="03.00"
     /// </summary>
     public async Task<IReadOnlyList<BatchInfo>> GetBatchLotListAsync(
         BatchLotListRequest request, CancellationToken ct = default)
@@ -132,24 +184,93 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
             )).ToList();
 
             result.Add(new BatchInfo(
-                BatchId:  batItem.GetString(Tags.BatchId),
-                WpId:     batItem.GetString(Tags.WpId),
-                WpName:   batItem.GetString(Tags.WpName),
-                RecipeId: batItem.GetString(Tags.RecipeId),
-                EqType:   batItem.GetString(Tags.EqType),
+                BatchId:   batItem.GetString(Tags.BatchId),
+                WpId:      batItem.GetString(Tags.WpId),
+                WpName:    batItem.GetString(Tags.WpName),
+                RecipeId:  batItem.GetString(Tags.RecipeId),
+                EqType:    batItem.GetString(Tags.EqType),
                 MesModeId: batItem.GetString(Tags.MesModeId),
-                Lots:     lots
+                Lots:      lots
             ));
         }
 
         return result;
     }
 
+    // ──────── バッチ作業開始 ─────────────────────────────────────
+
+    /// <summary>
+    /// バッチ作業開始を登録する。
+    /// VBソース: pubblnBatStartWrk_Ins (CtsbasxxMG00I0.vb), MsgVer="03.01"
+    /// LOT_LIST 応答: LotId + LotLastUpdate + ResultFlag
+    /// </summary>
+    public async Task<BatchWorkStartResult> BatchWorkStartAsync(
+        BatchWorkStartRequest request, CancellationToken ct = default)
+    {
+        var req = new TfMsg();
+        req.AddString(Tags.BatchId,       request.BatchId);
+        req.AddString(Tags.SbId,          _defaultSbId);
+        req.AddString(Tags.EmpId,         request.EmpId);
+        req.AddString(Tags.Comments,      request.Comments);
+
+        var lotAry = new TfMsgAry();
+        foreach (var lot in request.Lots)
+        {
+            var lotMsg = new TfMsg();
+            lotMsg.AddString(Tags.LotId,        lot.LotId);
+            lotMsg.AddString(Tags.LotLastUpdate, lot.LotLastUpdate);
+            lotAry.Add(lotMsg);
+        }
+        req.AddMsgAry(Tags.LotList, lotAry);
+
+        req.AddString(Tags.MsgVer,        request.MsgVer);
+        req.AddString(Tags.ClassDivision, request.ClassDivision);
+        req.AddString(Tags.WpId,          request.WpId);
+        req.AddString(Tags.RecipeId,      request.RecipeId);
+        req.AddString(Tags.EqType,        request.EqType);
+
+        string raw;
+        try
+        {
+            raw = await mq.SendMessageAsync(MsgIds.BatStartWrk, req.ToTfString(), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "BatStartWrk request failed. BatchId={BatchId}", request.BatchId);
+            return new BatchWorkStartResult(false, ErrorMessage: ex.Message);
+        }
+
+        var msg = ParseOrEmpty(raw);
+        if (msg.GetString(Tags.Ret) != Tags.True)
+        {
+            var errMsg = msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("BatStartWrk returned non-TRUE. BatchId={BatchId}, Err={Err}",
+                request.BatchId, errMsg);
+            return new BatchWorkStartResult(false, ErrorMessage: errMsg);
+        }
+
+        var resAry = msg.GetMsgAry(Tags.LotList);
+        var lotResults = resAry.Select(l => new BatchLotResult(
+            LotId:        l.GetString(Tags.LotId),
+            LotLastUpdate: l.GetString(Tags.LotLastUpdate),
+            ResultFlag:   l.GetString(Tags.ResultFlag)
+        )).ToList();
+
+        return new BatchWorkStartResult(
+            IsSuccess: true,
+            ToOpId:    msg.GetString(Tags.ToOpId),
+            ToStepId:  msg.GetString(Tags.ToStepId),
+            LimitTime: msg.GetString(Tags.LimitTime),
+            WarnTime:  msg.GetString(Tags.WarnTime),
+            LotList:   lotResults
+        );
+    }
+
     // ──────── バッチ処理開始 ─────────────────────────────────────
 
     /// <summary>
     /// バッチ処理開始を登録する。
-    /// VBソース: CPstrbat_prcstart
+    /// VBソース: BatPrcStartEnd 構造体 (CtsbasxxCM0030.vb), MsgVer="03.01"
     /// </summary>
     public async Task<bool> BatchProcessStartAsync(
         BatchProcessRequest request, CancellationToken ct = default)
@@ -159,11 +280,77 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
 
     /// <summary>
     /// バッチ処理終了を登録する。
-    /// VBソース: CPstrbat_prcend__
+    /// VBソース: BatPrcStartEnd 構造体 (CtsbasxxCM0030.vb), MsgVer="02.00"
     /// </summary>
     public async Task<bool> BatchProcessEndAsync(
         BatchProcessRequest request, CancellationToken ct = default)
         => await SendBatchProcessAsync(MsgIds.BatPrcEnd, request, ct);
+
+    // ──────── バッチ作業終了 ─────────────────────────────────────
+
+    /// <summary>
+    /// バッチ作業終了を登録する。
+    /// VBソース: pubblnbatEndWrk_Upd (CtsbasxxMG00K0.vb), MsgVer="03.01"
+    /// LOT_LIST 応答: LotId + LotLastUpdate + ResultFlag
+    /// </summary>
+    public async Task<BatchWorkEndResult> BatchWorkEndAsync(
+        BatchWorkEndRequest request, CancellationToken ct = default)
+    {
+        var req = new TfMsg();
+        req.AddString(Tags.BatchId,       request.BatchId);
+        req.AddString(Tags.SbId,          _defaultSbId);
+        req.AddString(Tags.EmpId,         request.EmpId);
+        req.AddString(Tags.Comments,      request.Comments);
+
+        var lotAry = new TfMsgAry();
+        foreach (var lot in request.Lots)
+        {
+            var lotMsg = new TfMsg();
+            lotMsg.AddString(Tags.LotId,         lot.LotId);
+            lotMsg.AddString(Tags.LotLastUpdate,  lot.LotLastUpdate);
+            lotMsg.AddString(Tags.LotKind,        lot.LotKind);
+            lotAry.Add(lotMsg);
+        }
+        req.AddMsgAry(Tags.LotList, lotAry);
+
+        req.AddString(Tags.MsgVer,        request.MsgVer);
+        req.AddString(Tags.ClassDivision, request.ClassDivision);
+        req.AddString(Tags.EqType,        request.EqType);
+
+        string raw;
+        try
+        {
+            raw = await mq.SendMessageAsync(MsgIds.BatEndWrk, req.ToTfString(), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "BatEndWrk request failed. BatchId={BatchId}", request.BatchId);
+            return new BatchWorkEndResult(false, ErrorMessage: ex.Message);
+        }
+
+        var msg = ParseOrEmpty(raw);
+        if (msg.GetString(Tags.Ret) != Tags.True)
+        {
+            var errMsg = msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("BatEndWrk returned non-TRUE. BatchId={BatchId}, Err={Err}",
+                request.BatchId, errMsg);
+            return new BatchWorkEndResult(false, ErrorMessage: errMsg);
+        }
+
+        var resAry = msg.GetMsgAry(Tags.LotList);
+        var lotResults = resAry.Select(l => new BatchLotResult(
+            LotId:         l.GetString(Tags.LotId),
+            LotLastUpdate: l.GetString(Tags.LotLastUpdate),
+            ResultFlag:    l.GetString(Tags.ResultFlag)
+        )).ToList();
+
+        return new BatchWorkEndResult(
+            IsSuccess:      true,
+            GuidanceMsg:    msg.GetString(Tags.Msg),
+            GuidanceMsgCode: msg.GetString(Tags.MsgCode),
+            LotList:        lotResults
+        );
+    }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
 
@@ -179,7 +366,6 @@ public sealed class BatchService(ITfMessageClient mq, IConfiguration cfg, ILogge
         req.AddString(Tags.ClassDivision, request.ClassDivision);
         req.AddString(Tags.EqType,        request.EqType);
 
-        // ロットリストを配列として追加
         var lotAry = new TfMsgAry();
         foreach (var lot in request.Lots)
         {

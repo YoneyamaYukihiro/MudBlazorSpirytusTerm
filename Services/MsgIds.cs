@@ -73,6 +73,17 @@ public static class MsgIds
     public const string LotActRsv            = "lot_.actrsv__";
     public const string LotDelAct            = "lot_.delact__";
 
+    // ──────── バッチ作業開始/終了 ────────
+    public const string BatStartWrk         = "bat_.startwrk";
+    public const string BatEndWrk           = "bat_.endwrk__";
+
+    // ──────── 次工程送出/取得 ────────
+    public const string LotNextSend         = "lot_.nextsend";
+    public const string LotNextStepList     = "lot_.nextsteplist";
+
+    // ──────── EN0130 処理開始取消 ────────
+    public const string LotCnclWrkStart     = "lot_.cnclwrkstart";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";

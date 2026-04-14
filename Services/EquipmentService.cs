@@ -20,10 +20,15 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
         string WpName,
         string UseId,
         string UseName,
-        string WpStatusName,
+        string MesModeId,
         string WpStopFlag,
+        string WpStatusName,
         string WpTypeFlag,
-        string EqType
+        string PlaceId,
+        string PlaceName,
+        string EqType,
+        string AldProcessModeId,
+        string AldProcessName
     );
 
     /// <summary>装置状態。VBソース: Eqstate 構造体</summary>
@@ -125,14 +130,19 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
 
         var ary = msg.GetMsgAry(Tags.AreaEquipmentList);
         return ary.Select(item => new Equipment(
-            WpId:         item.GetString(Tags.WpId),
-            WpName:       item.GetString(Tags.WpName),
-            UseId:        item.GetString(Tags.UseId),
-            UseName:      item.GetString(Tags.UseName),
-            WpStatusName: item.GetString(Tags.WpStatusName),
-            WpStopFlag:   item.GetString(Tags.WpStopFlag),
-            WpTypeFlag:   item.GetString(Tags.WpTypeFlag),
-            EqType:       item.GetString(Tags.EqType)
+            WpId:            item.GetString(Tags.WpId),
+            WpName:          item.GetString(Tags.WpName),
+            UseId:           item.GetString(Tags.UseId),
+            UseName:         item.GetString(Tags.UseName),
+            MesModeId:       item.GetString(Tags.MesModeId),
+            WpStopFlag:      item.GetString(Tags.WpStopFlag),
+            WpStatusName:    item.GetString(Tags.WpStatusName),
+            WpTypeFlag:      item.GetString(Tags.WpTypeFlag),
+            PlaceId:         item.GetString(Tags.PlaceId),
+            PlaceName:       item.GetString(Tags.PlaceName),
+            EqType:          item.GetString(Tags.EqType),
+            AldProcessModeId: item.GetString(Tags.AldProcessModeId),
+            AldProcessName:  item.GetString(Tags.AldProcessName)
         )).ToList();
     }
 

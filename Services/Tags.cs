@@ -103,6 +103,10 @@ public static class Tags
     public const string AreaEquipmentList    = "AREA_EQUIPMENT_LIST";
     public const string WpName               = "WP_NAME";
     public const string EqType               = "EQ_TYPE";
+    public const string PlaceId              = "PLACE_ID";
+    public const string PlaceName            = "PLACE_NAME";
+    public const string AldProcessModeId     = "ALD_PROCESS_MODE_ID";
+    public const string AldProcessName       = "ALD_PROCESS_NAME";
 
     // ──────── その他 ────────
     public const string KindFlag             = "KIND_FLAG";
@@ -316,6 +320,31 @@ public static class Tags
     public const string RecipeValue          = "RECIPE_VALUE";
     public const string RecipeItem           = "RECIPE_ITEM";
     public const string ValueType            = "VALUE_TYPE";
+
+    // ──────── バッチ作業開始/終了 ────────
+    public const string ResultFlag              = "RESULT_FLAG";
+
+    // ──────── 作業終了/処理開始/処理終了/次工程送出 ────────
+    public const string CancelMode              = "CANCEL_MODE";
+    public const string DividedCheckFlag        = "DIVIDED_CHECK_FLAG";
+    public const string SendResult              = "SEND_RESULT";
+    public const string NextStepList            = "NEXT_STEP_LIST";
+    public const string NextOpId                = "NEXT_OP_ID";
+    public const string NextStepId              = "NEXT_STEP_ID";
+    public const string StepDivision            = "STEP_DIVISION";
+    public const string ResultReworkState       = "RESULT_REWORK_STATE";
+    public const string ElectHoldFlag           = "ELECT_HOLD_FLAG";
+    public const string MoveResult              = "MOVE_RESULT";
+    public const string TftHoldFlag             = "TFT_HOLD_FLAG";
+    public const string ExcpHoldFlag            = "EXCP_HOLD_FLAG";
+    public const string NormalHoldFlag          = "NORMAL_HOLD_FLAG";
+    public const string TpLotList               = "TP_LOT_LIST";
+    public const string TpLotId                 = "TP_LOT_ID";
+    public const string PolTime                 = "POL_TIME";
+    public const string PlcRecipeCompareResult  = "PLC_RECIPE_COMPARE_RESULT";
+    public const string RouteId                 = "ROUTE_ID";
+
+    // ──────── EN0130 処理開始取消（互換） ────────
 
     // ──────── バッチ ────────
     public const string BatchId              = "BATCH_ID";
