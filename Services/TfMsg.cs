@@ -25,11 +25,14 @@ public sealed class TfMsg
         _strings[name] = value ?? string.Empty;
     }
 
-    /// <summary>文字列値を取得する（VB: laMsg.getString(tag, variable)）</summary>
+    /// <summary>
+    /// 文字列値を取得する（VB: laMsg.getString(tag, variable)）。
+    /// 受信値中の &amp;rpar; はプロジェクト規約により改行文字に変換する。
+    /// </summary>
     public string GetString(string name)
     {
         _strings.TryGetValue(name, out var v);
-        return v ?? string.Empty;
+        return (v ?? string.Empty).Replace("&rpar;", "\n");
     }
 
     /// <summary>配列を追加する（VB: lrMsg.addMsgAry(tag, ary)）</summary>
