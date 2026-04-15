@@ -103,11 +103,11 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
         string mcGroupId, CancellationToken ct = default)
     {
         var req = new TfMsg();
-        req.AddString(Tags.AreaId,        mcGroupId);
+        req.AddString(Tags.AreaId,        Tags.MsgNull); // VBソース: vbNullString
         req.AddString(Tags.SbId,          _defaultSbId);
         req.AddString(Tags.MsgVer,        "02.00");
         req.AddString(Tags.McGroupId,     mcGroupId);
-        req.AddString(Tags.ClassDivision, Tags.MsgNull);
+        req.AddString(Tags.ClassDivision, "20");         // CPstrCD20: 装置グループ別
 
         string raw;
         try
