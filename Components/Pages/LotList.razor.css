@@ -15,3 +15,8 @@
     flex: 1;
     min-height: 0;
 }
+
+/* グリッドのヘッダーセルを折り返しなし(横文字)にする */
+.grid-wrapper ::deep .mud-table-head .mud-table-cell {
+    white-space: nowrap;
+}
