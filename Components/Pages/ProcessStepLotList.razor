@@ -250,8 +250,8 @@ else
 
     private ProcessStepLotListService.OpItem?        _selectedOp;
     private ProcessStepLotListService.StepItem?      _selectedStep;
-    private IEnumerable<ProcessStepLotListService.PdItem>        _selectedPds        = [];
-    private IEnumerable<ProcessStepLotListService.FlowClassItem> _selectedFlowClasses = [];
+    private IReadOnlyCollection<ProcessStepLotListService.PdItem>        _selectedPds        = [];
+    private IReadOnlyCollection<ProcessStepLotListService.FlowClassItem> _selectedFlowClasses = [];
 
     private bool _opsLoading;
     private bool _opLoading;    // 大工程選択後の小工程読み込み中フラグ
@@ -330,10 +330,10 @@ else
         _response     = null;
     }
 
-    private void OnPdSelectionChanged(IEnumerable<ProcessStepLotListService.PdItem> values)
+    private void OnPdSelectionChanged(IReadOnlyCollection<ProcessStepLotListService.PdItem> values)
         => _selectedPds = values;
 
-    private void OnFlowClassSelectionChanged(IEnumerable<ProcessStepLotListService.FlowClassItem> values)
+    private void OnFlowClassSelectionChanged(IReadOnlyCollection<ProcessStepLotListService.FlowClassItem> values)
         => _selectedFlowClasses = values;
 
     // ── データ取得 ──────────────────────────────────────────────────
