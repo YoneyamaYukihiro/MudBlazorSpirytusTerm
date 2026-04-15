@@ -1,10 +1,4 @@
-/* Layout height chain: html/body に高さを設定することで
-   mud-layout の height:100% がビューポートに追従する */
+/* mud-layout の height:100% をビューポートに追従させるための高さ継承チェーン */
 html, body {
     height: 100%;
-}
-
-/* ページ全体のスクロールを body ではなく MudMainContent に閉じ込める */
-.mud-main-content {
-    overflow-y: auto;
 }
