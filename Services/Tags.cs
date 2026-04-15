@@ -92,6 +92,7 @@ public static class Tags
     // ──────── ロット追加 ────────
     public const string DispatchStartTime    = "DISPATCH_START_TIME";
     public const string ReworkFlag           = "REWORK_FLAG";            // 1:リワーク中, 2:追加流動
+    public const string ShipDiffDay          = "SHIP_DIFF_DAY";          // 進捗度 (1A0)
 
     // ──────── 装置グループ ────────
     public const string McGroupId            = "MC_GROUP_ID";

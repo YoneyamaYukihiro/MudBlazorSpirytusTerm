@@ -27,12 +27,14 @@ public sealed class TfMsg
 
     /// <summary>
     /// 文字列値を取得する（VB: laMsg.getString(tag, variable)）。
-    /// 受信値中の &amp;rpar; はプロジェクト規約により改行文字に変換する。
+    /// 受信値中の &amp;lpar; / &amp;rpar; はプロジェクト規約により ( / ) に変換する。
     /// </summary>
     public string GetString(string name)
     {
         _strings.TryGetValue(name, out var v);
-        return (v ?? string.Empty).Replace("&rpar;", "\n");
+        return (v ?? string.Empty)
+            .Replace("&lpar;", "(")
+            .Replace("&rpar;", ")");
     }
 
     /// <summary>配列を追加する（VB: lrMsg.addMsgAry(tag, ary)）</summary>

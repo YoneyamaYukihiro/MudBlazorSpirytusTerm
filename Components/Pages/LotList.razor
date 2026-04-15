@@ -71,8 +71,7 @@
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        OnClick="LoadAsync"
-                       Disabled="@(_loading || string.IsNullOrEmpty(_req.WpId))"
-                       FullWidth="true">
+                       Disabled="@(_loading || string.IsNullOrEmpty(_req.WpId))">
                 @if (_loading)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
@@ -126,84 +125,192 @@ else
 
         @* ── ロット一覧グリッド ── *@
         <div class="grid-wrapper">
-            <MudDataGrid T="LotListService.LotInfo"
-                         Items="@_response.LotList"
-                         Dense="true"
-                         Striped="true"
-                         Hover="true"
-                         Bordered="true"
-                         FixedHeader="true"
-                         Height="100%"
-                         RowStyleFunc="@GetRowStyle">
-                <Columns>
-                    <TemplateColumn T="LotListService.LotInfo" Title="保/停" StickyLeft="true" HeaderStyle="min-width:44px;max-width:44px;" CellStyle="min-width:44px;max-width:44px;text-align:center;font-weight:bold;">
-                        <CellTemplate>
-                            @{
-                                var kb = GetKbText(context.Item);
-                                var kbColor = context.Item.WfPartialRecipeFlag == "1" ? "color:red;" : "";
-                            }
-                            <span style="@kbColor">@kb</span>
-                        </CellTemplate>
-                    </TemplateColumn>
-                    <PropertyColumn Property="x => x.Status" Title="状態" HeaderStyle="min-width:80px;" StickyLeft="true" />
-                    <TemplateColumn T="LotListService.LotInfo" Title="時間制限" HeaderStyle="min-width:150px;">
-                        <CellTemplate>
-                            @{
-                                var lt = context.Item.LimitTime;
-                                var wt = context.Item.WarnTime;
-                                var ltColor = "";
-                                if (!string.IsNullOrEmpty(lt) && long.TryParse(lt, out var ltMin))
-                                {
-                                    if (ltMin < 0) ltColor = "color:red;font-weight:bold;";
-                                    else if (!string.IsNullOrEmpty(wt) && long.TryParse(wt, out var wtMin) && wtMin < 0)
-                                        ltColor = "color:purple;font-weight:bold;";
+            @if (IsSubstrate)
+            {
+                @* ── 1A0 基板工程 ── *@
+                <MudDataGrid T="LotListService.LotInfo"
+                             Items="@_response.LotList"
+                             Dense="true"
+                             Striped="true"
+                             Hover="true"
+                             Bordered="true"
+                             FixedHeader="true"
+                             Height="100%"
+                             RowStyleFunc="@GetRowStyle">
+                    <Columns>
+                        <TemplateColumn T="LotListService.LotInfo" Title="No" StickyLeft="true"
+                            HeaderStyle="min-width:40px;max-width:40px;"
+                            CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                            <CellTemplate>@(_response!.LotList.IndexOf(context.Item) + 1)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="LotListService.LotInfo" Title="保/停" StickyLeft="true"
+                            HeaderStyle="min-width:44px;max-width:44px;"
+                            CellStyle="min-width:44px;max-width:44px;text-align:center;font-weight:bold;">
+                            <CellTemplate>
+                                @{
+                                    var kb = GetKbText(context.Item);
+                                    var kbColor = context.Item.WfPartialRecipeFlag == "1" ? "color:red;" : "";
                                 }
-                            }
-                            <span style="@ltColor">@FormatLimitTime(context.Item)</span>
-                        </CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn T="LotListService.LotInfo" Title="キャリアID" HeaderStyle="min-width:75px;">
-                        <CellTemplate>@GetDisplayCarrierId(context.Item)</CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn T="LotListService.LotInfo" Title="キャリア位置" HeaderStyle="min-width:120px;">
-                        <CellTemplate>@GetCarrierPosition(context.Item)</CellTemplate>
-                    </TemplateColumn>
-                    <PropertyColumn Property="x => x.LotId"          Title="ロットID"      HeaderStyle="min-width:110px;" />
-                    <PropertyColumn Property="x => x.PdId"           Title="機種"          HeaderStyle="min-width:60px;" />
-                    <PropertyColumn Property="x => x.FlowClass"      Title="種別"          HeaderStyle="min-width:40px;" />
-                    <PropertyColumn Property="x => x.LotPriority"    Title="優"            HeaderStyle="min-width:40px;" />
-                    <PropertyColumn Property="x => x.OpId"           Title="大工程"        HeaderStyle="min-width:120px;" />
-                    <PropertyColumn Property="x => x.StepId"         Title="小工程"        HeaderStyle="min-width:120px;" />
-                    <PropertyColumn Property="x => x.RecipeId"       Title="レシピ"        HeaderStyle="min-width:180px;" />
-                    <TemplateColumn T="LotListService.LotInfo" Title="処理開始予実" HeaderStyle="min-width:120px;">
-                        <CellTemplate>@FormatDispatchStartTime(context.Item.DispatchStartTime)</CellTemplate>
-                    </TemplateColumn>
-                    <PropertyColumn Property="x => x.LotManagerName" Title="ロット担当"    HeaderStyle="min-width:100px;" />
-                    <PropertyColumn Property="x => x.WfNum"          Title="WF枚数"        HeaderStyle="min-width:70px;" />
-                    <PropertyColumn Property="x => x.ChipQuantity"   Title="チップ数"      HeaderStyle="min-width:70px;" />
-                    <TemplateColumn T="LotListService.LotInfo" Title="コメント" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
-                        <CellTemplate>
-                            @if (context.Item.LotCommentsFlag == "1")
-                            {
-                                <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
-                            }
-                        </CellTemplate>
-                    </TemplateColumn>
-                    <PropertyColumn Property="x => x.LCarrierId"     Title="ロードキャリア"     HeaderStyle="min-width:75px;" />
-                    <PropertyColumn Property="x => x.UCarrierId"     Title="アンロードキャリア" HeaderStyle="min-width:80px;" />
-                    <PropertyColumn Property="x => x.AltNumber"      Title="代替番号"      HeaderStyle="min-width:60px;" />
-                    <PropertyColumn Property="x => x.LotLastUpdate"  Title="最終更新日時"  HeaderStyle="min-width:130px;" />
-                    <TemplateColumn T="LotListService.LotInfo" Title="リワーク" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
-                        <CellTemplate>
-                            @if (context.Item.ReworkFlag == "1") { <span>リ</span> }
-                            else if (context.Item.ReworkFlag == "2") { <span>追</span> }
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-                <NoRecordsContent>
-                    <MudText Color="Color.Secondary">該当データがありません</MudText>
-                </NoRecordsContent>
-            </MudDataGrid>
+                                <span style="@kbColor">@kb</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.ShipDiffDay"    Title="進捗度"     HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.Status"         Title="状態"       HeaderStyle="min-width:80px;" StickyLeft="true" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="時間制限" HeaderStyle="min-width:150px;">
+                            <CellTemplate>
+                                @{
+                                    var lt = context.Item.LimitTime;
+                                    var wt = context.Item.WarnTime;
+                                    var ltColor = "";
+                                    if (!string.IsNullOrEmpty(lt) && long.TryParse(lt, out var ltMin))
+                                    {
+                                        if (ltMin < 0) ltColor = "color:red;font-weight:bold;";
+                                        else if (!string.IsNullOrEmpty(wt) && long.TryParse(wt, out var wtMin) && wtMin < 0)
+                                            ltColor = "color:purple;font-weight:bold;";
+                                    }
+                                }
+                                <span style="@ltColor">@FormatLimitTime(context.Item)</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.LotPriority"    Title="優先順位"   HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.LotId"          Title="ロットID"   HeaderStyle="min-width:110px;" />
+                        <PropertyColumn Property="x => x.GrbClass"       Title="GRB"        HeaderStyle="min-width:50px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="キャリアID" HeaderStyle="min-width:75px;">
+                            <CellTemplate>@GetDisplayCarrierId(context.Item)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.WfNum"          Title="WF枚数"     HeaderStyle="min-width:70px;" />
+                        <PropertyColumn Property="x => x.RecipeId"       Title="レシピ"     HeaderStyle="min-width:180px;" />
+                        <PropertyColumn Property="x => x.OpId"           Title="大工程"     HeaderStyle="min-width:120px;" />
+                        <PropertyColumn Property="x => x.StepId"         Title="小工程"     HeaderStyle="min-width:120px;" />
+                        <PropertyColumn Property="x => x.LotManagerName" Title="ロット担当" HeaderStyle="min-width:100px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="キャリア位置" HeaderStyle="min-width:120px;">
+                            <CellTemplate>@GetCarrierPosition(context.Item)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.CarrierStatName" Title="キャリア状態" HeaderStyle="min-width:90px;" />
+                        <PropertyColumn Property="x => x.FlowClass"      Title="種別"       HeaderStyle="min-width:40px;" />
+                        <PropertyColumn Property="x => x.ChipQuantity"   Title="チップ数"   HeaderStyle="min-width:70px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="処理開始予実" HeaderStyle="min-width:120px;">
+                            <CellTemplate>@FormatDispatchStartTime(context.Item.DispatchStartTime)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="LotListService.LotInfo" Title="コメント" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+                            <CellTemplate>
+                                @if (context.Item.LotCommentsFlag == "1")
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.WfId"           Title="WFID"       HeaderStyle="min-width:80px;" />
+                        <PropertyColumn Property="x => x.CommitFlag"     Title="号機指定"   HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.LCarrierId"     Title="ロードキャリア"     HeaderStyle="min-width:75px;" />
+                        <PropertyColumn Property="x => x.UCarrierId"     Title="アンロードキャリア" HeaderStyle="min-width:80px;" />
+                        <PropertyColumn Property="x => x.AltNumber"      Title="代替番号"   HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.LotLastUpdate"  Title="最終更新日時" HeaderStyle="min-width:130px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="リワーク" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+                            <CellTemplate>
+                                @if (context.Item.ReworkFlag == "1") { <span>リ</span> }
+                                else if (context.Item.ReworkFlag == "2") { <span>追</span> }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary">該当データがありません</MudText>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            }
+            else
+            {
+                @* ── 2A0 組立工程 ── *@
+                <MudDataGrid T="LotListService.LotInfo"
+                             Items="@_response.LotList"
+                             Dense="true"
+                             Striped="true"
+                             Hover="true"
+                             Bordered="true"
+                             FixedHeader="true"
+                             Height="100%"
+                             RowStyleFunc="@GetRowStyle">
+                    <Columns>
+                        <TemplateColumn T="LotListService.LotInfo" Title="No" StickyLeft="true"
+                            HeaderStyle="min-width:40px;max-width:40px;"
+                            CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                            <CellTemplate>@(_response!.LotList.IndexOf(context.Item) + 1)</CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="LotListService.LotInfo" Title="保/停" StickyLeft="true"
+                            HeaderStyle="min-width:44px;max-width:44px;"
+                            CellStyle="min-width:44px;max-width:44px;text-align:center;font-weight:bold;">
+                            <CellTemplate>
+                                @{
+                                    var kb = GetKbText(context.Item);
+                                    var kbColor = context.Item.WfPartialRecipeFlag == "1" ? "color:red;" : "";
+                                }
+                                <span style="@kbColor">@kb</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.Status"         Title="状態"       HeaderStyle="min-width:80px;" StickyLeft="true" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="時間制限" HeaderStyle="min-width:150px;">
+                            <CellTemplate>
+                                @{
+                                    var lt = context.Item.LimitTime;
+                                    var wt = context.Item.WarnTime;
+                                    var ltColor = "";
+                                    if (!string.IsNullOrEmpty(lt) && long.TryParse(lt, out var ltMin))
+                                    {
+                                        if (ltMin < 0) ltColor = "color:red;font-weight:bold;";
+                                        else if (!string.IsNullOrEmpty(wt) && long.TryParse(wt, out var wtMin) && wtMin < 0)
+                                            ltColor = "color:purple;font-weight:bold;";
+                                    }
+                                }
+                                <span style="@ltColor">@FormatLimitTime(context.Item)</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.RecipeId"       Title="レシピ"     HeaderStyle="min-width:180px;" />
+                        <PropertyColumn Property="x => x.PdId"           Title="機種"       HeaderStyle="min-width:60px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="キャリアID" HeaderStyle="min-width:75px;">
+                            <CellTemplate>@GetDisplayCarrierId(context.Item)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.LotId"          Title="ロットID"   HeaderStyle="min-width:110px;" />
+                        <PropertyColumn Property="x => x.WfId"           Title="WFID"       HeaderStyle="min-width:80px;" />
+                        <PropertyColumn Property="x => x.WfNum"          Title="WF枚数"     HeaderStyle="min-width:70px;" />
+                        <PropertyColumn Property="x => x.ChipQuantity"   Title="チップ数"   HeaderStyle="min-width:70px;" />
+                        <PropertyColumn Property="x => x.FlowClass"      Title="種別"       HeaderStyle="min-width:40px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="キャリア位置" HeaderStyle="min-width:120px;">
+                            <CellTemplate>@GetCarrierPosition(context.Item)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.CarrierStatName" Title="キャリア状態" HeaderStyle="min-width:90px;" />
+                        <PropertyColumn Property="x => x.LotPriority"    Title="優先順位"   HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.OpId"           Title="大工程"     HeaderStyle="min-width:120px;" />
+                        <PropertyColumn Property="x => x.StepId"         Title="小工程"     HeaderStyle="min-width:120px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="処理開始予実" HeaderStyle="min-width:120px;">
+                            <CellTemplate>@FormatDispatchStartTime(context.Item.DispatchStartTime)</CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.LotManagerName" Title="ロット担当" HeaderStyle="min-width:100px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="コメント" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+                            <CellTemplate>
+                                @if (context.Item.LotCommentsFlag == "1")
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.LCarrierId"     Title="ロードキャリア"     HeaderStyle="min-width:75px;" />
+                        <PropertyColumn Property="x => x.UCarrierId"     Title="アンロードキャリア" HeaderStyle="min-width:80px;" />
+                        <PropertyColumn Property="x => x.CommitFlag"     Title="号機指定"   HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.AltNumber"      Title="代替番号"   HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.LotLastUpdate"  Title="最終更新日時" HeaderStyle="min-width:130px;" />
+                        <TemplateColumn T="LotListService.LotInfo" Title="リワーク" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+                            <CellTemplate>
+                                @if (context.Item.ReworkFlag == "1") { <span>リ</span> }
+                                else if (context.Item.ReworkFlag == "2") { <span>追</span> }
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.CarrierStatId"  Title="キャリア状態ID" HeaderStyle="min-width:80px;" />
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary">該当データがありません</MudText>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            }
         </div>
     }
     else if (_response is not null && !_response.IsSuccess)
@@ -238,6 +345,9 @@ else
     private EquipmentService.Equipment?  _selectedEquipment;
     private bool _groupsLoading;
     private bool _equipmentsLoading;
+
+    /// <summary>1A0 基板工程 かどうか。VBソース: CPstrSBID1A0 比較</summary>
+    private bool IsSubstrate => LotListSvc.DefaultSbId == "1A0";
 
     // ── 初期化 ────────────────────────────────────────────────────
 

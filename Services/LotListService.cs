@@ -8,6 +8,8 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
     private readonly string _defaultSbId = cfg["Spirytus:DefaultSbId"] ?? string.Empty;
     private readonly string _defaultWpId = cfg["Spirytus:DefaultWpId"] ?? string.Empty;
 
+    public string DefaultSbId => _defaultSbId;
+
     public sealed record LotListRequest
     {
         public string MsgVer { get; set; } = "12.01";
@@ -69,7 +71,12 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         string AvailableRecipeFlag,
         string FrRecipeFlag,
         // ── 処理開始予実 ──
-        string DispatchStartTime
+        string DispatchStartTime,
+        // ── 追加フィールド ──
+        string GrbClass,
+        string CommitFlag,
+        string CarrierStatName,
+        string ShipDiffDay
     );
 
     public async Task<LotListResponse> GetLotListAsync(LotListRequest req, CancellationToken ct = default)
@@ -187,7 +194,11 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
                 WfPartialRecipeFlag: item.GetString(Tags.WfPartialRecipeFlag),
                 AvailableRecipeFlag: item.GetString(Tags.AvailableRecipeFlag),
                 FrRecipeFlag: item.GetString(Tags.FrRecipeFlag),
-                DispatchStartTime: item.GetString(Tags.DispatchStartTime)
+                DispatchStartTime: item.GetString(Tags.DispatchStartTime),
+                GrbClass: item.GetString(Tags.GrbClass),
+                CommitFlag: item.GetString(Tags.CommitFlag),
+                CarrierStatName: item.GetString(Tags.CarrierStatName),
+                ShipDiffDay: item.GetString(Tags.ShipDiffDay)
             ));
         }
 
