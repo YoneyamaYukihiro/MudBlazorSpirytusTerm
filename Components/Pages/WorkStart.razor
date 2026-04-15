@@ -48,8 +48,7 @@
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        OnClick="FetchLotInfoAsync"
-                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))"
-                       FullWidth="true">
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))">
                 @if (_loading)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
