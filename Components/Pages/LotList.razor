@@ -23,6 +23,7 @@
                        Value="_selectedGroup"
                        ValueChanged="OnGroupChanged"
                        Disabled="_groupsLoading"
+                       Clearable="true"
                        ToStringFunc="@(g => g is null ? "" : g.Name)"
                        AnchorOrigin="Origin.BottomLeft">
                 @if (_groupsLoading)
@@ -50,7 +51,8 @@
                        Value="_selectedEquipment"
                        ValueChanged="OnEquipmentChanged"
                        Disabled="@(_equipmentsLoading || _selectedGroup is null)"
-                       ToStringFunc="@(e => e is null ? "" : $"{e.WpName}  ({e.WpId})")"
+                       Clearable="true"
+                       ToStringFunc="@(e => e is null ? "" : e.WpName)"
                        AnchorOrigin="Origin.BottomLeft">
                 @if (_equipmentsLoading)
                 {
@@ -62,45 +64,30 @@
                 {
                     foreach (var e in _equipments)
                     {
-                        <MudSelectItem T="EquipmentService.Equipment" Value="e">
-                            @e.WpName  (@e.WpId)
-                        </MudSelectItem>
+                        <MudSelectItem T="EquipmentService.Equipment" Value="e">@e.WpName</MudSelectItem>
                     }
                 }
             </MudSelect>
         </MudItem>
 
-        @* ボタン群 *@
+        @* 最新取得ボタン *@
         <MudItem xs="12" sm="5">
-            <MudGrid Spacing="1">
-                <MudItem xs="6">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               OnClick="LoadAsync"
-                               Disabled="@(_loading || string.IsNullOrEmpty(_req.WpId))"
-                               FullWidth="true">
-                        @if (_loading)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
-                            <span>送信中...</span>
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-1" Size="Size.Small" />
-                            <span>最新取得</span>
-                        }
-                    </MudButton>
-                </MudItem>
-                <MudItem xs="6">
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Default"
-                               StartIcon="@Icons.Material.Filled.Clear"
-                               OnClick="ClearFilter"
-                               FullWidth="true">
-                        クリア
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="LoadAsync"
+                       Disabled="@(_loading || string.IsNullOrEmpty(_req.WpId))"
+                       FullWidth="true">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>送信中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-1" Size="Size.Small" />
+                    <span>最新取得</span>
+                }
+            </MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>
