@@ -1,0 +1,342 @@
+@page "/traveler-version-up"
+@inject LotTravelerVersionUpService TrvSvc
+@inject ProcessStepLotListService PdSvc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.LotTravelerVersionUpService
+
+<PageTitle>SPIRYTUS - 流動票バージョンアップ (EN01K0)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">流動票バージョンアップ (EN01K0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 検索エリア ────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+
+        @* 機種 (複数選択) *@
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="ProcessStepLotListService.PdItem"
+                       Label="機種"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       MultiSelection="true"
+                       SelectedValues="_selectedPds"
+                       SelectedValuesChanged="@((IReadOnlyCollection<ProcessStepLotListService.PdItem> v) => _selectedPds = v)"
+                       Disabled="@(_pdsLoading || _loading)"
+                       Clearable="true"
+                       ToStringFunc="@(p => p is null ? "" : p.PdId)"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_pdsLoading)
+                {
+                    <MudSelectItem T="ProcessStepLotListService.PdItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var p in _pds)
+                    {
+                        <MudSelectItem T="ProcessStepLotListService.PdItem" Value="p">@p.PdId</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 種別 (複数選択) *@
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="ProcessStepLotListService.FlowClassItem"
+                       Label="種別"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       MultiSelection="true"
+                       SelectedValues="_selectedFlowClasses"
+                       SelectedValuesChanged="@((IReadOnlyCollection<ProcessStepLotListService.FlowClassItem> v) => _selectedFlowClasses = v)"
+                       Disabled="@(_flowClassesLoading || _loading)"
+                       Clearable="true"
+                       ToStringFunc="@(f => f is null ? "" : $"{f.FlowClass} {f.FlowClassName}".TrimEnd())"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_flowClassesLoading)
+                {
+                    <MudSelectItem T="ProcessStepLotListService.FlowClassItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var f in _flowClasses)
+                    {
+                        <MudSelectItem T="ProcessStepLotListService.FlowClassItem" Value="f">@f.FlowClass @f.FlowClassName</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchListAsync"
+                       Disabled="@(_loading || _pdsLoading)"
+                       StartIcon="@Icons.Material.Filled.Refresh">
+                @if (_loading && _items is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <span>最新取得</span>
+                }
+            </MudButton>
+        </MudItem>
+
+        @if (_items is not null)
+        {
+            <MudItem xs="12" sm="2">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@_items.Count 件</MudText>
+            </MudItem>
+        }
+    </MudGrid>
+</MudPaper>
+
+@* ────── グリッド ────── *@
+@if (_items is not null)
+{
+    @* 色凡例 *@
+    <div class="mb-1" style="font-size:0.75rem;display:flex;flex-wrap:wrap;gap:6px;">
+        <span style="background:#E3F2FD;padding:1px 6px;border:1px solid #90CAF9;">バージョン変更あり</span>
+        <span style="background:#FFF3E0;padding:1px 6px;border:1px solid #FFCC80;">保留/停止</span>
+        <span style="background:#FFEBEE;padding:1px 6px;border:1px solid #EF9A9A;">Ver禁止</span>
+    </div>
+
+    <MudDataGrid T="ChgTrvListItem"
+                 @ref="_grid"
+                 Items="_items"
+                 Dense="true"
+                 Hover="true"
+                 Striped="true"
+                 MultiSelection="true"
+                 SelectedItems="_selectedItems"
+                 SelectedItemsChanged="@((HashSet<ChgTrvListItem> s) => _selectedItems = s)"
+                 Filterable="true"
+                 FilterMode="DataGridFilterMode.ColumnFilterRow"
+                 SortMode="SortMode.Multiple"
+                 Virtualize="true"
+                 FixedHeader="true"
+                 Height="calc(100vh - 420px)"
+                 RowStyleFunc="RowStyle"
+                 Elevation="1"
+                 Class="mb-2">
+        <Columns>
+            <SelectColumn T="ChgTrvListItem" ShowInFooter="false" />
+            <PropertyColumn Property="x => x.LotId"               Title="ロットID"         Sortable="true" />
+            <PropertyColumn Property="x => x.CarrierId"           Title="キャリアID"       Sortable="true" />
+            <PropertyColumn Property="x => x.PdId"                Title="機種"             Sortable="true" />
+            <PropertyColumn Property="x => x.FlowClass"           Title="種別"             Sortable="true" />
+            <PropertyColumn Property="x => x.OpId"                Title="大工程"           Sortable="true" />
+            <PropertyColumn Property="x => x.StepId"              Title="小工程"           Sortable="true" />
+            <PropertyColumn Property="x => x.NowSt"               Title="状態"             Sortable="true" />
+            <TemplateColumn Title="Ver変更" Filterable="false" Sortable="false">
+                <CellTemplate>
+                    @if (context.Item.VersionChangeFlag == "1")
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Update" Size="Size.Small" Color="Color.Primary" />
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Ver禁止" Filterable="false" Sortable="false">
+                <CellTemplate>
+                    @if (context.Item.VerUpProhibitedFlag == "1")
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Small" Color="Color.Error" />
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.EngEmpName"          Title="担当者"           Sortable="true" />
+            <PropertyColumn Property="x => x.CurrentPositionName" Title="現在位置"         Sortable="true" />
+            <PropertyColumn Property="x => x.ProhibitedEmpName"   Title="禁止担当者"       Sortable="true" />
+        </Columns>
+    </MudDataGrid>
+
+    @* ────── 操作エリア ────── *@
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.End">
+            <MudItem xs="12" sm="3" md="2">
+                <MudTextField @bind-Value="_empId"
+                              Label="作業者ID *"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="8"
+                              Disabled="_loading" />
+            </MudItem>
+            <MudItem xs="12" sm="5" md="4">
+                <MudTextField @bind-Value="_comment"
+                              Label="コメント"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="256"
+                              Disabled="_loading" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudCheckBox @bind-Value="_ignoreSampling"
+                             Label="サンプリング無視"
+                             Disabled="_loading" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.Update"
+                               OnClick="VersionUpAsync"
+                               Disabled="@(_loading || _selectedItems.Count == 0 || string.IsNullOrWhiteSpace(_empId))">
+                        @if (_loading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            <span>処理中...</span>
+                        }
+                        else
+                        {
+                            <span>バージョンアップ (@_selectedItems.Count 件)</span>
+                        }
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.Block"
+                               OnClick="() => ProhibitAsync("1")"
+                               Disabled="@(_loading || _selectedItems.Count != 1 || string.IsNullOrWhiteSpace(_empId))">
+                        Ver禁止
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Success"
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.CheckCircle"
+                               OnClick="() => ProhibitAsync("0")"
+                               Disabled="@(_loading || _selectedItems.Count != 1 || string.IsNullOrWhiteSpace(_empId))">
+                        Ver禁止解除
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    private bool   _loading           = false;
+    private bool   _pdsLoading        = true;
+    private bool   _flowClassesLoading = true;
+    private string _errorMessage      = "";
+    private string _empId             = "";
+    private string _comment           = "";
+    private bool   _ignoreSampling    = false;
+
+    private IReadOnlyList<ProcessStepLotListService.PdItem>        _pds        = [];
+    private IReadOnlyList<ProcessStepLotListService.FlowClassItem> _flowClasses = [];
+    private IReadOnlyCollection<ProcessStepLotListService.PdItem>        _selectedPds        = [];
+    private IReadOnlyCollection<ProcessStepLotListService.FlowClassItem> _selectedFlowClasses = [];
+
+    private IReadOnlyList<ChgTrvListItem>? _items;
+    private HashSet<ChgTrvListItem>        _selectedItems = [];
+
+    private MudDataGrid<ChgTrvListItem>? _grid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pdTask  = PdSvc.GetPdListAsync();
+        var fcTask  = PdSvc.GetFlowClassListAsync();
+        await Task.WhenAll(pdTask, fcTask);
+
+        _pds         = pdTask.Result;
+        _pdsLoading  = false;
+        _flowClasses = fcTask.Result;
+        _flowClassesLoading = false;
+    }
+
+    private async Task FetchListAsync()
+    {
+        _loading      = true;
+        _errorMessage = "";
+        _items        = null;
+        _selectedItems = [];
+        StateHasChanged();
+
+        var pdIds      = _selectedPds.Select(p => p.PdId).ToList();
+        var flowClasses = _selectedFlowClasses.Select(f => f.FlowClass).ToList();
+
+        var result = await TrvSvc.GetChgTrvListAsync(pdIds, flowClasses);
+        _loading = false;
+
+        if (result is null)
+        {
+            _errorMessage = "対象一覧の取得に失敗しました。";
+            return;
+        }
+
+        _items = result;
+        Snackbar.Add($"{_items.Count} 件取得しました。", Severity.Info);
+    }
+
+    private async Task VersionUpAsync()
+    {
+        if (_selectedItems.Count == 0 || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _loading = true;
+        StateHasChanged();
+
+        var lots = _selectedItems.Select(item => new ChgTravelerLotItem(
+            LotId:        item.LotId,
+            Comments:     _comment,
+            LotLastUpdate: item.LotLastUpdate,
+            SamplingFlag: _ignoreSampling ? "1" : "0"
+        ));
+
+        var result = await TrvSvc.ChgTravelerAsync(_empId, lots);
+        _loading = false;
+
+        if (result is null)
+        {
+            _errorMessage = "バージョンアップ処理に失敗しました。";
+            return;
+        }
+
+        Snackbar.Add($"バージョンアップ完了: {result.Count} 件", Severity.Success);
+        await FetchListAsync();
+    }
+
+    private async Task ProhibitAsync(string flag)
+    {
+        var lot = _selectedItems.FirstOrDefault();
+        if (lot is null || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _loading = true;
+        StateHasChanged();
+
+        var ok = await TrvSvc.ChgTrvProhibitAsync(
+            lotId:              lot.LotId,
+            empId:              _empId,
+            verUpProhibitedFlag: flag,
+            lotLastUpdate:      lot.LotLastUpdate);
+
+        _loading = false;
+
+        if (!ok)
+        {
+            _errorMessage = flag == "1" ? "Ver禁止の設定に失敗しました。" : "Ver禁止解除に失敗しました。";
+            return;
+        }
+
+        var label = flag == "1" ? "Ver禁止" : "Ver禁止解除";
+        Snackbar.Add($"{label} 完了: {lot.LotId}", Severity.Success);
+        await FetchListAsync();
+    }
+
+    private string RowStyle(ChgTrvListItem item, int index)
+    {
+        if (item.VerUpProhibitedFlag == "1") return "background-color: #FFEBEE;";
+        if (item.LotHoldFlag == "1" || item.LotStopFlag == "1") return "background-color: #FFF3E0;";
+        if (item.VersionChangeFlag == "1") return "background-color: #E3F2FD;";
+        return string.Empty;
+    }
+}
