@@ -205,7 +205,7 @@
                                Color="Color.Error"
                                Size="Size.Large"
                                StartIcon="@Icons.Material.Filled.Block"
-                               OnClick="() => ProhibitAsync("1")"
+                               OnClick='() => ProhibitAsync("1")'
                                Disabled="@(_loading || _selectedItems.Count != 1 || string.IsNullOrWhiteSpace(_empId))">
                         Ver禁止
                     </MudButton>
@@ -213,7 +213,7 @@
                                Color="Color.Success"
                                Size="Size.Large"
                                StartIcon="@Icons.Material.Filled.CheckCircle"
-                               OnClick="() => ProhibitAsync("0")"
+                               OnClick='() => ProhibitAsync("0")'
                                Disabled="@(_loading || _selectedItems.Count != 1 || string.IsNullOrWhiteSpace(_empId))">
                         Ver禁止解除
                     </MudButton>

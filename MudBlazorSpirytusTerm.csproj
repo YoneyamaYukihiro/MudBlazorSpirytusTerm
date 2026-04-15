@@ -17,4 +17,10 @@
   <ItemGroup>
     <Folder Include="VB\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="MudBlazorSpirytusTerm.Tests\**\*.cs" />
+    <EmbeddedResource Remove="MudBlazorSpirytusTerm.Tests\**" />
+    <None Remove="MudBlazorSpirytusTerm.Tests\**" />
+  </ItemGroup>
 </Project>

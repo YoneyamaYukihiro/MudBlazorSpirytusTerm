@@ -42,7 +42,7 @@ public class LotListServiceTests
         var svc = CreateService(mock);
 
         var result = await svc.GetLotListAsync(
-            new LotListService.LotListRequest(WpId: "WP001"));
+            new LotListService.LotListRequest { WpId = "WP001" });
 
         Assert.True(result.IsSuccess);
         Assert.Equal("稼動中", result.WpStatusName);
@@ -59,7 +59,7 @@ public class LotListServiceTests
         var svc = CreateService(mock);
 
         var result = await svc.GetLotListAsync(
-            new LotListService.LotListRequest(WpId: "WP999"));
+            new LotListService.LotListRequest { WpId = "WP999" });
 
         Assert.False(result.IsSuccess);
     }
@@ -71,7 +71,7 @@ public class LotListServiceTests
         var svc = CreateService(mock);
 
         var result = await svc.GetLotListAsync(
-            new LotListService.LotListRequest(WpId: "WP001"));
+            new LotListService.LotListRequest { WpId = "WP001" });
 
         Assert.False(result.IsSuccess);
     }

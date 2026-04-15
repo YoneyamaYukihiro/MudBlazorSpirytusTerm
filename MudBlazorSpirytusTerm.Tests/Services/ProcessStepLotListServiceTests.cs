@@ -146,7 +146,7 @@ public class ProcessStepLotListServiceTests
         var svc = CreateService(mock);
 
         var result = await svc.GetLotListAsync(
-            new ProcessStepLotListService.LotListRequest(OpId: "OP01"));
+            new ProcessStepLotListService.LotListRequest { OpId = "OP01" });
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.LotList);
