@@ -93,7 +93,7 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
                 SeqNum:     e.GetString(Tags.SeqNum),
                 FunctionId: e.GetString(Tags.FunctionId)))
             .Where(e => !string.IsNullOrEmpty(e.FunctionId))
-            .OrderBy(e => e.SeqNum)
+            .OrderBy(e => int.TryParse(e.SeqNum, out var n) ? n : int.MaxValue)
             .ToList();
 
         return new FavoritesResult(
