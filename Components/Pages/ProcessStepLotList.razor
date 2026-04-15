@@ -10,15 +10,31 @@
 <MudPaper Class="pa-3 mb-2" Elevation="1">
     <MudGrid Spacing="2">
 
-        @* 大工程選択 *@
-        <MudItem xs="12" sm="3">
+        @* 表示区分選択 *@
+        <MudItem xs="12" sm="2">
+            <MudSelect T="DisplayKbn"
+                       Label="表示区分"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_kbn"
+                       ValueChanged="OnKbnChanged"
+                       ToStringFunc="@(k => KbnLabel(k))"
+                       AnchorOrigin="Origin.BottomLeft">
+                <MudSelectItem T="DisplayKbn" Value="DisplayKbn.Process">工程別</MudSelectItem>
+                <MudSelectItem T="DisplayKbn" Value="DisplayKbn.All">全工程</MudSelectItem>
+                <MudSelectItem T="DisplayKbn" Value="DisplayKbn.Template">テンプレート</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        @* 大工程選択 (工程別のみ有効) *@
+        <MudItem xs="12" sm="2">
             <MudSelect T="ProcessStepLotListService.OpItem"
                        Label="大工程"
                        Variant="Variant.Outlined"
                        Margin="Margin.Dense"
                        Value="_selectedOp"
                        ValueChanged="OnOpChanged"
-                       Disabled="@(_opLoading || _opsLoading)"
+                       Disabled="@(!IsProcess || _opLoading || _opsLoading)"
                        Clearable="true"
                        ToStringFunc="@(op => op is null ? "" : op.OpId)"
                        AnchorOrigin="Origin.BottomLeft">
@@ -36,15 +52,15 @@
             </MudSelect>
         </MudItem>
 
-        @* 小工程選択 *@
-        <MudItem xs="12" sm="3">
+        @* 小工程選択 (工程別かつ大工程選択時のみ有効) *@
+        <MudItem xs="12" sm="2">
             <MudSelect T="ProcessStepLotListService.StepItem"
                        Label="小工程"
                        Variant="Variant.Outlined"
                        Margin="Margin.Dense"
                        Value="_selectedStep"
                        ValueChanged="OnStepChanged"
-                       Disabled="@(_stepsLoading || _selectedOp is null)"
+                       Disabled="@(!IsProcess || _stepsLoading || _selectedOp is null)"
                        Clearable="true"
                        ToStringFunc="@(s => s is null ? "" : s.StepId)"
                        AnchorOrigin="Origin.BottomLeft">
@@ -117,11 +133,11 @@
         </MudItem>
 
         @* 最新取得ボタン *@
-        <MudItem xs="12" sm="12">
+        <MudItem xs="12">
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        OnClick="LoadAsync"
-                       Disabled="@(_loading || _selectedOp is null)">
+                       Disabled="@(_loading || (IsProcess && _selectedOp is null))">
                 @if (_loading)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
@@ -297,7 +313,7 @@ else
     else if (!_loading)
     {
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
-            大工程を選択して「最新取得」を押してください。
+            表示区分を選択して「最新取得」を押してください。
         </MudText>
     }
 }
@@ -307,6 +323,34 @@ else
 </div>
 
 @code {
+    // ── 表示区分 ──────────────────────────────────────────────────
+
+    private enum DisplayKbn { Process, All, Template }
+
+    private DisplayKbn _kbn = DisplayKbn.Process;
+
+    /// <summary>工程別が選択されているか</summary>
+    private bool IsProcess => _kbn == DisplayKbn.Process;
+
+    private static string KbnLabel(DisplayKbn k) => k switch
+    {
+        DisplayKbn.Process  => "工程別",
+        DisplayKbn.All      => "全工程",
+        DisplayKbn.Template => "テンプレート",
+        _                   => string.Empty
+    };
+
+    /// <summary>表示区分 → ClassDivision 文字列。VBソース: CPstrCD27 / CPstrCD02 / CPstrCD3J</summary>
+    private static string KbnToClassDivision(DisplayKbn k) => k switch
+    {
+        DisplayKbn.Process  => "27",
+        DisplayKbn.All      => "02",
+        DisplayKbn.Template => "3J",
+        _                   => "27"
+    };
+
+    // ── マスタデータ ──────────────────────────────────────────────
+
     private IReadOnlyList<ProcessStepLotListService.OpItem>        _ops         = [];
     private IReadOnlyList<ProcessStepLotListService.StepItem>      _steps       = [];
     private IReadOnlyList<ProcessStepLotListService.PdItem>        _pds         = [];
@@ -322,6 +366,8 @@ else
     private bool _stepsLoading;
     private bool _pdsLoading;
     private bool _flowClassesLoading;
+
+    // ── 結果 ──────────────────────────────────────────────────────
 
     private ProcessStepLotListService.LotListResponse? _response;
     private bool _loading;
@@ -359,6 +405,18 @@ else
             _pdsLoading         = false;
             _flowClassesLoading = false;
         }
+    }
+
+    // ── 表示区分変更 ─────────────────────────────────────────────
+    // VBソース: cmbOutKbn_Change - 工程別以外では大工程/小工程をクリア・無効化
+
+    private void OnKbnChanged(DisplayKbn kbn)
+    {
+        _kbn          = kbn;
+        _selectedOp   = null;
+        _selectedStep = null;
+        _steps        = [];
+        _response     = null;
     }
 
     // ── 大工程選択変更 → 小工程を再取得 ─────────────────────────
@@ -414,9 +472,9 @@ else
         {
             var req = new ProcessStepLotListService.LotListRequest
             {
-                ClassDivision = "27",
-                OpId          = _selectedOp?.OpId   ?? string.Empty,
-                StepId        = _selectedStep?.StepId ?? string.Empty,
+                ClassDivision = KbnToClassDivision(_kbn),
+                OpId          = IsProcess ? (_selectedOp?.OpId   ?? string.Empty) : string.Empty,
+                StepId        = IsProcess ? (_selectedStep?.StepId ?? string.Empty) : string.Empty,
                 PdIds         = _selectedPds.Select(p => p.PdId).ToList(),
                 FlowClasses   = _selectedFlowClasses.Select(f => f.FlowClass).ToList()
             };
@@ -449,8 +507,7 @@ else
     }
 
     // ── 行スタイル ────────────────────────────────────────────────
-    // VBソース: 保留/停止→黄色、ダミーロット(FD/SD/ED)→オレンジ
-    // EN0200 は AvailableRecipeFlag / FrRecipeFlag を持たないため該当色なし
+    // 保留/停止→黄色、ダミーロット(FD/SD/ED)→オレンジ
 
     private static string GetRowStyle(ProcessStepLotListService.LotInfo item, int _)
     {
@@ -475,10 +532,7 @@ else
         return sb.ToString();
     }
 
-    /// <summary>
-    /// キャリアID表示。後処理状態ならアンロードキャリアIDを表示。
-    /// VBソース: CPstrAfterProgressSt = "後処理"
-    /// </summary>
+    /// <summary>キャリアID表示。後処理状態ならアンロードキャリアIDを表示。</summary>
     private static string GetDisplayCarrierId(ProcessStepLotListService.LotInfo item)
     {
         if (!string.IsNullOrEmpty(item.ToCarrierId) && item.NowSt == "後処理")
