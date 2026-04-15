@@ -1,0 +1,260 @@
+@page "/carrier-management"
+@inject CarrierService CarrierSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - キャリア管理 (EN00G0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">キャリア管理 (EN00G0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 検索エリア ────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID (任意)"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="空欄で全件検索"
+                          OnKeyUp="OnSearchKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchAsync"
+                       Disabled="_loading"
+                       StartIcon="@Icons.Material.Filled.Search">
+                @if (_loading && _carriers is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <span>検索</span>
+                }
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                       OnClick="ClearAll" Disabled="_loading"
+                       StartIcon="@Icons.Material.Filled.Clear">
+                クリア
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="2" md="2">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @if (_carriers is not null)
+                {
+                    <span>@_carriers.Count 件</span>
+                }
+            </MudText>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── キャリア一覧グリッド ────── *@
+@if (_carriers is not null)
+{
+    <MudDataGrid T="CarrierService.CarrierInfo"
+                 Items="_carriers"
+                 Dense="true"
+                 Hover="true"
+                 Striped="true"
+                 Filterable="true"
+                 FilterMode="DataGridFilterMode.ColumnFilterRow"
+                 SortMode="SortMode.Multiple"
+                 Virtualize="true"
+                 FixedHeader="true"
+                 Height="calc(100vh - 380px)"
+                 RowStyleFunc="RowStyle"
+                 SelectedItem="_selectedCarrier"
+                 SelectedItemChanged="OnCarrierSelected"
+                 Elevation="1">
+        <Columns>
+            <PropertyColumn Property="x => x.CarrierId"          Title="キャリアID"     Sortable="true" />
+            <TemplateColumn Title="空/実" Sortable="true" Filterable="false">
+                <CellTemplate>
+                    @(context.Item.EmptyFlag == "1" ? "空" : "実")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.CarrierStatId"      Title="状態"           Sortable="true" />
+            <PropertyColumn Property="x => x.StartTime"          Title="使用開始日時"   Sortable="true" />
+            <TemplateColumn Title="クリーン" Sortable="true" Filterable="false">
+                <CellTemplate>
+                    @(context.Item.CleanFlag == "1" ? "済" : "未")
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.CleanTime"          Title="クリーン日時"   Sortable="true" />
+            <PropertyColumn Property="x => x.TotalUseCount"      Title="総使用回数"     Sortable="true" />
+            <PropertyColumn Property="x => x.CleanCount"         Title="クリーン回数"   Sortable="true" />
+            <PropertyColumn Property="x => x.AfterCleanUseCount" Title="クリーン後使用" Sortable="true" />
+        </Columns>
+    </MudDataGrid>
+}
+
+@* ────── 手動出庫エリア ────── *@
+@if (_selectedCarrier is not null)
+{
+    <MudPaper Class="pa-3 mt-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">
+            手動出庫 — キャリア: <b>@_selectedCarrier.CarrierId</b>
+        </MudText>
+        <MudGrid Spacing="2" AlignItems="AlignItems.End">
+            <MudItem xs="12" sm="4" md="3">
+                <MudTextField T="string"
+                              Value="@_stockerId"
+                              ValueChanged="@((string v) => _stockerId = (v ?? "").ToUpperInvariant())"
+                              Label="ストッカーID *"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="20"
+                              Immediate="true"
+                              Disabled="_loading"
+                              Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+            </MudItem>
+            <MudItem xs="12" sm="4" md="3">
+                <MudTextField T="string"
+                              Value="@_empId"
+                              ValueChanged="@((string v) => _empId = (v ?? "").ToUpperInvariant())"
+                              Label="作業者ID *"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="10"
+                              Immediate="true"
+                              Disabled="_loading"
+                              Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+            </MudItem>
+            <MudItem xs="12" sm="4" md="3">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Warning"
+                           OnClick="ManualOutAsync"
+                           Disabled="@(_loading || string.IsNullOrWhiteSpace(_stockerId) || string.IsNullOrWhiteSpace(_empId))"
+                           StartIcon="@Icons.Material.Filled.Output">
+                    @if (_outLoading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        <span>出庫中...</span>
+                    }
+                    else
+                    {
+                        <span>手動出庫</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    private string _carrierId    = "";
+    private bool   _loading      = false;
+    private bool   _outLoading   = false;
+    private string _errorMessage = "";
+
+    // 手動出庫用
+    private string _stockerId = "";
+    private string _empId     = "";
+
+    private IReadOnlyList<CarrierService.CarrierInfo>? _carriers;
+    private CarrierService.CarrierInfo?                _selectedCarrier;
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FetchAsync();
+    }
+
+    private async Task FetchAsync()
+    {
+        _loading         = true;
+        _errorMessage    = "";
+        _selectedCarrier = null;
+        StateHasChanged();
+
+        var request = new CarrierService.CarrierListRequest(
+            ClassDivision: "1",
+            CarrierId:     _carrierId.Trim());
+
+        _carriers = await CarrierSvc.GetCarrierListAsync(request);
+        _loading  = false;
+
+        if (_carriers.Count == 0)
+        {
+            Snackbar.Add("該当するキャリアが見つかりませんでした。", Severity.Warning);
+        }
+        else
+        {
+            Snackbar.Add($"{_carriers.Count} 件取得しました。", Severity.Info);
+        }
+    }
+
+    private void OnCarrierSelected(CarrierService.CarrierInfo? item)
+    {
+        _selectedCarrier = item;
+    }
+
+    private async Task ManualOutAsync()
+    {
+        if (_selectedCarrier is null) return;
+
+        _outLoading = true;
+        _loading    = true;
+        StateHasChanged();
+
+        var ok = await CarrierSvc.ManualCarrierOutAsync(
+            carrierId: _selectedCarrier.CarrierId,
+            stockerId: _stockerId.Trim(),
+            empId:     _empId.Trim());
+
+        _outLoading = false;
+        _loading    = false;
+
+        if (!ok)
+        {
+            _errorMessage = "手動出庫に失敗しました。";
+            return;
+        }
+
+        Snackbar.Add($"キャリア {_selectedCarrier.CarrierId} を {_stockerId} へ出庫しました。", Severity.Success);
+        _selectedCarrier = null;
+        _stockerId       = "";
+        _empId           = "";
+
+        // 一覧を再取得
+        await FetchAsync();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId       = "";
+        _carriers        = null;
+        _selectedCarrier = null;
+        _stockerId       = "";
+        _empId           = "";
+        _errorMessage    = "";
+    }
+
+    private string RowStyle(CarrierService.CarrierInfo item, int index)
+    {
+        if (item.EmptyFlag == "1")
+            return "background-color: #E3F2FD;";
+        return string.Empty;
+    }
+}
