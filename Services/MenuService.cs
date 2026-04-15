@@ -7,11 +7,13 @@ namespace MudBlazorSpirytusTerm.Services;
 /// </summary>
 public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger<MenuService> logger)
 {
-    private readonly string _defaultSbId = cfg["Spirytus:DefaultSbId"] ?? string.Empty;
-    /// <summary>util.refmenu_ の LOGIN_ID。appsettings: Spirytus:MenuLoginId</summary>
-    private readonly string _menuLoginId = cfg["Spirytus:MenuLoginId"] ?? string.Empty;
-    /// <summary>util.refmenu_ の MENU_KIND。appsettings: Spirytus:MenuKind (例: "1A0;A")</summary>
-    private readonly string _menuKind    = cfg["Spirytus:MenuKind"]    ?? string.Empty;
+    private readonly string _defaultSbId     = cfg["Spirytus:DefaultSbId"]     ?? string.Empty;
+    /// <summary>流動系タブ LOGIN_ID。VBソース: CMstrMenuIdFlow = "MENUFLOW"</summary>
+    private readonly string _menuFlowLoginId = cfg["Spirytus:MenuFlowLoginId"] ?? string.Empty;
+    /// <summary>ツール系タブ LOGIN_ID。VBソース: CMstrMenuIdTool = "MENUTOOL"</summary>
+    private readonly string _menuToolLoginId = cfg["Spirytus:MenuToolLoginId"] ?? string.Empty;
+    /// <summary>MENU_KIND。VBソース: pstrSBID & ";" & pstrTerminalMode (例: "1A0;A")</summary>
+    private readonly string _menuKind        = cfg["Spirytus:MenuKind"]        ?? string.Empty;
 
     // ──────── 公開型 ────────────────────────────────────────────
 
@@ -35,18 +37,32 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
         string ErrorMessage = ""
     );
 
-    // ──────── お気に入り取得 ──────────────────────────────────────
+    // ──────── お気に入り取得 (流動系 / ツール系) ───────────────────
 
     /// <summary>
-    /// メニューお気に入りリストを取得する。
+    /// 流動系お気に入りリストを取得する。(CPlngMenuTabFlow = 0)
+    /// LOGIN_ID = Spirytus:MenuFlowLoginId (例: "MENUFLOW")
+    /// </summary>
+    public Task<FavoritesResult> GetFlowFavoritesAsync(CancellationToken ct = default)
+        => GetFavoritesAsync(_menuFlowLoginId, ct);
+
+    /// <summary>
+    /// ツール系お気に入りリストを取得する。(CPlngMenuTabTool = 1)
+    /// LOGIN_ID = Spirytus:MenuToolLoginId (例: "MENUTOOL")
+    /// </summary>
+    public Task<FavoritesResult> GetToolFavoritesAsync(CancellationToken ct = default)
+        => GetFavoritesAsync(_menuToolLoginId, ct);
+
+    /// <summary>
+    /// お気に入りリストを取得する内部実装。
     /// VBソース: pubblnUtilRefMenuFavor_Sel (CtsbasxxMG0000.vb), MsgVer="01.00"
-    /// 送信: LOGIN_ID (Spirytus:MenuLoginId) / MENU_KIND (Spirytus:MenuKind) / MSG_VER
+    /// 送信: LOGIN_ID / MENU_KIND (Spirytus:MenuKind) / MSG_VER
     /// 受信: TAKING_OVER_FLAG / FAVORITE_LIST[SEQ_NUM, FUNCTION_ID]
     /// </summary>
-    public async Task<FavoritesResult> GetFavoritesAsync(CancellationToken ct = default)
+    private async Task<FavoritesResult> GetFavoritesAsync(string loginId, CancellationToken ct)
     {
         var req = new TfMsg();
-        req.AddString(Tags.LoginId,  _menuLoginId);
+        req.AddString(Tags.LoginId,  loginId);
         req.AddString(Tags.MenuKind, _menuKind);
         req.AddString(Tags.MsgVer,   "01.00");
 
@@ -57,7 +73,7 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "UtilRefMenu request failed");
+            logger.LogError(ex, "UtilRefMenu request failed. LoginId={LoginId}", loginId);
             return new FavoritesResult(false, ErrorMessage: ex.Message);
         }
 
@@ -66,7 +82,8 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
         {
             var errCode = msg.GetString(Tags.ErrCode);
             var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("UtilRefMenu returned non-TRUE. ErrCode={ErrCode}, Err={Err}", errCode, errMsg);
+            logger.LogWarning("UtilRefMenu returned non-TRUE. LoginId={LoginId}, ErrCode={ErrCode}, Err={Err}",
+                loginId, errCode, errMsg);
             return new FavoritesResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
         }
 

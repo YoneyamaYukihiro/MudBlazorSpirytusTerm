@@ -45,9 +45,9 @@
     }
 </MudPaper>
 
-@* ── お気に入りメニュー (util.refmenu_) ── *@
-<MudPaper Class="pa-4" Elevation="1">
-    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">お気に入り</MudText>
+@* ── 流動系お気に入り (LOGIN_ID="MENUFLOW") ── *@
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">流動系</MudText>
     @if (_loading)
     {
         <MudGrid Spacing="2">
@@ -59,18 +59,18 @@
             }
         </MudGrid>
     }
-    else if (!string.IsNullOrWhiteSpace(_favError))
+    else if (!string.IsNullOrWhiteSpace(_flowError))
     {
-        <MudAlert Severity="Severity.Warning" Dense="true">@_favError</MudAlert>
+        <MudAlert Severity="Severity.Warning" Dense="true">@_flowError</MudAlert>
     }
-    else if (_favorites is null || _favorites.Count == 0)
+    else if (_flowFavorites is null || _flowFavorites.Count == 0)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">お気に入りメニューはまだ登録されていません。</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">登録されていません。</MudText>
     }
     else
     {
         <MudGrid Spacing="2">
-            @foreach (var fav in _favorites)
+            @foreach (var fav in _flowFavorites)
             {
                 var href  = ResolveHref(fav.FunctionId);
                 var label = ResolveLabel(fav.FunctionId);
@@ -90,13 +90,60 @@
     }
 </MudPaper>
 
+@* ── ツール系お気に入り (LOGIN_ID="MENUTOOL") ── *@
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ツール系</MudText>
+    @if (_loading)
+    {
+        <MudGrid Spacing="2">
+            @for (int i = 0; i < 4; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else if (!string.IsNullOrWhiteSpace(_toolError))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">@_toolError</MudAlert>
+    }
+    else if (_toolFavorites is null || _toolFavorites.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">登録されていません。</MudText>
+    }
+    else
+    {
+        <MudGrid Spacing="2">
+            @foreach (var fav in _toolFavorites)
+            {
+                var href  = ResolveHref(fav.FunctionId);
+                var label = ResolveLabel(fav.FunctionId);
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Secondary"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Style="height: 64px; font-size: 0.85rem; white-space: normal; line-height: 1.3;"
+                               Href="@href"
+                               Disabled="@(href == "#")">
+                        @label
+                    </MudButton>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudPaper>
+
 @code {
 
     private bool   _loading         = true;
     private string _informationText = "";
     private string _infoError       = "";
-    private string _favError        = "";
-    private IReadOnlyList<MenuService.FavoriteEntry>? _favorites;
+    private string _flowError       = "";
+    private string _toolError       = "";
+    private IReadOnlyList<MenuService.FavoriteEntry>? _flowFavorites;
+    private IReadOnlyList<MenuService.FavoriteEntry>? _toolFavorites;
 
     private CancellationTokenSource _cts = new();
 
@@ -109,18 +156,22 @@
     {
         _loading         = true;
         _infoError       = "";
-        _favError        = "";
+        _flowError       = "";
+        _toolError       = "";
         _informationText = "";
-        _favorites       = null;
+        _flowFavorites   = null;
+        _toolFavorites   = null;
         StateHasChanged();
 
-        // util.information と util.refmenu_ を並行取得
+        // util.information / util.refmenu_(流動系) / util.refmenu_(ツール系) を並行取得
         var infoTask = MenuSvc.GetInformationAsync(_cts.Token);
-        var favTask  = MenuSvc.GetFavoritesAsync(_cts.Token);
-        await Task.WhenAll(infoTask, favTask);
+        var flowTask = MenuSvc.GetFlowFavoritesAsync(_cts.Token);
+        var toolTask = MenuSvc.GetToolFavoritesAsync(_cts.Token);
+        await Task.WhenAll(infoTask, flowTask, toolTask);
 
         var infoResult = infoTask.Result;
-        var favResult  = favTask.Result;
+        var flowResult = flowTask.Result;
+        var toolResult = toolTask.Result;
 
         if (!infoResult.IsSuccess)
             _infoError = string.IsNullOrEmpty(infoResult.ErrorMessage)
@@ -129,12 +180,19 @@
         else
             _informationText = infoResult.Text;
 
-        if (!favResult.IsSuccess)
-            _favError = string.IsNullOrEmpty(favResult.ErrorMessage)
-                ? "お気に入りの取得に失敗しました。"
-                : favResult.ErrorMessage;
+        if (!flowResult.IsSuccess)
+            _flowError = string.IsNullOrEmpty(flowResult.ErrorMessage)
+                ? "流動系メニューの取得に失敗しました。"
+                : flowResult.ErrorMessage;
         else
-            _favorites = favResult.List;
+            _flowFavorites = flowResult.List;
+
+        if (!toolResult.IsSuccess)
+            _toolError = string.IsNullOrEmpty(toolResult.ErrorMessage)
+                ? "ツール系メニューの取得に失敗しました。"
+                : toolResult.ErrorMessage;
+        else
+            _toolFavorites = toolResult.List;
 
         _loading = false;
     }
