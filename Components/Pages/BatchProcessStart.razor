@@ -1,0 +1,210 @@
+@page "/batch-process-start"
+@inject BatchService BatchSvc
+@inject EquipmentService EqSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - バッチ処理開始 (EN00L0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">バッチ処理開始 (EN00L0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode)) { <b>[@_errorCode]</b><span> </span> }
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 装置グループ選択 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="EquipmentService.McGroup"
+                       Label="装置グループ"
+                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                       Value="_selectedGroup" ValueChanged="OnGroupChanged"
+                       Clearable="true"
+                       ToStringFunc="@(g => g is null ? "" : $"{g.Id} {g.Name}")"
+                       Disabled="@(_groupsLoading || _loading)">
+                @foreach (var g in _groups)
+                {
+                    <MudSelectItem T="EquipmentService.McGroup" Value="g">@g.Id @g.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchBatchesAsync"
+                       Disabled="@(_loading || _selectedGroup is null)"
+                       StartIcon="@Icons.Material.Filled.Search">
+                @if (_loading && _batches is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else { <span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── バッチ一覧 ────── *@
+@if (_batches is not null)
+{
+    @if (_batches.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">対象バッチがありません。</MudAlert>
+    }
+    else
+    {
+        @foreach (var batch in _batches)
+        {
+            <MudPaper Class="pa-3 mb-2" Elevation="1"
+                      Style="@(_selectedBatch == batch ? "border-left: 4px solid var(--mud-palette-primary);" : "cursor: pointer;")"
+                      @onclick="() => _selectedBatch = batch">
+                <MudGrid Spacing="1" AlignItems="AlignItems.Center">
+                    <MudItem xs="12" sm="3">
+                        <MudText Typo="Typo.subtitle2">バッチID: <b>@batch.BatchId</b></MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">装置: @batch.WpName</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">レシピ: @batch.RecipeId</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">ロット数: @batch.Lots.Count</MudText>
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">装置タイプ: @batch.EqType</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                @if (_selectedBatch == batch)
+                {
+                    <MudDivider Class="my-2" />
+                    <MudTable T="BatchService.BatchLotItem" Items="batch.Lots" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>ロットID</MudTh>
+                            <MudTh>キャリアID</MudTh>
+                            <MudTh>フロー区分</MudTh>
+                            <MudTh>大工程</MudTh>
+                            <MudTh>小工程</MudTh>
+                            <MudTh>WF枚数</MudTh>
+                            <MudTh>優先度</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.LotId</MudTd>
+                            <MudTd>@context.CarrierId</MudTd>
+                            <MudTd>@context.FlowClass</MudTd>
+                            <MudTd>@context.OpId</MudTd>
+                            <MudTd>@context.StepId</MudTd>
+                            <MudTd>@context.WfNum</MudTd>
+                            <MudTd>@context.LotPriority</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+        }
+    }
+}
+
+@* ────── 確定ボタン ────── *@
+@if (_selectedBatch is not null)
+{
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.End">
+            <MudItem xs="12" sm="4" md="3">
+                <MudTextField @bind-Value="_workMemo" Label="作業メモ"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Lines="2" MaxLength="128" Disabled="_loading" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                   OnClick="ConfirmAsync" Disabled="_loading">
+            @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> <span>処理中...</span> }
+            else { <span>確 定</span> }
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_loading">クリア</MudButton>
+    </MudStack>
+}
+
+@code {
+    private bool   _loading       = false;
+    private bool   _groupsLoading = true;
+    private string _errorMessage  = "";
+    private string _errorCode     = "";
+    private string _workMemo      = "";
+
+    private IReadOnlyList<EquipmentService.McGroup> _groups = [];
+    private EquipmentService.McGroup? _selectedGroup;
+    private IReadOnlyList<BatchService.BatchInfo>? _batches;
+    private BatchService.BatchInfo? _selectedBatch;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groups = await EqSvc.GetMcGroupListAsync();
+        _groupsLoading = false;
+    }
+
+    private async Task OnGroupChanged(EquipmentService.McGroup? g)
+    {
+        _selectedGroup = g; _batches = null; _selectedBatch = null;
+        if (g is not null) await FetchBatchesAsync();
+    }
+
+    private async Task FetchBatchesAsync()
+    {
+        if (_selectedGroup is null) return;
+        _loading = true; _errorMessage = ""; _selectedBatch = null;
+        StateHasChanged();
+
+        _batches = await BatchSvc.GetBatchLotListAsync(
+            new BatchService.BatchLotListRequest(ClassDivision: "11", McGroupId: _selectedGroup.Id));
+        _loading = false;
+
+        if (_batches.Count == 0) Snackbar.Add("対象バッチがありません。", Severity.Warning);
+        else Snackbar.Add($"{_batches.Count} バッチ取得しました。", Severity.Info);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_selectedBatch is null) return;
+        _loading = true; StateHasChanged();
+
+        var lots = _selectedBatch.Lots
+            .Select(l => new BatchService.BatchLotRef(l.LotId, l.LotLastUpdate))
+            .ToList();
+
+        var result = await BatchSvc.BatchProcessStartAsync(
+            new BatchService.BatchProcessRequest(
+                BatchId: _selectedBatch.BatchId,
+                EmpId: "",
+                EqType: _selectedBatch.EqType,
+                Lots: lots,
+                Comments: _workMemo));
+
+        _loading = false;
+        if (!result.IsSuccess) { _errorCode = result.ErrorCode; _errorMessage = string.IsNullOrEmpty(result.ErrorMessage) ? "バッチ処理開始に失敗しました。" : result.ErrorMessage; return; }
+
+        Snackbar.Add($"バッチ処理開始を登録しました。 バッチ: {_selectedBatch.BatchId}", Severity.Success);
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _batches = null; _selectedBatch = null; _workMemo = ""; _errorMessage = ""; _errorCode = "";
+    }
+}
