@@ -22,17 +22,46 @@
                    Disabled="_loading" />
 </MudStack>
 
-@* ── お知らせ本文 ── *@
+@* ── お知らせ本文 (util.information) ── *@
 <MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">お知らせ</MudText>
     @if (_loading)
     {
         <MudSkeleton SkeletonType="SkeletonType.Text" Width="80%" />
         <MudSkeleton SkeletonType="SkeletonType.Text" Width="60%" />
         <MudSkeleton SkeletonType="SkeletonType.Text" Width="70%" />
     }
-    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    else if (!string.IsNullOrWhiteSpace(_infoError))
     {
-        <MudAlert Severity="Severity.Warning" Dense="true">@_errorMessage</MudAlert>
+        <MudAlert Severity="Severity.Warning" Dense="true">@_infoError</MudAlert>
+    }
+    else if (string.IsNullOrWhiteSpace(_informationText))
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">お知らせはありません。</MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Style="white-space: pre-wrap; word-break: break-word;">@_informationText</MudText>
+    }
+</MudPaper>
+
+@* ── お気に入りメニュー (util.refmenu_) ── *@
+<MudPaper Class="pa-4" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">お気に入り</MudText>
+    @if (_loading)
+    {
+        <MudGrid Spacing="2">
+            @for (int i = 0; i < 4; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="64px" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else if (!string.IsNullOrWhiteSpace(_favError))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">@_favError</MudAlert>
     }
     else if (_favorites is null || _favorites.Count == 0)
     {
@@ -40,12 +69,11 @@
     }
     else
     {
-        @* ── お気に入りボタン一覧 ── *@
         <MudGrid Spacing="2">
             @foreach (var fav in _favorites)
             {
-                var href   = ResolveHref(fav.FunctionId);
-                var label  = ResolveLabel(fav.FunctionId);
+                var href  = ResolveHref(fav.FunctionId);
+                var label = ResolveLabel(fav.FunctionId);
                 <MudItem xs="12" sm="6" md="4" lg="3">
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Primary"
@@ -64,8 +92,10 @@
 
 @code {
 
-    private bool   _loading      = true;
-    private string _errorMessage = "";
+    private bool   _loading         = true;
+    private string _informationText = "";
+    private string _infoError       = "";
+    private string _favError        = "";
     private IReadOnlyList<MenuService.FavoriteEntry>? _favorites;
 
     private CancellationTokenSource _cts = new();
@@ -77,23 +107,36 @@
 
     private async Task LoadAsync()
     {
-        _loading      = true;
-        _errorMessage = "";
+        _loading         = true;
+        _infoError       = "";
+        _favError        = "";
+        _informationText = "";
+        _favorites       = null;
         StateHasChanged();
 
-        var result = await MenuSvc.GetFavoritesAsync(ct: _cts.Token);
-        _loading = false;
+        // util.information と util.refmenu_ を並行取得
+        var infoTask = MenuSvc.GetInformationAsync(_cts.Token);
+        var favTask  = MenuSvc.GetFavoritesAsync(ct: _cts.Token);
+        await Task.WhenAll(infoTask, favTask);
 
-        if (!result.IsSuccess)
-        {
-            _errorMessage = string.IsNullOrEmpty(result.ErrorMessage)
-                ? "お気に入り情報の取得に失敗しました。"
-                : result.ErrorMessage;
-        }
+        var infoResult = infoTask.Result;
+        var favResult  = favTask.Result;
+
+        if (!infoResult.IsSuccess)
+            _infoError = string.IsNullOrEmpty(infoResult.ErrorMessage)
+                ? "お知らせの取得に失敗しました。"
+                : infoResult.ErrorMessage;
         else
-        {
-            _favorites = result.List;
-        }
+            _informationText = infoResult.Text;
+
+        if (!favResult.IsSuccess)
+            _favError = string.IsNullOrEmpty(favResult.ErrorMessage)
+                ? "お気に入りの取得に失敗しました。"
+                : favResult.ErrorMessage;
+        else
+            _favorites = favResult.List;
+
+        _loading = false;
     }
 
     // ── 機能IDからリンク先を解決 ──────────────────────────────────
@@ -108,6 +151,7 @@
 
     private static string ResolveLabel(string functionId) => functionId switch
     {
+        "EN0020"  => "投入予定ロット登録",
         "EN0030"  => "作業開始",
         "EN0040"  => "ロット投入(基板)",
         "EN0050"  => "ロット保留",
@@ -149,7 +193,6 @@
         "EN00X0"  => "投入予定工順登録(組立)",
         "EN00Y0"  => "特殊流動(リワーク・追加・先行)",
         "EN00Z0"  => "工程戻し",
-        "EN0020"  => "投入予定ロット登録",
         "EN01A0"  => "TPAL貼り合わせ登録",
         "EN01B0"  => "ロット再測定",
         "EN01C0"  => "ロット情報詳細",
