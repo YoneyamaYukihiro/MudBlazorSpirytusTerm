@@ -246,11 +246,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("LotCurState returned non-TRUE. CarrierId={CarrierId}, ErrCode={ErrCode}, Err={Err}",
-                carrierId, errCode, errMsg);
-            return new LotCurStateResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("LotCurState returned non-TRUE. CarrierId={CarrierId}, Code={Code}, Msg={Msg}",
+                carrierId, code, message);
+            return new LotCurStateResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         // 工程リスト（STEP_LIST）解析
@@ -354,11 +353,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("WrkStart returned non-TRUE. LotId={LotId}, ErrCode={ErrCode}, Err={Err}",
-                request.LotId, errCode, errMsg);
-            return new WorkStartResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("WrkStart returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                request.LotId, code, message);
+            return new WorkStartResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new WorkStartResult(
@@ -405,11 +403,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("WrkEnd returned non-TRUE. LotId={LotId}, ErrCode={ErrCode}, Err={Err}",
-                request.LotId, errCode, errMsg);
-            return new WorkEndResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("WrkEnd returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                request.LotId, code, message);
+            return new WorkEndResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var tpAry = msg.GetMsgAry(Tags.TpLotList);
@@ -473,11 +470,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("PrcStart returned non-TRUE. LotId={LotId}, ErrCode={ErrCode}, Err={Err}",
-                request.LotId, errCode, errMsg);
-            return new ProcessStartResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("PrcStart returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                request.LotId, code, message);
+            return new ProcessStartResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new ProcessStartResult(
@@ -524,11 +520,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("PrcEnd returned non-TRUE. LotId={LotId}, ErrCode={ErrCode}, Err={Err}",
-                request.LotId, errCode, errMsg);
-            return new ProcessEndResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("PrcEnd returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                request.LotId, code, message);
+            return new ProcessEndResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new ProcessEndResult(
@@ -578,11 +573,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("NextSend returned non-TRUE. LotId={LotId}, ErrCode={ErrCode}, Err={Err}",
-                lotId, errCode, errMsg);
-            return new NextSendResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("NextSend returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                lotId, code, message);
+            return new NextSendResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new NextSendResult(
@@ -687,11 +681,10 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         var msg = ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var errCode = msg.GetString(Tags.ErrCode);
-            var errMsg  = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("CancelStart returned non-TRUE. LotId={LotId}, ErrCode={ErrCode}, Err={Err}",
-                request.LotId, errCode, errMsg);
-            return new CancelStartResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+            var (code, message) = GetErrorInfo(msg);
+            logger.LogWarning("CancelStart returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                request.LotId, code, message);
+            return new CancelStartResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new CancelStartResult(
@@ -714,6 +707,23 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         empty.AddString(Tags.Ret, Tags.False);
         empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
         return empty;
+    }
+
+    /// <summary>
+    /// RET=1 応答からエラーコードとメッセージを取得する。
+    /// 返答は MSG_CODE / MSG を使う場合と ERR_CODE / ERR_MSG を使う場合がある。
+    /// MSG_CODE / MSG を優先し、空の場合は ERR_CODE / ERR_MSG にフォールバック。
+    /// </summary>
+    private static (string Code, string Message) GetErrorInfo(TfMsg msg)
+    {
+        var msgCode = msg.GetString(Tags.MsgCode);
+        var msgText = msg.GetString(Tags.Msg);
+        var errCode = msg.GetString(Tags.ErrCode);
+        var errMsg  = msg.GetString(Tags.ErrMsg);
+
+        var code    = !string.IsNullOrEmpty(msgCode) ? msgCode : errCode;
+        var message = !string.IsNullOrEmpty(msgText) ? msgText : errMsg;
+        return (code, message);
     }
 
     private static string Summarize(string? raw) =>
