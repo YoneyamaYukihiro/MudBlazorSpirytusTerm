@@ -216,17 +216,21 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
     /// <summary>
     /// ロット現在状態を取得する。
     /// VBソース: pubblnLotCurstate_Sel (CtsbasxxCM0050.vb), MsgVer="04.00"
-    /// ClassDivision: "10" (CPstrCD10) = キャリアIDで検索
+    /// ClassDivision: "10" (CPstrCD10) = 作業開始
+    /// フィールド順: CARRIER_ID → SB_ID → CLASS_DIVISION → MSG_VER → LOT_ID
     /// </summary>
     public async Task<LotCurStateResult> GetLotCurStateAsync(
         string carrierId,
         string classDivision = "10",
+        string lotId         = "",
         CancellationToken ct = default)
     {
         var req = new TfMsg();
-        req.AddString(Tags.CarrierId,      carrierId);
-        req.AddString(Tags.ClassDivision,  classDivision);
-        req.AddString(Tags.MsgVer,         "04.00");
+        req.AddString(Tags.CarrierId,     carrierId);
+        req.AddString(Tags.SbId,          _defaultSbId);
+        req.AddString(Tags.ClassDivision, classDivision);
+        req.AddString(Tags.MsgVer,        "04.00");
+        req.AddString(Tags.LotId,         lotId);  // vbNullString (省略時は空文字)
 
         string raw;
         try
