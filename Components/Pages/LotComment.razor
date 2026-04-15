@@ -1,0 +1,197 @@
+@page "/lot-comment"
+@inject LotCommentService CommentSvc
+@inject WorkService WorkSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ロットコメント (EN0140)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">ロットコメント (EN0140)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── キャリアID入力 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="Enterキーで照合"
+                          Error="@_carrierError"
+                          OnKeyUp="OnCarrierKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchLotAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))">
+                @if (_loading && _lotInfo is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>照合中...</span>
+                }
+                else
+                {
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ロット情報 + コメント編集 ────── *@
+@if (_lotInfo is not null)
+{
+    <MudGrid Spacing="2" Class="mb-3">
+
+        @* ── ロット情報カード ── *@
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ロット情報</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロットID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body1"><b>@_lotInfo.LotId</b></MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">機種</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.PdId @(string.IsNullOrEmpty(_lotInfo.PdName) ? "" : $"({_lotInfo.PdName})")</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット状態</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット管理者</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">WF枚数</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.WfNum 枚</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── コメント編集 ── *@
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">コメント編集</MudText>
+                <MudTextField @bind-Value="_comment"
+                              Label="ロットコメント"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="8"
+                              MaxLength="4000"
+                              HelperText="@($"{_comment.Length} / 4000 文字")"
+                              Disabled="_loading" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ────── ボタン ────── *@
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Comment"
+                   OnClick="ConfirmAsync"
+                   Disabled="@(_loading || _lotInfo is null)">
+            @if (_loading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                <span>処理中...</span>
+            }
+            else
+            {
+                <span>確 定</span>
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_loading">
+            クリア
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private string _carrierId    = "";
+    private bool   _carrierError = false;
+    private bool   _loading      = false;
+    private string _errorMessage = "";
+    private string _comment      = "";
+    private string _lotLastUpdate = "";
+
+    private WorkService.LotCurStateResult? _lotInfo;
+
+    private async Task OnCarrierKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FetchLotAsync();
+    }
+
+    private async Task FetchLotAsync()
+    {
+        _carrierError = false;
+        if (string.IsNullOrWhiteSpace(_carrierId)) return;
+        if (_carrierId.Length != 6) { _carrierError = true; return; }
+
+        _loading      = true;
+        _lotInfo      = null;
+        _errorMessage = "";
+        StateHasChanged();
+
+        var r = await WorkSvc.GetLotCurStateAsync(_carrierId, classDivision: "3L");
+        _loading = false;
+
+        if (!r.IsSuccess) { _errorMessage = r.ErrorMessage; return; }
+
+        _lotInfo      = r;
+        _comment      = r.Comments;
+        _lotLastUpdate = r.LotLastUpdate;
+        Snackbar.Add($"ロット {r.LotId} を取得しました。", Severity.Info);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null) return;
+        _loading = true;
+        StateHasChanged();
+
+        var result = await CommentSvc.SetCommentAsync(
+            lotId:         _lotInfo.LotId,
+            comments:      _comment,
+            lotLastUpdate: _lotLastUpdate);
+
+        _loading = false;
+
+        if (!result.IsSuccess) { _errorMessage = result.ErrorMessage; return; }
+
+        if (!string.IsNullOrEmpty(result.LotLastUpdate))
+            _lotLastUpdate = result.LotLastUpdate;
+
+        Snackbar.Add($"コメントを登録しました。 ロット: {_lotInfo.LotId}", Severity.Success);
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId     = "";
+        _carrierError  = false;
+        _lotInfo       = null;
+        _comment       = "";
+        _lotLastUpdate = "";
+        _errorMessage  = "";
+    }
+}
