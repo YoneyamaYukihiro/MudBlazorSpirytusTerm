@@ -116,7 +116,7 @@
 
         // util.information と util.refmenu_ を並行取得
         var infoTask = MenuSvc.GetInformationAsync(_cts.Token);
-        var favTask  = MenuSvc.GetFavoritesAsync(ct: _cts.Token);
+        var favTask  = MenuSvc.GetFavoritesAsync(_cts.Token);
         await Task.WhenAll(infoTask, favTask);
 
         var infoResult = infoTask.Result;

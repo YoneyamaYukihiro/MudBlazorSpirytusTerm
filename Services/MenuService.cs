@@ -8,6 +8,10 @@ namespace MudBlazorSpirytusTerm.Services;
 public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger<MenuService> logger)
 {
     private readonly string _defaultSbId = cfg["Spirytus:DefaultSbId"] ?? string.Empty;
+    /// <summary>util.refmenu_ の LOGIN_ID。appsettings: Spirytus:MenuLoginId</summary>
+    private readonly string _menuLoginId = cfg["Spirytus:MenuLoginId"] ?? string.Empty;
+    /// <summary>util.refmenu_ の MENU_KIND。appsettings: Spirytus:MenuKind (例: "1A0;A")</summary>
+    private readonly string _menuKind    = cfg["Spirytus:MenuKind"]    ?? string.Empty;
 
     // ──────── 公開型 ────────────────────────────────────────────
 
@@ -36,18 +40,15 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
     /// <summary>
     /// メニューお気に入りリストを取得する。
     /// VBソース: pubblnUtilRefMenuFavor_Sel (CtsbasxxMG0000.vb), MsgVer="01.00"
-    /// 送信: LOGIN_ID / MENU_KIND / MSG_VER
+    /// 送信: LOGIN_ID (Spirytus:MenuLoginId) / MENU_KIND (Spirytus:MenuKind) / MSG_VER
     /// 受信: TAKING_OVER_FLAG / FAVORITE_LIST[SEQ_NUM, FUNCTION_ID]
     /// </summary>
-    public async Task<FavoritesResult> GetFavoritesAsync(
-        string loginId   = "",
-        string menuKind  = "",
-        CancellationToken ct = default)
+    public async Task<FavoritesResult> GetFavoritesAsync(CancellationToken ct = default)
     {
         var req = new TfMsg();
-        req.AddString(Tags.LoginId,   loginId);
-        req.AddString(Tags.MenuKind,  menuKind);
-        req.AddString(Tags.MsgVer,    "01.00");
+        req.AddString(Tags.LoginId,  _menuLoginId);
+        req.AddString(Tags.MenuKind, _menuKind);
+        req.AddString(Tags.MsgVer,   "01.00");
 
         string raw;
         try
@@ -90,7 +91,7 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
     /// <summary>
     /// メニューお知らせ文字列を取得する。
     /// VBソース: pubblnUtilInformation_Sel (CtsbasxxMG0000.vb), MsgVer="01.00"
-    /// 送信: SB_ID / MSG_VER
+    /// 送信: CLASS / MSG_VER / SB_ID
     /// 受信: INFORMATION (テキスト)
     /// </summary>
     public async Task<InformationResult> GetInformationAsync(CancellationToken ct = default)
