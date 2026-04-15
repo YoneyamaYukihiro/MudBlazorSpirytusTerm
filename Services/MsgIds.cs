@@ -63,6 +63,9 @@ public static class MsgIds
     public const string LotChgTrvProhibit    = "lot_.chgtrvprohibit";
     public const string LotChkContEtApc      = "lot_.chkContEtApc";
 
+    // ──────── EN01C0 ロット情報詳細 ────────
+    public const string LotDetail            = "lot_.detail__";
+
     // ──────── EN01G0 ロット流動票 ────────
     public const string LotDetailList        = "lot_.detaillist";
     public const string LotEventComment      = "lot_.eventcomment";
@@ -83,6 +86,13 @@ public static class MsgIds
     // ──────── 次工程送出/取得 ────────
     public const string LotNextSend         = "lot_.nextsend";
     public const string LotNextStepList     = "lot_.nextsteplist";
+
+    // ──────── EN0200 工程別ロット一覧 ────────
+    public const string LotOpList           = "lot_.oplotlist";
+    public const string MasUseOpList        = "mas_.useoplist";
+    public const string LotStepList         = "lot_.steplist";
+    public const string MasPdList           = "mas_.pdlist__";
+    public const string MasFlowList         = "mas_.flowlist";
 
     // ──────── EN0130 処理開始取消 ────────
     public const string LotCnclWrkStart     = "lot_.cnclwrkstart";

@@ -373,6 +373,29 @@ public static class Tags
     public const string WorkCondition       = "WORK_CONDITION";
     public const string UnloaderCarrierId   = "UNLOADER_CARRIER_ID";
 
+    // ──────── 工程別ロット一覧 (lot_.oplotlist / mas_.useoplist / lot_.steplist) ────────
+    public const string OpList              = "OP_LIST";
+    public const string ValidFlag           = "VALID_FLAG";
+    public const string CategoryId          = "CATEGORY_ID";
+    public const string FlowClassName       = "FLOW_CLASS_NAME";
+    public const string TemplateSeqNum      = "TEMPLATE_SEQ_NUM";
+    public const string JBatchId            = "J_BATCH_ID";
+    public const string TpalClass           = "TPAL_CLASS";
+    public const string EditLastUpdate      = "EDIT_LAST_UPDATE";
+    public const string StartDate           = "START_DATE";
+    public const string EndDate             = "END_DATE";
+
+    // ──────── EN01C0 ロット情報詳細 (lot_.detail__) ────────
+    public const string LastEventName       = "LAST_EVENT_NAME";
+    public const string LoaderCarrierId     = "LOADER_CARRIER_ID";
+    public const string NextAltFlag         = "NEXT_ALT_FLAG";
+    public const string NextSwapFlag        = "NEXT_SWAP_FLAG";
+    public const string DivideLotId         = "DIVIDE_LOT_ID";
+    public const string DivideLotList       = "DIVIDE_LOT_LIST";
+    public const string KrfFileName         = "KRF_FILENAME";
+    public const string OdfCarrierId        = "ODF_CARRIER_ID";
+    public const string OdfLotId            = "ODF_LOT_ID";
+
     // ──────── MN0000 メインメニュー (util.refmenu_ / util.information) ────────
     public const string LoginId             = "LOGIN_ID";
     public const string MenuKind            = "MENU_KIND";

@@ -1,0 +1,279 @@
+@page "/lot-detail"
+@inject LotDetailService Svc
+@using static MudBlazorSpirytusTerm.Services.LotDetailService
+
+<PageTitle>SPIRYTUS - ロット情報詳細 (EN01C0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">ロット情報詳細 (EN01C0)</MudText>
+
+@* ────── エラーアラート ────── *@
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 検索入力 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          Disabled="_loading"
+                          Style="font-family: monospace; text-transform: uppercase;"
+                          OnKeyUp="OnInputKeyUp" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          @bind-Value="_lotId"
+                          Label="ロットID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Immediate="true"
+                          Disabled="_loading"
+                          Style="font-family: monospace; text-transform: uppercase;"
+                          OnKeyUp="OnInputKeyUp" />
+        </MudItem>
+        <MudItem xs="6" sm="2" md="1">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="FetchAsync"
+                       Disabled="@(_loading || (!HasCarrier && !HasLot))"
+                       FullWidth="true">
+                最新取得
+            </MudButton>
+        </MudItem>
+        @if (_fetchedAt is not null)
+        {
+            <MudItem xs="6" sm="3" md="3" Class="d-flex align-center">
+                <MudText Typo="Typo.caption">@_fetchedAt</MudText>
+            </MudItem>
+        }
+    </MudGrid>
+</MudPaper>
+
+@* ────── 詳細表示 ────── *@
+@if (_detail is not null)
+{
+    @* ── 保留/停止バナー ── *@
+    @if (_detail.LotHoldFlag == "1" || _detail.LotStopFlag == "1")
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+            @if (_detail.LotHoldFlag == "1") { <span>保留</span> }
+            @if (_detail.LotHoldFlag == "1" && _detail.LotStopFlag == "1") { <span>&nbsp;/&nbsp;</span> }
+            @if (_detail.LotStopFlag == "1") { <span>停止</span> }
+        </MudAlert>
+    }
+
+    @* ── 基本情報 ── *@
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">基本情報</MudText>
+        <MudGrid Spacing="1">
+            <LotField Label="ロットID"         Value="@_detail.LotId" />
+            <LotField Label="キャリアID"       Value="@_detail.CarrierId" />
+            <LotField Label="機種ID"           Value="@_detail.PdId" />
+            <LotField Label="流動区分"         Value="@_detail.FlowClass" />
+            <LotField Label="GRB区分"          Value="@_detail.GrbClass" />
+            <LotField Label="優先度"           Value="@PriorityDisplay" />
+            <LotField Label="WF枚数"           Value="@FormatNumber(_detail.WfNum)" />
+            <LotField Label="良品チップ数"     Value="@FormatNumber(_detail.ChipQuantity)" />
+            <LotField Label="ロット担当者"     Value="@_detail.EngEmpName" />
+            <LotField Label="ロット位置"       Value="@_detail.CurrentPositionName" />
+            <LotField Label="最終イベント名"   Value="@_detail.LastEventName" />
+            <LotField Label="最終イベント日時" Value="@_detail.EntryTime" />
+            <LotField Label="最終更新者"       Value="@_detail.EmpName" />
+            <LotField Label="LOT状態"          Value="@_detail.NowSt" />
+            <LotField Label="特殊特性"         Value="@AriDisplay(_detail.SpecialFlag)" />
+            <LotField Label="送品フラグ"       Value="@AriDisplay(_detail.LotSendFlag)" />
+            <LotField Label="投入予定時刻"     Value="@_detail.DispatchStartTime" />
+            @if (!string.IsNullOrEmpty(_detail.Comments))
+            {
+                <LotField Label="コメント" Value="@_detail.Comments" Xs="12" Sm="12" />
+            }
+        </MudGrid>
+    </MudPaper>
+
+    @* ── 工程情報 ── *@
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">工程情報</MudText>
+        <MudGrid Spacing="1">
+            <LotField Label="大工程ID"               Value="@_detail.OpId" />
+            <LotField Label="小工程ID"               Value="@_detail.StepId" />
+            <LotField Label="代替・入替工程"          Value="@AltSwapDisplay(_detail.AltFlag, _detail.SwapFlag)" />
+            <LotField Label="リワーク状態"            Value="@_detail.ReworkFlag" />
+            <LotField Label="次大工程"               Value="@_detail.NextOpId" />
+            <LotField Label="次小工程"               Value="@_detail.NextStepId" />
+            <LotField Label="代替・入替次工程"        Value="@AltSwapDisplay(_detail.NextAltFlag, _detail.NextSwapFlag)" />
+            <LotField Label="バッチID"               Value="@_detail.BatchId" />
+            <LotField Label="WP名"                   Value="@_detail.WpName" />
+            <LotField Label="ポート名"               Value="@_detail.PortName" />
+            <LotField Label="レシピID"               Value="@_detail.RecipeId" />
+            <LotField Label="ローダーキャリアID"      Value="@_detail.LoaderCarrierId" />
+            <LotField Label="アンローダーキャリアID"  Value="@_detail.UnloaderCarrierId" />
+            @if (!string.IsNullOrEmpty(_detail.LimitTime))
+            {
+                <LotField Label="制限時間" Value="@LimitTimeDisplay" ErrorStyle="@LimitTimeExceeded" />
+            }
+        </MudGrid>
+    </MudPaper>
+
+    @* ── 補足情報 ── *@
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">補足情報</MudText>
+        <MudGrid Spacing="1">
+            @if (!string.IsNullOrEmpty(_detail.DivideLotId))
+            {
+                <LotField Label="分割親ロットID" Value="@_detail.DivideLotId" />
+            }
+            @if (_detail.DivideLotList.Count >= 1)
+            {
+                <LotField Label="分割子ロットID"
+                          Value="@string.Join(", ", _detail.DivideLotList.Select(d => d.DivideLotId))" />
+            }
+            @if (!string.IsNullOrEmpty(_detail.OdfCarrierId))
+            {
+                <LotField Label="貼り合せキャリアID" Value="@_detail.OdfCarrierId" />
+            }
+            @if (!string.IsNullOrEmpty(_detail.OdfLotId))
+            {
+                <LotField Label="貼り合せロットID" Value="@_detail.OdfLotId" />
+            }
+            @if (!string.IsNullOrEmpty(_detail.KrfFileName))
+            {
+                <LotField Label="KRFファイル名" Value="@_detail.KrfFileName" />
+            }
+            <LotField Label="ロット最終更新日時" Value="@_detail.LotLastUpdate" />
+        </MudGrid>
+    </MudPaper>
+}
+
+<style>
+    .lot-field       { margin-bottom: 4px; }
+    .lot-field-label { font-size: 0.72rem; color: rgba(0,0,0,0.55); line-height: 1.3; }
+    .lot-field-value { font-size: 0.875rem; font-weight: 500; min-height: 1.2em; word-break: break-all; }
+    .lot-field-error { color: var(--mud-palette-error); font-weight: 700; }
+</style>
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "lotId")]     public string? LotIdParam     { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "carrierId")] public string? CarrierIdParam { get; set; }
+
+    private string _carrierId    = string.Empty;
+    private string _lotId        = string.Empty;
+    private bool   _loading      = false;
+    private string _errorMessage = string.Empty;
+    private string? _fetchedAt;
+    private LotDetailInfo? _detail;
+
+    private bool HasCarrier => !string.IsNullOrWhiteSpace(_carrierId);
+    private bool HasLot     => !string.IsNullOrWhiteSpace(_lotId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(CarrierIdParam))
+        {
+            _carrierId = CarrierIdParam;
+            await FetchAsync();
+        }
+        else if (!string.IsNullOrEmpty(LotIdParam))
+        {
+            _lotId = LotIdParam;
+            await FetchAsync();
+        }
+    }
+
+    private async Task OnInputKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && (HasCarrier || HasLot))
+            await FetchAsync();
+    }
+
+    private async Task FetchAsync()
+    {
+        _errorMessage = string.Empty;
+        _loading      = true;
+        _detail       = null;
+        _fetchedAt    = null;
+        StateHasChanged();
+
+        LotDetailResponse resp;
+        if (HasCarrier)
+            resp = await Svc.GetByCarrierAsync(_carrierId.Trim().ToUpperInvariant());
+        else
+            resp = await Svc.GetByLotAsync(_lotId.Trim().ToUpperInvariant());
+
+        _loading = false;
+        if (resp.IsSuccess)
+        {
+            _detail    = resp.Detail;
+            _fetchedAt = $"取得: {DateTime.Now:yyyy/MM/dd HH:mm:ss}";
+            if (_detail is not null)
+            {
+                if (string.IsNullOrEmpty(_carrierId)) _carrierId = _detail.CarrierId;
+                if (string.IsNullOrEmpty(_lotId))     _lotId     = _detail.LotId;
+            }
+        }
+        else
+        {
+            _errorMessage = resp.ErrorMessage;
+        }
+    }
+
+    // ── 表示ヘルパー ──
+
+    private string PriorityDisplay =>
+        string.IsNullOrEmpty(_detail?.LotPriority)
+            ? string.Empty
+            : string.IsNullOrEmpty(_detail.LotPriorityName)
+                ? _detail.LotPriority
+                : $"{_detail.LotPriority} {_detail.LotPriorityName}";
+
+    private static string AriDisplay(string flag) =>
+        flag == "1" ? "○" : string.Empty;
+
+    private static string AltSwapDisplay(string alt, string swap)
+    {
+        var parts = new List<string>();
+        if (alt  == "1") parts.Add("代替あり");
+        if (swap == "1") parts.Add("入替あり");
+        return string.Join(" / ", parts);
+    }
+
+    private static string FormatNumber(string val) =>
+        long.TryParse(val, out var n) ? n.ToString("N0") : val;
+
+    private string LimitTimeDisplay
+    {
+        get
+        {
+            if (_detail is null || string.IsNullOrEmpty(_detail.LimitTime)) return string.Empty;
+            if (!long.TryParse(_detail.LimitTime, out var minutes)) return _detail.LimitTime;
+            var abs  = Math.Abs(minutes);
+            var h    = abs / 60;
+            var m    = abs % 60;
+            var dest = string.IsNullOrEmpty(_detail.ToOpId) ? string.Empty
+                       : $"{_detail.ToOpId} {_detail.ToStepId} まで ";
+            var over = minutes < 0 ? "【超過】" : string.Empty;
+            var time = h > 0 ? $"{h}h {m}分以内" : $"{m}分以内";
+            return $"{dest}{over}{time}";
+        }
+    }
+
+    private bool LimitTimeExceeded =>
+        _detail is not null &&
+        long.TryParse(_detail.LimitTime, out var m) &&
+        m < 0;
+}

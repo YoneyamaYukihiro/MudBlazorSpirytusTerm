@@ -1,0 +1,15 @@
+@* 汎用ロット情報フィールド（ラベル＋値表示用） *@
+<MudItem xs="@Xs" sm="@Sm">
+    <div class="lot-field">
+        <div class="lot-field-label">@Label</div>
+        <div class="lot-field-value @(ErrorStyle ? "lot-field-error" : "")">@Value</div>
+    </div>
+</MudItem>
+
+@code {
+    [Parameter, EditorRequired] public string Label      { get; set; } = string.Empty;
+    [Parameter]                 public string Value      { get; set; } = string.Empty;
+    [Parameter]                 public int    Xs         { get; set; } = 6;
+    [Parameter]                 public int    Sm         { get; set; } = 3;
+    [Parameter]                 public bool   ErrorStyle { get; set; } = false;
+}
