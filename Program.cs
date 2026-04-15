@@ -38,6 +38,7 @@ builder.Services.AddScoped<LotDetailService>();
 builder.Services.AddScoped<LotHoldService>();
 builder.Services.AddScoped<LotCommentService>();
 builder.Services.AddScoped<McGroupLotListService>();
+builder.Services.AddScoped<LotSeqChangeService>();
 
 var app = builder.Build();
 

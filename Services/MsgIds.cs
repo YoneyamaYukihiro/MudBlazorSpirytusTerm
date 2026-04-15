@@ -116,6 +116,9 @@ public static class MsgIds
     public const string BatWaitingLotList   = "bat_.waitinglotlist";
     public const string MasWpList           = "mas_.wplist__";
 
+    // ──────── EN0260 ロット処理順変更 ────────
+    public const string LotChgSeqNum       = "lot_.chgseqnum";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";

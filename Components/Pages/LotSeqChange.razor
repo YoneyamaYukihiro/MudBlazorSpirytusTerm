@@ -1,0 +1,609 @@
+@page "/lot-seq-change"
+@inject LotSeqChangeService Svc
+@inject EquipmentService EqSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ロット処理順変更 (EN0260)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">ロット処理順変更 (EN0260)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── 検索エリア ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+
+        @* 装置グループ *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="EquipmentService.McGroup"
+                       Label="装置グループ"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedGroup"
+                       ValueChanged="OnGroupChangedAsync"
+                       Disabled="@_groupsLoading"
+                       Clearable="true"
+                       ToStringFunc="@(g => g is null ? "" : g.Name)"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_groupsLoading)
+                {
+                    <MudSelectItem T="EquipmentService.McGroup" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var g in _groups)
+                    {
+                        <MudSelectItem T="EquipmentService.McGroup" Value="g">@g.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 装置 *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="EquipmentService.Equipment"
+                       Label="装置名"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedEquipment"
+                       ValueChanged="OnEquipmentChanged"
+                       Disabled="@(_equipmentsLoading || _selectedGroup is null)"
+                       Clearable="true"
+                       ToStringFunc="@(e => e is null ? "" : $"{e.WpId} {e.WpName}".TrimEnd())"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_equipmentsLoading)
+                {
+                    <MudSelectItem T="EquipmentService.Equipment" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var eq in _equipments)
+                    {
+                        <MudSelectItem T="EquipmentService.Equipment" Value="eq">@eq.WpId @eq.WpName</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 最新取得ボタン *@
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="LoadAsync"
+                       Disabled="@(_loading || _selectedEquipment is null)">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>取得中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-1" Size="Size.Small" />
+                    <span>最新取得</span>
+                }
+            </MudButton>
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── 操作ボタン ────────────────────── *@
+@if (_rows.Count > 0)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Small"
+                       Disabled="@(_seqCounter == 0)"
+                       OnClick="UndoLast">
+                1つ前に戻る
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Warning"
+                       Size="Size.Small"
+                       Disabled="@(!HasAnyAssigned)"
+                       OnClick="ClearAll">
+                処理順全解除
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       Size="Size.Small"
+                       Disabled="@(_registering || !HasAnyAssigned)"
+                       OnClick="RegistAsync">
+                @if (_registering)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>送信中...</span>
+                }
+                else
+                {
+                    <span>確定</span>
+                }
+            </MudButton>
+            <MudText Typo="Typo.caption" Class="ml-2">
+                情報取得日時: @_fetchTime.ToString("yyyy/MM/dd HH:mm:ss")　件数: @_rows.Count 件
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── 色凡例 ────────────────────── *@
+@if (_rows.Count > 0)
+{
+    <div class="mb-1" style="font-size:0.75rem;display:flex;flex-wrap:wrap;gap:4px;">
+        <span style="background:#FFFF99;padding:1px 6px;border:1px solid #ccc;">保留/停止</span>
+        <span style="background:#cccccc;padding:1px 6px;border:1px solid #ccc;">処理限定レシピ</span>
+        <span style="background:#c8f0c8;padding:1px 6px;border:1px solid #ccc;">FRレシピ不可</span>
+        <span style="background:#FFA500;color:#fff;padding:1px 6px;border:1px solid #ccc;">ダミーロット</span>
+    </div>
+}
+
+@* ────────────────────── ロット一覧 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+else if (_rows.Count > 0)
+{
+    <div class="grid-wrapper">
+        <MudDataGrid T="LotRow"
+                     Items="@_rows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true"
+                     Height="100%"
+                     RowStyleFunc="@GetRowStyle"
+                     RowClick="OnRowClick">
+            <Columns>
+                <TemplateColumn T="LotRow" Title="No"
+                    HeaderStyle="min-width:40px;max-width:40px;"
+                    CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                    <CellTemplate>@context.Item.InitialNo</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="LotRow" Title="保/停"
+                    HeaderStyle="min-width:44px;max-width:44px;"
+                    CellStyle="min-width:44px;max-width:44px;text-align:center;font-weight:bold;">
+                    <CellTemplate>@GetKbText(context.Item)</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.SeqNumNow"          Title="現処理順"    HeaderStyle="min-width:65px;max-width:65px;" CellStyle="text-align:center;" />
+                <TemplateColumn T="LotRow" Title="変更後処理順"
+                    HeaderStyle="min-width:80px;max-width:80px;"
+                    CellStyle="min-width:80px;max-width:80px;text-align:center;font-weight:bold;color:#1565c0;">
+                    <CellTemplate>
+                        @if (!string.IsNullOrEmpty(context.Item.SeqNumNew))
+                        {
+                            <strong>@context.Item.SeqNumNew</strong>
+                        }
+                        else
+                        {
+                            <span style="color:#aaa;">—</span>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.LimitTime"          Title="時間制限"    HeaderStyle="min-width:80px;" />
+                <PropertyColumn Property="x => x.ShipDiffDay"        Title="進捗度"      HeaderStyle="min-width:55px;" />
+                <PropertyColumn Property="x => x.LotId"              Title="ロットID"    HeaderStyle="min-width:110px;" StickyLeft="true" />
+                <PropertyColumn Property="x => x.GrbClass"           Title="GRB区分"    HeaderStyle="min-width:60px;" />
+                <PropertyColumn Property="x => x.FlowClass"          Title="種別"        HeaderStyle="min-width:40px;" />
+                <PropertyColumn Property="x => x.LotPriority"        Title="優先順位"    HeaderStyle="min-width:60px;" />
+                <PropertyColumn Property="x => x.OpId"               Title="大工程"      HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.StepId"             Title="小工程"      HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.RecipeId"           Title="レシピ"      HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.DispatchStartTime"  Title="処理開始予実" HeaderStyle="min-width:110px;" />
+                <PropertyColumn Property="x => x.LotManagerName"     Title="ロット担当"  HeaderStyle="min-width:100px;" />
+                <PropertyColumn Property="x => x.NowSt"              Title="状態"        HeaderStyle="min-width:80px;" />
+                <PropertyColumn Property="x => x.WfNum"              Title="WF枚数"      HeaderStyle="min-width:60px;" />
+                <PropertyColumn Property="x => x.ChipQuantity"       Title="チップ"      HeaderStyle="min-width:60px;" />
+                <PropertyColumn Property="x => x.CurrentPositionDisplay" Title="現在位置" HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.LotLastUpdate"      Title="最終更新日時" HeaderStyle="min-width:130px;" />
+                <TemplateColumn T="LotRow" Title="リワーク" HeaderStyle="min-width:55px;" CellStyle="text-align:center;">
+                    <CellTemplate>
+                        @if (context.Item.ReworkFlag == "1") { <span>リ</span> }
+                        else if (context.Item.ReworkFlag == "2") { <span>追</span> }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="LotRow" Title="コメント" HeaderStyle="min-width:55px;" CellStyle="text-align:center;">
+                    <CellTemplate>
+                        @if (context.Item.LotCommentsFlag == "1")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.CarrierId"          Title="キャリアID"  HeaderStyle="min-width:75px;" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">該当データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+}
+else if (!_loading && _firstLoaded)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        該当データがありません。
+    </MudText>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        装置グループと装置を選択して「最新取得」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 行モデル ───────────────────────────────────────────────────
+
+    private sealed class LotRow
+    {
+        public int    InitialNo              { get; init; }
+        public string LotId                 { get; init; } = "";
+        public string CarrierId             { get; init; } = "";
+        public string FlowClass             { get; init; } = "";
+        public string LotPriority           { get; init; } = "";
+        public string OpId                  { get; init; } = "";
+        public string StepId                { get; init; } = "";
+        public string RecipeId              { get; init; } = "";
+        public string DispatchStartTime     { get; init; } = "";
+        public string LotManagerName        { get; init; } = "";
+        public string NowSt                 { get; init; } = "";
+        public string WfNum                 { get; init; } = "";
+        public string ChipQuantity          { get; init; } = "";
+        public string CurrentPositionDisplay{ get; init; } = "";
+        public string LotCommentsFlag       { get; init; } = "";
+        public string LotLastUpdate         { get; init; } = "";
+        public string AvailableRecipeFlag   { get; init; } = "";
+        public string ShipDiffDay           { get; init; } = "";
+        public string FrRecipeFlag          { get; init; } = "";
+        public string GrbClass              { get; init; } = "";
+        public string LotHoldFlag           { get; init; } = "";
+        public string LotStopFlag           { get; init; } = "";
+        public string ReworkFlag            { get; init; } = "";
+        public string LimitTime             { get; init; } = "";
+        public string LcDirection           { get; init; } = "";
+        /// <summary>現処理順№の表示値。"999" は "標準" に変換済み。</summary>
+        public string SeqNumNow             { get; init; } = "";
+        /// <summary>元の現処理順№の生値（送信用）。</summary>
+        public string SeqNumRaw             { get; init; } = "";
+        /// <summary>変更後処理順№（クリックで採番）。</summary>
+        public string SeqNumNew             { get; set; }  = "";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────
+
+    private IReadOnlyList<EquipmentService.McGroup>    _groups     = [];
+    private IReadOnlyList<EquipmentService.Equipment>  _equipments = [];
+    private EquipmentService.McGroup?                  _selectedGroup;
+    private EquipmentService.Equipment?                _selectedEquipment;
+
+    private bool _groupsLoading;
+    private bool _equipmentsLoading;
+    private bool _loading;
+    private bool _registering;
+    private bool _firstLoaded;
+    private string _error = string.Empty;
+    private DateTime _fetchTime;
+
+    private List<LotRow> _rows = [];
+
+    /// <summary>変更後処理順の採番カウンタ（1始まり）。</summary>
+    private int _seqCounter;
+
+    private bool HasAnyAssigned => _rows.Any(r => !string.IsNullOrEmpty(r.SeqNumNew));
+
+    // ── 初期化 ────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groupsLoading = true;
+        try
+        {
+            _groups = await EqSvc.GetMcGroupListAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"装置グループ取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _groupsLoading = false;
+        }
+    }
+
+    // ── 装置グループ変更 → 装置一覧再取得 ──────────────────────────
+
+    private async Task OnGroupChangedAsync(EquipmentService.McGroup? group)
+    {
+        _selectedGroup     = group;
+        _selectedEquipment = null;
+        _equipments        = [];
+        _rows              = [];
+        _seqCounter        = 0;
+        _firstLoaded       = false;
+
+        if (group is null) return;
+
+        _equipmentsLoading = true;
+        StateHasChanged();
+        try
+        {
+            _equipments = await EqSvc.GetEquipmentListAsync(group.Id);
+        }
+        catch (Exception ex)
+        {
+            _error = $"装置一覧取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _equipmentsLoading = false;
+        }
+    }
+
+    // ── 装置変更 ────────────────────────────────────────────────
+
+    private void OnEquipmentChanged(EquipmentService.Equipment? eq)
+    {
+        _selectedEquipment = eq;
+        _rows              = [];
+        _seqCounter        = 0;
+        _firstLoaded       = false;
+    }
+
+    // ── 最新取得 ────────────────────────────────────────────────
+
+    private async Task LoadAsync()
+    {
+        if (_selectedEquipment is null) return;
+
+        _loading    = true;
+        _error      = string.Empty;
+        _seqCounter = 0;
+
+        try
+        {
+            var result = await Svc.GetWaitingLotListAsync(_selectedEquipment.WpId);
+
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                _rows  = [];
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            var items = result.Items ?? [];
+            _rows = items.Select((item, i) => new LotRow
+            {
+                InitialNo               = i + 1,
+                LotId                   = item.LotId,
+                CarrierId               = item.CarrierId,
+                FlowClass               = item.FlowClass,
+                LotPriority             = item.LotPriority,
+                OpId                    = item.OpId,
+                StepId                  = item.StepId,
+                RecipeId                = item.RecipeId,
+                DispatchStartTime       = item.DispatchStartTime,
+                LotManagerName          = item.LotManagerName,
+                NowSt                   = item.NowSt,
+                WfNum                   = item.WfNum,
+                ChipQuantity            = item.ChipQuantity,
+                CurrentPositionDisplay  = BuildPositionDisplay(item),
+                LotCommentsFlag         = item.LotCommentsFlag,
+                LotLastUpdate           = item.LotLastUpdate,
+                AvailableRecipeFlag     = item.AvailableRecipeFlag,
+                ShipDiffDay             = item.ShipDiffDay,
+                FrRecipeFlag            = item.FrRecipeFlag,
+                GrbClass                = item.GrbClass,
+                LotHoldFlag             = item.LotHoldFlag,
+                LotStopFlag             = item.LotStopFlag,
+                ReworkFlag              = item.ReworkFlag,
+                LimitTime               = item.LimitTime,
+                LcDirection             = item.LcDirection,
+                SeqNumNow               = BuildSeqNumDisplay(item.SeqNum),
+                SeqNumRaw               = item.SeqNum,
+                SeqNumNew               = ""
+            }).ToList();
+
+            _fetchTime   = DateTime.Now;
+            _firstLoaded = true;
+            Snackbar.Add($"{_rows.Count} 件取得", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 行クリック → 変更後処理順を採番 ──────────────────────────
+    // VBソース: vsfLotWaitingList_Click - 行クリックで処理順を順番に割り当て
+
+    private void OnRowClick(DataGridRowClickEventArgs<LotRow> args)
+    {
+        var row = args.Item;
+
+        // 処理可能レシピフラグが "1" (限定レシピ) の場合は採番しない
+        // VBソース: AvailableRecipeFlag = CPstrZero (="0") の場合のみ採番
+        if (row.AvailableRecipeFlag != "0") return;
+
+        // まだ変更後処理順が未設定の場合のみ採番
+        if (!string.IsNullOrEmpty(row.SeqNumNew)) return;
+
+        // 999 未満まで採番可能 (VBソース: CMstrSeqNumEntryMax = "998")
+        if (_seqCounter >= 998) return;
+
+        _seqCounter++;
+        row.SeqNumNew = _seqCounter.ToString("D3");
+    }
+
+    // ── 1つ前に戻る ─────────────────────────────────────────────
+    // VBソース: cmdBack_Click - 最後に採番した処理順をクリア
+
+    private void UndoLast()
+    {
+        if (_seqCounter <= 0) return;
+
+        var target = _rows.FirstOrDefault(r => r.SeqNumNew == _seqCounter.ToString("D3"));
+        if (target is not null)
+        {
+            target.SeqNumNew = "";
+        }
+        _seqCounter--;
+    }
+
+    // ── 処理順全解除 ───────────────────────────────────────────
+    // VBソース: cmdAllCancel_Click - 全ての変更後処理順をクリアして空リストで確定
+
+    private async Task ClearAll()
+    {
+        if (_selectedEquipment is null) return;
+
+        foreach (var r in _rows)
+            r.SeqNumNew = "";
+        _seqCounter = 0;
+
+        // 全解除は空リストで lot_.chgseqnum を呼ぶ
+        _registering = true;
+        _error       = string.Empty;
+        try
+        {
+            var result = await Svc.ChangeSeqNumAsync(_selectedEquipment.WpId, []);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("処理順全解除を行いました。", Severity.Success);
+                await LoadAsync();
+            }
+            else
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _registering = false;
+        }
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────
+    // VBソース: cmdRegist_Click
+
+    private async Task RegistAsync()
+    {
+        if (_selectedEquipment is null) return;
+
+        _registering = true;
+        _error       = string.Empty;
+        try
+        {
+            var changeItems = _rows
+                .Where(r => !string.IsNullOrEmpty(r.SeqNumNew))
+                .Select(r => new LotSeqChangeService.ChangeItem(
+                    LotId:               r.LotId,
+                    SeqNum:              r.SeqNumNew,
+                    OpId:                r.OpId,
+                    StepId:              r.StepId,
+                    LotLastUpdate:       r.LotLastUpdate,
+                    AvailableRecipeFlag: r.AvailableRecipeFlag))
+                .ToList();
+
+            var result = await Svc.ChangeSeqNumAsync(_selectedEquipment.WpId, changeItems);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("処理順変更を行いました。", Severity.Success);
+                _seqCounter = 0;
+                await LoadAsync();
+            }
+            else
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _registering = false;
+        }
+    }
+
+    // ── 行スタイル ────────────────────────────────────────────
+    // VBソース: prvVsfLotWaitingList_Disp - 優先順: 保留/停止 > 処理限定 > FRフラグ > ダミー
+
+    private static string GetRowStyle(LotRow row, int _)
+    {
+        // 選択中の行（処理順が設定済み）は強調
+        if (!string.IsNullOrEmpty(row.SeqNumNew))
+            return "background-color:#bbdefb;"; // 水色で強調
+
+        if (row.LotStopFlag == "1" || row.LotHoldFlag == "1")
+            return "background-color:#FFFF99;";
+        if (row.AvailableRecipeFlag == "1")
+            return "background-color:#cccccc;";
+        if (row.FrRecipeFlag == "1")
+            return "background-color:#c8f0c8;";
+        var fc = row.FlowClass;
+        if (fc is "FD" or "SD" or "ED")
+            return "background-color:#FFA500;color:#fff;";
+        return string.Empty;
+    }
+
+    // ── 表示ヘルパー ──────────────────────────────────────────
+
+    private static string GetKbText(LotRow row)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (row.LotHoldFlag == "1") sb.Append("保");
+        if (row.LotStopFlag == "1") sb.Append("停");
+        if (row.ReworkFlag  == "1") sb.Append("リ");
+        if (row.ReworkFlag  == "2") sb.Append("追");
+        return sb.ToString();
+    }
+
+    /// <summary>現処理順の表示値を作成する。"999" は "標準" に変換。</summary>
+    private static string BuildSeqNumDisplay(string seqNum)
+    {
+        if (seqNum == "999") return "標準";
+        if (int.TryParse(seqNum, out var n)) return n.ToString("D3");
+        return string.IsNullOrEmpty(seqNum) ? "標準" : seqNum;
+    }
+
+    /// <summary>
+    /// 現在位置の表示文字列を構築する。
+    /// 搬送中(MOVE/STKOUT/STKIN)の場合は "→ {DestName}" を表示。
+    /// VBソース: prvVsfLotWaitingList_Disp の現在位置セル設定
+    /// </summary>
+    private static string BuildPositionDisplay(LotSeqChangeService.WaitingLotItem item)
+    {
+        if (item.CarrierStatId is "MOVE" or "STKOUT" or "STKIN")
+            return $"→ {item.DestName}";
+        return item.CurrentPositionName;
+    }
+}
