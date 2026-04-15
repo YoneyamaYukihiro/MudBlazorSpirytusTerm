@@ -37,6 +37,7 @@ builder.Services.AddScoped<ProcessStepLotListService>();
 builder.Services.AddScoped<LotDetailService>();
 builder.Services.AddScoped<LotHoldService>();
 builder.Services.AddScoped<LotCommentService>();
+builder.Services.AddScoped<McGroupLotListService>();
 
 var app = builder.Build();
 

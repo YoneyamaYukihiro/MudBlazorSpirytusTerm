@@ -66,6 +66,9 @@ public static class MsgIds
     // ──────── EN0140 ロットコメント ────────
     public const string LotChgComm           = "lot_.chgcomm_";
 
+    // ──────── EN00J0 装置グループ別ロット一覧 ────────
+    public const string LotMcAllLotList      = "lot_.mcalllotlist";
+
     // ──────── EN0050/EN00A0 ロット保留/保留解除 ────────
     public const string MasReasonCode        = "mas_.reasoncode";
     public const string LotHold             = "lot_.hold____";
