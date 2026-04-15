@@ -373,6 +373,18 @@ public static class Tags
     public const string WorkCondition       = "WORK_CONDITION";
     public const string UnloaderCarrierId   = "UNLOADER_CARRIER_ID";
 
+    // ──────── 工程別ロット一覧 (lot_.oplotlist / mas_.useoplist / lot_.steplist) ────────
+    public const string OpList              = "OP_LIST";
+    public const string ValidFlag           = "VALID_FLAG";
+    public const string CategoryId          = "CATEGORY_ID";
+    public const string FlowClassName       = "FLOW_CLASS_NAME";
+    public const string TemplateSeqNum      = "TEMPLATE_SEQ_NUM";
+    public const string JBatchId            = "J_BATCH_ID";
+    public const string TpalClass           = "TPAL_CLASS";
+    public const string EditLastUpdate      = "EDIT_LAST_UPDATE";
+    public const string StartDate           = "START_DATE";
+    public const string EndDate             = "END_DATE";
+
     // ──────── MN0000 メインメニュー (util.refmenu_ / util.information) ────────
     public const string LoginId             = "LOGIN_ID";
     public const string MenuKind            = "MENU_KIND";

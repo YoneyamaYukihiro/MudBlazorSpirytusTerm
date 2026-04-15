@@ -1,0 +1,417 @@
+@page "/process-step-lot-list"
+@inject ProcessStepLotListService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 工程別ロット一覧 (EN0200)</PageTitle>
+
+<div class="page-wrapper">
+
+@* ────────────────────── 検索エリア ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2">
+
+        @* 大工程選択 *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="ProcessStepLotListService.OpItem"
+                       Label="大工程"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedOp"
+                       ValueChanged="OnOpChanged"
+                       Disabled="@(_opLoading || _opsLoading)"
+                       Clearable="true"
+                       ToStringFunc="@(op => op is null ? "" : op.OpId)"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_opsLoading)
+                {
+                    <MudSelectItem T="ProcessStepLotListService.OpItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var op in _ops)
+                    {
+                        <MudSelectItem T="ProcessStepLotListService.OpItem" Value="op">@op.OpId</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 小工程選択 *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="ProcessStepLotListService.StepItem"
+                       Label="小工程"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedStep"
+                       ValueChanged="OnStepChanged"
+                       Disabled="@(_stepsLoading || _selectedOp is null)"
+                       Clearable="true"
+                       ToStringFunc="@(s => s is null ? "" : s.StepId)"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_stepsLoading)
+                {
+                    <MudSelectItem T="ProcessStepLotListService.StepItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var s in _steps)
+                    {
+                        <MudSelectItem T="ProcessStepLotListService.StepItem" Value="s">@s.StepId</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 機種フィルタ (複数選択) *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="ProcessStepLotListService.PdItem"
+                       Label="機種"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       MultiSelection="true"
+                       SelectedValues="_selectedPds"
+                       SelectedValuesChanged="OnPdSelectionChanged"
+                       Disabled="_pdsLoading"
+                       Clearable="true"
+                       ToStringFunc="@(p => p is null ? "" : p.PdId)"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_pdsLoading)
+                {
+                    <MudSelectItem T="ProcessStepLotListService.PdItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var p in _pds)
+                    {
+                        <MudSelectItem T="ProcessStepLotListService.PdItem" Value="p">@p.PdId</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 種別フィルタ (複数選択) *@
+        <MudItem xs="12" sm="3">
+            <MudSelect T="ProcessStepLotListService.FlowClassItem"
+                       Label="種別"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       MultiSelection="true"
+                       SelectedValues="_selectedFlowClasses"
+                       SelectedValuesChanged="OnFlowClassSelectionChanged"
+                       Disabled="_flowClassesLoading"
+                       Clearable="true"
+                       ToStringFunc="@(f => f is null ? "" : $"{f.FlowClass} {f.FlowClassName}".TrimEnd())"
+                       AnchorOrigin="Origin.BottomLeft">
+                @if (_flowClassesLoading)
+                {
+                    <MudSelectItem T="ProcessStepLotListService.FlowClassItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var f in _flowClasses)
+                    {
+                        <MudSelectItem T="ProcessStepLotListService.FlowClassItem" Value="f">@f.FlowClass @f.FlowClassName</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+
+        @* 最新取得ボタン *@
+        <MudItem xs="12" sm="12">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="LoadAsync"
+                       Disabled="@(_loading || _selectedOp is null)">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>送信中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Class="mr-1" Size="Size.Small" />
+                    <span>最新取得</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── 結果エリア ────────────────────── *@
+<div class="result-area">
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-1" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+            @_error
+        </MudAlert>
+    }
+
+    @if (_response?.IsSuccess == true)
+    {
+        <MudText Typo="Typo.caption" Class="mb-1">
+            情報取得日時 @_fetchTime.ToString("yyyy/MM/dd HH:mm:ss")　件数: @_response.LotList.Count 件
+        </MudText>
+
+        @* 色凡例 *@
+        <div class="mb-1" style="font-size:0.75rem;display:flex;flex-wrap:wrap;gap:4px;">
+            <span style="background:#FFFF99;padding:1px 6px;border:1px solid #ccc;">保留/停止</span>
+            <span style="background:#FFA500;color:#fff;padding:1px 6px;border:1px solid #ccc;">ダミーロット</span>
+        </div>
+
+        <div class="grid-wrapper">
+            <MudDataGrid T="ProcessStepLotListService.LotInfo"
+                         Items="@_response.LotList"
+                         Dense="true"
+                         Striped="true"
+                         Hover="true"
+                         Bordered="true"
+                         FixedHeader="true"
+                         Height="100%"
+                         RowStyleFunc="@GetRowStyle">
+                <Columns>
+                    <TemplateColumn T="ProcessStepLotListService.LotInfo" Title="No" StickyLeft="true"
+                        HeaderStyle="min-width:40px;max-width:40px;"
+                        CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                        <CellTemplate>@(_rowNoMap.GetValueOrDefault(context.Item, 0))</CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn T="ProcessStepLotListService.LotInfo" Title="保/停" StickyLeft="true"
+                        HeaderStyle="min-width:44px;max-width:44px;"
+                        CellStyle="min-width:44px;max-width:44px;text-align:center;font-weight:bold;">
+                        <CellTemplate>@GetKbText(context.Item)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.OpId"                Title="大工程"       HeaderStyle="min-width:100px;" />
+                    <PropertyColumn Property="x => x.StepId"              Title="小工程"       HeaderStyle="min-width:100px;" />
+                    <PropertyColumn Property="x => x.NowSt"               Title="状態"         HeaderStyle="min-width:80px;" StickyLeft="true" />
+                    <TemplateColumn T="ProcessStepLotListService.LotInfo" Title="キャリアID" HeaderStyle="min-width:80px;">
+                        <CellTemplate>@GetDisplayCarrierId(context.Item)</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.LotId"               Title="ロットID"     HeaderStyle="min-width:110px;" />
+                    <PropertyColumn Property="x => x.PdId"                Title="機種"         HeaderStyle="min-width:60px;" />
+                    <PropertyColumn Property="x => x.FlowClass"           Title="種別"         HeaderStyle="min-width:40px;" />
+                    <PropertyColumn Property="x => x.LotPriority"         Title="優先順位"     HeaderStyle="min-width:60px;" />
+                    <PropertyColumn Property="x => x.CurrentPositionName" Title="ロット位置"   HeaderStyle="min-width:100px;" />
+                    <PropertyColumn Property="x => x.EngEmpName"          Title="ロット担当"   HeaderStyle="min-width:100px;" />
+                    <PropertyColumn Property="x => x.WfNum"               Title="WF枚数"       HeaderStyle="min-width:60px;" />
+                    <PropertyColumn Property="x => x.ChipQuantity"        Title="チップ"       HeaderStyle="min-width:60px;" />
+                    <PropertyColumn Property="x => x.PlanShipDate"        Title="送品予定日"   HeaderStyle="min-width:100px;" />
+                    <TemplateColumn T="ProcessStepLotListService.LotInfo" Title="コメント" HeaderStyle="min-width:60px;" CellStyle="text-align:center;">
+                        <CellTemplate>
+                            @if (context.Item.LotCommentsFlag == "1")
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Comment" Size="Size.Small" Color="Color.Info" />
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.ToCarrierId"         Title="アンロードキャリアID" HeaderStyle="min-width:80px;" />
+                    <PropertyColumn Property="x => x.AltNumber"           Title="代替番号"     HeaderStyle="min-width:60px;" />
+                    <PropertyColumn Property="x => x.LotLastUpdate"       Title="最終更新日時" HeaderStyle="min-width:130px;" />
+                    <TemplateColumn T="ProcessStepLotListService.LotInfo" Title="リワーク" HeaderStyle="min-width:55px;" CellStyle="text-align:center;">
+                        <CellTemplate>
+                            @if (context.Item.ReworkFlag == "1") { <span>リ</span> }
+                            else if (context.Item.ReworkFlag == "2") { <span>追</span> }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.ShipDiffDay"         Title="進捗度"       HeaderStyle="min-width:60px;" />
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary">該当データがありません</MudText>
+                </NoRecordsContent>
+            </MudDataGrid>
+        </div>
+    }
+    else if (_response is not null && !_response.IsSuccess)
+    {
+        @* エラーは上のアラートで表示済み *@
+    }
+    else if (!_loading)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            大工程を選択して「最新取得」を押してください。
+        </MudText>
+    }
+}
+
+</div>
+
+</div>
+
+@code {
+    private IReadOnlyList<ProcessStepLotListService.OpItem>        _ops         = [];
+    private IReadOnlyList<ProcessStepLotListService.StepItem>      _steps       = [];
+    private IReadOnlyList<ProcessStepLotListService.PdItem>        _pds         = [];
+    private IReadOnlyList<ProcessStepLotListService.FlowClassItem> _flowClasses = [];
+
+    private ProcessStepLotListService.OpItem?        _selectedOp;
+    private ProcessStepLotListService.StepItem?      _selectedStep;
+    private IEnumerable<ProcessStepLotListService.PdItem>        _selectedPds        = [];
+    private IEnumerable<ProcessStepLotListService.FlowClassItem> _selectedFlowClasses = [];
+
+    private bool _opsLoading;
+    private bool _opLoading;    // 大工程選択後の小工程読み込み中フラグ
+    private bool _stepsLoading;
+    private bool _pdsLoading;
+    private bool _flowClassesLoading;
+
+    private ProcessStepLotListService.LotListResponse? _response;
+    private bool _loading;
+    private string _error = string.Empty;
+    private DateTime _fetchTime;
+    private Dictionary<ProcessStepLotListService.LotInfo, int> _rowNoMap = new();
+
+    // ── 初期化 ────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _opsLoading = true;
+        _pdsLoading = true;
+        _flowClassesLoading = true;
+        try
+        {
+            var opTask = Svc.GetOpListAsync();
+            var pdTask = Svc.GetPdListAsync();
+            var fcTask = Svc.GetFlowClassListAsync();
+            await Task.WhenAll(opTask, pdTask, fcTask);
+            _ops         = opTask.Result;
+            _pds         = pdTask.Result;
+            _flowClasses = fcTask.Result;
+        }
+        catch (Exception ex)
+        {
+            _error = $"マスタ取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _opsLoading         = false;
+            _pdsLoading         = false;
+            _flowClassesLoading = false;
+        }
+    }
+
+    // ── 大工程選択変更 → 小工程を再取得 ─────────────────────────
+
+    private async Task OnOpChanged(ProcessStepLotListService.OpItem? op)
+    {
+        _selectedOp   = op;
+        _selectedStep = null;
+        _steps        = [];
+        _response     = null;
+
+        if (op is null) return;
+
+        _opLoading    = true;
+        _stepsLoading = true;
+        StateHasChanged();
+        try
+        {
+            _steps = await Svc.GetStepListAsync(op.OpId);
+        }
+        catch (Exception ex)
+        {
+            _error = $"小工程取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _opLoading    = false;
+            _stepsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnStepChanged(ProcessStepLotListService.StepItem? step)
+    {
+        _selectedStep = step;
+        _response     = null;
+    }
+
+    private void OnPdSelectionChanged(IEnumerable<ProcessStepLotListService.PdItem> values)
+        => _selectedPds = values;
+
+    private void OnFlowClassSelectionChanged(IEnumerable<ProcessStepLotListService.FlowClassItem> values)
+        => _selectedFlowClasses = values;
+
+    // ── データ取得 ──────────────────────────────────────────────────
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error   = string.Empty;
+
+        try
+        {
+            var req = new ProcessStepLotListService.LotListRequest
+            {
+                ClassDivision = "27",
+                OpId          = _selectedOp?.OpId  ?? string.Empty,
+                StepId        = _selectedStep?.StepId ?? string.Empty,
+                PdIds         = _selectedPds.Select(p => p.PdId).ToList(),
+                FlowClasses   = _selectedFlowClasses.Select(f => f.FlowClass).ToList()
+            };
+
+            _response = await Svc.GetLotListAsync(req);
+
+            if (_response.IsSuccess)
+            {
+                _fetchTime = DateTime.Now;
+                _rowNoMap = _response.LotList
+                    .Select((item, i) => (item, i))
+                    .ToDictionary(t => t.item, t => t.i + 1);
+                Snackbar.Add($"{_response.LotList.Count} 件取得", Severity.Success);
+            }
+            else
+            {
+                _error = _response.ErrorMessage;
+                Snackbar.Add(_response.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 行スタイル ────────────────────────────────────────────────
+    // VBソース: 保留/停止→黄色、ダミーロット(FD/SD/ED)→オレンジ
+
+    private static string GetRowStyle(ProcessStepLotListService.LotInfo item, int _)
+    {
+        if (item.LotStopFlag == "1" || item.LotHoldFlag == "1")
+            return "background-color:#FFFF99;";
+        var fc = item.FlowClass;
+        if (fc is "FD" or "SD" or "ED")
+            return "background-color:#FFA500;color:#fff;";
+        return string.Empty;
+    }
+
+    // ── 表示ヘルパー ──────────────────────────────────────────────
+
+    /// <summary>保/停区分セルのテキスト</summary>
+    private static string GetKbText(ProcessStepLotListService.LotInfo item)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (item.LotHoldFlag == "1") sb.Append("保");
+        if (item.LotStopFlag == "1") sb.Append("停");
+        if (item.ReworkFlag  == "1") sb.Append("リ");
+        if (item.ReworkFlag  == "2") sb.Append("追");
+        return sb.ToString();
+    }
+
+    /// <summary>キャリアID表示: 後処理状態ならアンロードキャリアIDを表示</summary>
+    private static string GetDisplayCarrierId(ProcessStepLotListService.LotInfo item)
+    {
+        if (!string.IsNullOrEmpty(item.ToCarrierId) && item.NowSt == "後処理")
+            return item.ToCarrierId;
+        return item.CarrierId;
+    }
+}

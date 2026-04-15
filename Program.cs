@@ -33,6 +33,7 @@ builder.Services.AddScoped<LotThrowRsvService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<MenuService>();
 builder.Services.AddScoped<BatchManagementService>();
+builder.Services.AddScoped<ProcessStepLotListService>();
 
 var app = builder.Build();
 
