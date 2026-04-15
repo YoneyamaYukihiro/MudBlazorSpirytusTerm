@@ -63,6 +63,9 @@ public static class MsgIds
     public const string LotChgTrvProhibit    = "lot_.chgtrvprohibit";
     public const string LotChkContEtApc      = "lot_.chkContEtApc";
 
+    // ──────── EN01C0 ロット情報詳細 ────────
+    public const string LotDetail            = "lot_.detail__";
+
     // ──────── EN01G0 ロット流動票 ────────
     public const string LotDetailList        = "lot_.detaillist";
     public const string LotEventComment      = "lot_.eventcomment";
