@@ -8,6 +8,8 @@ public sealed class ProcessStepLotListService(ITfMessageClient mq, IConfiguratio
 {
     private readonly string _defaultSbId = cfg["Spirytus:DefaultSbId"] ?? string.Empty;
 
+    public string DefaultSbId => _defaultSbId;
+
     // ──────── マスタデータ型 ────────
 
     public sealed record OpItem(string OpId, string ValidFlag);
