@@ -155,16 +155,12 @@
                     <MudTh>小工程</MudTh>
                     <MudTh>D</MudTh>
                     <MudTh>装置名</MudTh>
-                    <MudTh>装置ID</MudTh>
-                    <MudTh>代替番号</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.OpId</MudTd>
                     <MudTd>@context.StepId</MudTd>
                     <MudTd>@(context.IsDefault ? "○" : "")</MudTd>
                     <MudTd><b>@context.WpName</b></MudTd>
-                    <MudTd Style="font-family: monospace;">@context.WpId</MudTd>
-                    <MudTd>@(string.IsNullOrEmpty(context.AltNumber) ? "" : context.AltNumber)</MudTd>
                 </RowTemplate>
             </MudTable>
         }
@@ -323,11 +319,9 @@
             }
         }
 
-        // デフォルト装置の自動選択（工程・装置ともに1件の場合）
-        if (_wpRows.Count == 1)
-            _selectedWp = _wpRows[0];
-        else if (!string.IsNullOrEmpty(result.DefaultWpId))
-            _selectedWp = _wpRows.FirstOrDefault(r => r.WpId == result.DefaultWpId);
+        // デフォルト装置の自動選択: D列「○」の行を優先、なければ1件のみの場合に自動選択
+        _selectedWp = _wpRows.FirstOrDefault(r => r.IsDefault)
+                   ?? (_wpRows.Count == 1 ? _wpRows[0] : null);
 
         // アンローダキャリアIDの初期値
         _toCarrierId = result.UnloaderCarrierId;
