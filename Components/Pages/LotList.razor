@@ -288,6 +288,7 @@
         if (group is null) return;
 
         _equipmentsLoading = true;
+        StateHasChanged();
         try
         {
             _equipments = await EquipmentSvc.GetEquipmentListAsync(group.Id);
@@ -299,6 +300,7 @@
         finally
         {
             _equipmentsLoading = false;
+            StateHasChanged();
         }
     }
 
