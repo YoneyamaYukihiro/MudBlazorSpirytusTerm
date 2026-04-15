@@ -323,6 +323,18 @@ public static class Tags
     public const string RecipeItem           = "RECIPE_ITEM";
     public const string ValueType            = "VALUE_TYPE";
 
+    // ──────── EN02N0 バッチ装置管理 ────────
+    public const string BatchComposeType        = "BATCH_COMPOSE_TYPE";
+    public const string BatchRecipeType         = "BATCH_RECIPE_TYPE";
+    public const string TimeNum                 = "TIME_NUM";
+    public const string TimeWfNum               = "TIME_WF_NUM";
+    public const string WaitTimeH               = "WAIT_TIME_H";
+    public const string MaxProcessQuantity      = "MAX_PROCESS_QUANTITY";
+    public const string TimeNumItem             = "TIME_NUM_ITEM";
+    public const string EditEmpName             = "EDIT_EMP_NAME";
+    public const string EditFlag                = "EDIT_FLAG";
+    public const string StatId                  = "STAT_ID";
+
     // ──────── バッチ作業開始/終了 ────────
     public const string ResultFlag              = "RESULT_FLAG";
 

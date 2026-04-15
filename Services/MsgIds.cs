@@ -87,6 +87,13 @@ public static class MsgIds
     // ──────── EN0130 処理開始取消 ────────
     public const string LotCnclWrkStart     = "lot_.cnclwrkstart";
 
+    // ──────── EN02N0 バッチ装置管理 ────────
+    public const string BatComposeStatus    = "bat_.composestatus";
+    public const string BatRecipeList       = "bat_.recipelist";
+    public const string BatComposeRegist    = "bat_.composeregist";
+    public const string BatWaitingLotList   = "bat_.waitinglotlist";
+    public const string MasWpList           = "mas_.wplist__";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";
