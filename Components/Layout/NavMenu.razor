@@ -91,12 +91,12 @@
         if (!flowResult.IsSuccess)
             _flowError = string.IsNullOrEmpty(flowResult.ErrorMessage) ? "取得失敗" : flowResult.ErrorMessage;
         else
-            _flowFavorites = flowResult.List;
+            _flowFavorites = flowResult.List?.Where(f => !IsVbOnly(f.FunctionId)).ToList();
 
         if (!toolResult.IsSuccess)
             _toolError = string.IsNullOrEmpty(toolResult.ErrorMessage) ? "取得失敗" : toolResult.ErrorMessage;
         else
-            _toolFavorites = toolResult.List;
+            _toolFavorites = toolResult.List?.Where(f => !IsVbOnly(f.FunctionId)).ToList();
 
         _loading = false;
     }
@@ -166,6 +166,9 @@
         "MN0002"  => "お知らせ",
         _         => functionId
     };
+
+    private static bool IsVbOnly(string functionId) =>
+        functionId is "SPACE" or "MENUTOP";
 
     public void Dispose() => _cts.Cancel();
 }
