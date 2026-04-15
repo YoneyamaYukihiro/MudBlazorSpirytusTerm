@@ -141,7 +141,7 @@ else
                         <TemplateColumn T="LotListService.LotInfo" Title="No" StickyLeft="true"
                             HeaderStyle="min-width:40px;max-width:40px;"
                             CellStyle="min-width:40px;max-width:40px;text-align:right;">
-                            <CellTemplate>@(_response!.LotList.IndexOf(context.Item) + 1)</CellTemplate>
+                            <CellTemplate>@_rowNoMap.GetValueOrDefault(context.Item, 0)</CellTemplate>
                         </TemplateColumn>
                         <TemplateColumn T="LotListService.LotInfo" Title="保/停" StickyLeft="true"
                             HeaderStyle="min-width:44px;max-width:44px;"
@@ -234,7 +234,7 @@ else
                         <TemplateColumn T="LotListService.LotInfo" Title="No" StickyLeft="true"
                             HeaderStyle="min-width:40px;max-width:40px;"
                             CellStyle="min-width:40px;max-width:40px;text-align:right;">
-                            <CellTemplate>@(_response!.LotList.IndexOf(context.Item) + 1)</CellTemplate>
+                            <CellTemplate>@_rowNoMap.GetValueOrDefault(context.Item, 0)</CellTemplate>
                         </TemplateColumn>
                         <TemplateColumn T="LotListService.LotInfo" Title="保/停" StickyLeft="true"
                             HeaderStyle="min-width:44px;max-width:44px;"
@@ -338,6 +338,9 @@ else
     private string _error = string.Empty;
     private DateTime _fetchTime;
 
+    /// <summary>No列用: ロットアイテム → 行番号(1始まり) の事前計算マップ</summary>
+    private Dictionary<LotListService.LotInfo, int> _rowNoMap = new();
+
     // 装置グループ・装置セレクト用
     private IReadOnlyList<EquipmentService.McGroup>     _groups     = [];
     private IReadOnlyList<EquipmentService.Equipment>   _equipments = [];
@@ -427,6 +430,9 @@ else
             if (_response.IsSuccess)
             {
                 _fetchTime = DateTime.Now;
+                _rowNoMap = _response.LotList
+                    .Select((item, i) => (item, i))
+                    .ToDictionary(t => t.item, t => t.i + 1);
                 Snackbar.Add($"{_response.LotList.Count} 件取得", Severity.Success);
             }
             else
@@ -454,6 +460,7 @@ else
         _req               = new();
         _response          = null;
         _eqState           = null;
+        _rowNoMap          = new();
         _error             = string.Empty;
     }
 
