@@ -367,4 +367,5 @@ public static class Tags
     public const string FavoriteList        = "FAVORITE_LIST";
     public const string FunctionId          = "FUNCTION_ID";
     public const string Information         = "INFORMATION";
+    public const string Class               = "CLASS";
 }

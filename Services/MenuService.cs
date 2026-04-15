@@ -96,6 +96,7 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
     public async Task<InformationResult> GetInformationAsync(CancellationToken ct = default)
     {
         var req = new TfMsg();
+        req.AddString(Tags.Class,  "A");
         req.AddString(Tags.MsgVer, "01.00");
         req.AddString(Tags.SbId,   _defaultSbId);
 
