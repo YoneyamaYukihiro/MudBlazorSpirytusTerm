@@ -230,6 +230,10 @@ public static class Tags
     public const string HoldPeriod           = "HOLD_PERIOD";
     public const string HoldEmpId            = "HOLD_EMP_ID";
     public const string HoldEmpName          = "HOLD_EMP_NAME";
+    public const string HoldReasonName      = "HOLD_REASON_NAME";
+    public const string HoldTime            = "HOLD_TIME";
+    public const string HoldList            = "HOLD_LIST";
+    public const string LotReasonCodeList   = "LOT_REASON_CODE_LIST";
     public const string WfList               = "WF_LIST";
     public const string ExecTime             = "EXEC_TIME";
 

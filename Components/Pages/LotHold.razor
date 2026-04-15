@@ -1,0 +1,320 @@
+@page "/lot-hold"
+@inject LotHoldService HoldSvc
+@inject WorkService WorkSvc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.LotHoldService
+
+<PageTitle>SPIRYTUS - ロット保留/保留解除 (EN0050/EN00A0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">
+    @(IsHoldMode ? "ロット保留 (EN0050)" : "ロット保留解除 (EN00A0)")
+</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── モード切替 + キャリアID入力 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="3" md="2">
+            <MudToggleGroup T="string" @bind-Value="_mode" Exclusive="true" Color="Color.Primary"
+                            Size="Size.Small" Class="mb-1">
+                <MudToggleItem Value="@("hold")">保留</MudToggleItem>
+                <MudToggleItem Value="@("release")">保留解除</MudToggleItem>
+            </MudToggleGroup>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="Enterキーで照合"
+                          Error="@_carrierError"
+                          OnKeyUp="OnCarrierKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchLotAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))">
+                @if (_loading && _lotInfo is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>照合中...</span>
+                }
+                else
+                {
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ロット情報 + 操作フォーム ────── *@
+@if (_lotInfo is not null)
+{
+    <MudGrid Spacing="2" Class="mb-3">
+
+        @* ── ロット情報カード ── *@
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ロット情報</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロットID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body1"><b>@_lotInfo.LotId</b></MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">機種</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.PdId @(string.IsNullOrEmpty(_lotInfo.PdName) ? "" : $"({_lotInfo.PdName})")</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット状態</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット管理者</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">WF枚数</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.WfNum 枚</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── 操作フォーム ── *@
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-3" Elevation="1">
+                @if (IsHoldMode)
+                {
+                    @* ── 保留フォーム ── *@
+                    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">保留設定</MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudSelect T="ReasonItem"
+                                       @bind-Value="_selectedReason"
+                                       Label="保留理由 *"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       ToStringFunc="@(r => r?.ReasonName ?? "")"
+                                       Disabled="@(_loading || _reasons.Count == 0)">
+                                @foreach (var r in _reasons)
+                                {
+                                    <MudSelectItem Value="@r">@r.ReasonName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_holdTermDate"
+                                          Label="保留期限日 (YYYYMMDD)"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          MaxLength="8"
+                                          Placeholder="例: 20251231"
+                                          Disabled="_loading" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_holdComment"
+                                          Label="保留コメント"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Lines="3"
+                                          MaxLength="256"
+                                          Disabled="_loading" />
+                        </MudItem>
+                    </MudGrid>
+                }
+                else
+                {
+                    @* ── 保留解除フォーム ── *@
+                    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">保留情報</MudText>
+                    @if (_holdInfoList.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">このロットに保留はありません。</MudAlert>
+                    }
+                    else
+                    {
+                        <MudTable T="HoldInfoItem" Items="_holdInfoList" Dense="true" Hover="true"
+                                  @bind-SelectedItem="_selectedHold" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>理由</MudTh>
+                                <MudTh>保留日時</MudTh>
+                                <MudTh>担当者</MudTh>
+                                <MudTh>期限</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.HoldReasonName</MudTd>
+                                <MudTd>@context.HoldTime</MudTd>
+                                <MudTd>@context.HoldEmpName</MudTd>
+                                <MudTd>@context.HoldTermDate</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                        <MudTextField @bind-Value="_releaseComment"
+                                      Label="解除コメント"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Lines="2"
+                                      MaxLength="256"
+                                      Class="mt-2"
+                                      Disabled="_loading" />
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ────── ボタン ────── *@
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled"
+                   Color="@(IsHoldMode ? Color.Warning : Color.Success)"
+                   Size="Size.Large"
+                   StartIcon="@(IsHoldMode ? Icons.Material.Filled.Lock : Icons.Material.Filled.LockOpen)"
+                   OnClick="ConfirmAsync"
+                   Disabled="@ConfirmDisabled">
+            @if (_loading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                <span>処理中...</span>
+            }
+            else
+            {
+                <span>確 定</span>
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_loading">
+            クリア
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private string _mode        = "hold";   // "hold" or "release"
+    private string _carrierId   = "";
+    private bool   _carrierError = false;
+    private bool   _loading     = false;
+    private string _errorMessage = "";
+
+    // 保留
+    private string     _holdComment  = "";
+    private string     _holdTermDate = "";
+    private ReasonItem? _selectedReason;
+
+    // 保留解除
+    private string       _releaseComment = "";
+    private HoldInfoItem? _selectedHold;
+
+    private WorkService.LotCurStateResult?  _lotInfo;
+    private IReadOnlyList<ReasonItem>       _reasons      = [];
+    private IReadOnlyList<HoldInfoItem>     _holdInfoList = [];
+
+    private bool IsHoldMode => _mode == "hold";
+
+    private bool ConfirmDisabled =>
+        _loading ||
+        _lotInfo is null ||
+        (IsHoldMode && _selectedReason is null) ||
+        (!IsHoldMode && _holdInfoList.Count == 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _reasons = await HoldSvc.GetHoldReasonsAsync();
+    }
+
+    private async Task OnCarrierKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FetchLotAsync();
+    }
+
+    private async Task FetchLotAsync()
+    {
+        _carrierError = false;
+        if (string.IsNullOrWhiteSpace(_carrierId)) return;
+        if (_carrierId.Length != 6) { _carrierError = true; return; }
+
+        _loading      = true;
+        _lotInfo      = null;
+        _holdInfoList = [];
+        _errorMessage = "";
+        StateHasChanged();
+
+        // ClassDivision "14"=保留, "15"=保留解除
+        var cd = IsHoldMode ? "14" : "15";
+        var r  = await WorkSvc.GetLotCurStateAsync(_carrierId, classDivision: cd);
+        _loading = false;
+
+        if (!r.IsSuccess) { _errorMessage = r.ErrorMessage; return; }
+
+        _lotInfo = r;
+        Snackbar.Add($"ロット {r.LotId} を取得しました。", Severity.Info);
+
+        // 保留解除モードの場合は保留情報も取得
+        if (!IsHoldMode)
+            _holdInfoList = await HoldSvc.GetHoldInfoAsync(r.LotId);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null) return;
+        _loading = true;
+        StateHasChanged();
+
+        ActionResult result;
+        if (IsHoldMode)
+        {
+            result = await HoldSvc.SetHoldAsync(new HoldRequest(
+                LotId:          _lotInfo.LotId,
+                HoldReasonId:   _selectedReason!.ReasonCode,
+                HoldComments:   _holdComment,
+                HoldTermDate:   _holdTermDate,
+                HoldEmpId:      "",
+                EmpId:          "",
+                LotLastUpdate:  _lotInfo.LotLastUpdate));
+        }
+        else
+        {
+            var entryTime = _selectedHold?.EntryTime ?? (_holdInfoList.Count > 0 ? _holdInfoList[0].EntryTime : "");
+            result = await HoldSvc.ReleaseHoldAsync(new ReleaseRequest(
+                LotId:         _lotInfo.LotId,
+                HoldComments:  _releaseComment,
+                EmpId:         "",
+                LotLastUpdate: _lotInfo.LotLastUpdate,
+                EntryTime:     entryTime));
+        }
+
+        _loading = false;
+
+        if (!result.IsSuccess) { _errorMessage = result.ErrorMessage; return; }
+
+        var label = IsHoldMode ? "保留" : "保留解除";
+        Snackbar.Add($"{label}を登録しました。 ロット: {_lotInfo.LotId}", Severity.Success);
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId      = "";
+        _carrierError   = false;
+        _lotInfo        = null;
+        _holdInfoList   = [];
+        _selectedHold   = null;
+        _holdComment    = "";
+        _holdTermDate   = "";
+        _releaseComment = "";
+        _selectedReason = null;
+        _errorMessage   = "";
+    }
+}

@@ -63,6 +63,12 @@ public static class MsgIds
     public const string LotChgTrvProhibit    = "lot_.chgtrvprohibit";
     public const string LotChkContEtApc      = "lot_.chkContEtApc";
 
+    // ──────── EN0050/EN00A0 ロット保留/保留解除 ────────
+    public const string MasReasonCode        = "mas_.reasoncode";
+    public const string LotHold             = "lot_.hold____";
+    public const string LotHoldInfo         = "lot_.holdinfo";
+    public const string LotReleaseHold      = "lot_.releasehold";
+
     // ──────── EN01C0 ロット情報詳細 ────────
     public const string LotDetail            = "lot_.detail__";
 

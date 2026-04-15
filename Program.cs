@@ -35,6 +35,7 @@ builder.Services.AddScoped<MenuService>();
 builder.Services.AddScoped<BatchManagementService>();
 builder.Services.AddScoped<ProcessStepLotListService>();
 builder.Services.AddScoped<LotDetailService>();
+builder.Services.AddScoped<LotHoldService>();
 
 var app = builder.Build();
 
