@@ -5,8 +5,10 @@
 /// </summary>
 public static class MsgIds
 {
-    public const string LotCurState = "lot_.curstate";
-    public const string LotList = "lot_.list____";
+    public const string LotCurState    = "lot_.curstate";
+    public const string LotList        = "lot_.list____";
+    public const string UtilRefMenu    = "util.refmenu_";
+    public const string UtilInformation = "util.information";
     public const string LotListAld = "lot_.listald_";
     public const string LotChgCtlwp = "lot_.chgctlwp";
 

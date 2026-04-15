@@ -359,4 +359,12 @@ public static class Tags
     public const string PdName              = "PD_NAME";
     public const string WorkCondition       = "WORK_CONDITION";
     public const string UnloaderCarrierId   = "UNLOADER_CARRIER_ID";
+
+    // ──────── MN0000 メインメニュー (util.refmenu_ / util.information) ────────
+    public const string LoginId             = "LOGIN_ID";
+    public const string MenuKind            = "MENU_KIND";
+    public const string TakingOverFlag      = "TAKING_OVER_FLAG";
+    public const string FavoriteList        = "FAVORITE_LIST";
+    public const string FunctionId          = "FUNCTION_ID";
+    public const string Information         = "INFORMATION";
 }

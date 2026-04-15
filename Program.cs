@@ -31,6 +31,7 @@ builder.Services.AddScoped<LotDetailListService>();
 builder.Services.AddScoped<LotTravelerVersionUpService>();
 builder.Services.AddScoped<LotThrowRsvService>();
 builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<MenuService>();
 
 var app = builder.Build();
 

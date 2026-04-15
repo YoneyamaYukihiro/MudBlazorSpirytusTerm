@@ -1,8 +1,162 @@
 @page "/"
+@inject MenuService MenuSvc
+@inject ISnackbar Snackbar
+@implements IDisposable
 
-<PageTitle>SPIRYTUS - メインメニュー</PageTitle>
+<PageTitle>SPIRYTUS - お知らせ</PageTitle>
 
-<MudText Typo="Typo.h5" Class="mb-2">メインメニュー</MudText>
-<MudText Typo="Typo.body1" Color="Color.Secondary">
-    左側のメニューから操作する画面を選択してください。
-</MudText>
+@* ── ローディングバー ── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudText Typo="Typo.h6">お知らせ</MudText>
+    <MudSpacer />
+    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                   Color="Color.Default"
+                   Size="Size.Small"
+                   Title="再取得"
+                   OnClick="LoadAsync"
+                   Disabled="_loading" />
+</MudStack>
+
+@* ── お知らせ本文 ── *@
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    @if (_loading)
+    {
+        <MudSkeleton SkeletonType="SkeletonType.Text" Width="80%" />
+        <MudSkeleton SkeletonType="SkeletonType.Text" Width="60%" />
+        <MudSkeleton SkeletonType="SkeletonType.Text" Width="70%" />
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true">@_errorMessage</MudAlert>
+    }
+    else if (_favorites is null || _favorites.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">お気に入りメニューはまだ登録されていません。</MudText>
+    }
+    else
+    {
+        @* ── お気に入りボタン一覧 ── *@
+        <MudGrid Spacing="2">
+            @foreach (var fav in _favorites)
+            {
+                var href   = ResolveHref(fav.FunctionId);
+                var label  = ResolveLabel(fav.FunctionId);
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Style="height: 64px; font-size: 0.85rem; white-space: normal; line-height: 1.3;"
+                               Href="@href"
+                               Disabled="@(href == "#")">
+                        @label
+                    </MudButton>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudPaper>
+
+@code {
+
+    private bool   _loading      = true;
+    private string _errorMessage = "";
+    private IReadOnlyList<MenuService.FavoriteEntry>? _favorites;
+
+    private CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading      = true;
+        _errorMessage = "";
+        StateHasChanged();
+
+        var result = await MenuSvc.GetFavoritesAsync(ct: _cts.Token);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = string.IsNullOrEmpty(result.ErrorMessage)
+                ? "お気に入り情報の取得に失敗しました。"
+                : result.ErrorMessage;
+        }
+        else
+        {
+            _favorites = result.List;
+        }
+    }
+
+    // ── 機能IDからリンク先を解決 ──────────────────────────────────
+
+    private static string ResolveHref(string functionId) => functionId switch
+    {
+        "EN0030"  => "/work-start",
+        "EN0150"  => "/lot-list",
+        "EN0151"  => "/lot-list",
+        _         => "#"
+    };
+
+    private static string ResolveLabel(string functionId) => functionId switch
+    {
+        "EN0030"  => "作業開始",
+        "EN0040"  => "ロット投入(基板)",
+        "EN0050"  => "ロット保留",
+        "EN0060"  => "作業終了",
+        "EN0070"  => "処理開始",
+        "EN0080"  => "処理終了",
+        "EN0100"  => "次工程送出",
+        "EN0110"  => "装置状態変更",
+        "EN0120"  => "ロット編成(保留/払出WF)",
+        "EN0130"  => "作業開始取消/処理開始取消",
+        "EN0140"  => "ロットコメント",
+        "EN0150"  => "装置別ロット一覧",
+        "EN0151"  => "装置別ロット一覧(防湿ALD)",
+        "EN0160"  => "ロット分割",
+        "EN0170"  => "ロット終了(ロットアウト)",
+        "EN0180"  => "WF状態変更登録",
+        "EN0190"  => "チップ状態変更登録",
+        "EN00A0"  => "ロット保留解除",
+        "EN00B0"  => "CFロット編成",
+        "EN00C0"  => "運用モード変更/装置状態変更",
+        "EN00E0"  => "CFKI作業終了",
+        "EN00F0"  => "在庫管理",
+        "EN00G0"  => "キャリア管理",
+        "EN00H0"  => "対向基板処置登録",
+        "EN00I0"  => "バッチ作業開始",
+        "EN00J0"  => "装置グループ別ロット一覧",
+        "EN00K0"  => "バッチ作業終了",
+        "EN00L0"  => "バッチ処理開始",
+        "EN00M0"  => "バッチ管理",
+        "EN00N0"  => "バッチ処理終了",
+        "EN00O0"  => "投入予定登録(品確・モニター・ダミー)",
+        "EN00P0"  => "投入予定ロット一覧",
+        "EN00Q0"  => "ロット投入(組立)",
+        "EN00R0"  => "ダミー Load/Unload/再投入",
+        "EN00S0"  => "レシピ設定変更",
+        "EN00T0"  => "装置データ参照/登録",
+        "EN00U0"  => "工程異常/不適合品処理票登録",
+        "EN00V0"  => "工程異常/不適合品処理票一覧",
+        "EN00X0"  => "投入予定工順登録(組立)",
+        "EN00Y0"  => "特殊流動(リワーク・追加・先行)",
+        "EN00Z0"  => "工程戻し",
+        "EN0020"  => "投入予定ロット登録",
+        "EN01A0"  => "TPAL貼り合わせ登録",
+        "EN01B0"  => "ロット再測定",
+        "EN01C0"  => "ロット情報詳細",
+        "EN01D0"  => "ガイダンス",
+        "MN0002"  => "お知らせ",
+        _         => functionId
+    };
+
+    public void Dispose() => _cts.Cancel();
+}
