@@ -110,22 +110,22 @@
 {
     <MudPaper Class="pa-2 mb-2 d-flex flex-wrap gap-4" Elevation="0" Style="border:1px solid var(--mud-palette-lines-default);">
         <MudText Typo="Typo.body2">
+            <b>装置状態:</b> @(string.IsNullOrEmpty(_response.UseName) ? "-" : _response.UseName)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>モード:</b> @(string.IsNullOrEmpty(_response.MesModeId) ? "-" : _response.MesModeId)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>処理状態:</b> @(string.IsNullOrEmpty(_response.WpStatusName) ? "-" : _response.WpStatusName)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>処理順ルール:</b> @CollectTypeFlagToText(_eqState?.CollectTypeFlag)
+        </MudText>
+        <MudText Typo="Typo.body2">
+            <b>該当件数:</b> @_response.LotList.Count 件
+        </MudText>
+        <MudText Typo="Typo.body2">
             <b>情報取得日時:</b> @_fetchTime.ToString("yyyy/MM/dd HH:mm:ss")
-        </MudText>
-        <MudText Typo="Typo.body2">
-            <b>件数:</b> @_response.LotList.Count 件
-        </MudText>
-        <MudText Typo="Typo.body2">
-            <b>装置状態:</b> @(string.IsNullOrEmpty(_response.WpStatusName) ? "-" : _response.WpStatusName)
-        </MudText>
-        <MudText Typo="Typo.body2">
-            <b>用途:</b> @(string.IsNullOrEmpty(_response.UseName) ? "-" : _response.UseName)
-        </MudText>
-        <MudText Typo="Typo.body2">
-            <b>運用モード:</b> @(string.IsNullOrEmpty(_response.MesModeId) ? "-" : _response.MesModeId)
-        </MudText>
-        <MudText Typo="Typo.body2">
-            <b>装置タイプ:</b> @(string.IsNullOrEmpty(_response.McType) ? "-" : _response.McType)
         </MudText>
     </MudPaper>
 }
@@ -244,6 +244,7 @@
     // ── 状態 ──────────────────────────────────────────────────────
     private LotListService.LotListRequest _req = new();
     private LotListService.LotListResponse? _response;
+    private EquipmentService.EquipmentState? _eqState;
     private bool _loading;
     private string _error = string.Empty;
     private DateTime _fetchTime;
@@ -318,11 +319,19 @@
     private async Task LoadAsync()
     {
         _loading = true;
-        _error = string.Empty;
+        _error   = string.Empty;
 
         try
         {
-            _response = await LotListSvc.GetLotListAsync(_req);
+            // VBソース cmdLotList_Click: lot_.list____ → eq__.state___ の順に取得
+            // Blazorでは並行取得してパフォーマンス向上
+            var lotTask = LotListSvc.GetLotListAsync(_req);
+            var eqTask  = EquipmentSvc.GetEquipmentStateAsync(_req.WpId);
+            await Task.WhenAll(lotTask, eqTask);
+
+            _response = lotTask.Result;
+            _eqState  = eqTask.Result;
+
             if (_response.IsSuccess)
             {
                 _fetchTime = DateTime.Now;
@@ -352,8 +361,22 @@
         _equipments        = [];
         _req               = new();
         _response          = null;
+        _eqState           = null;
         _error             = string.Empty;
     }
+
+    // ── 処理順ルール変換 ──────────────────────────────────────────
+    // VBソース prvWpStatus_Disp: CPlngNumRecipeFlow* → CPstrRecipeFlow*
+    private static string CollectTypeFlagToText(string? flag) => flag switch
+    {
+        "0" => "FIFO",
+        "1" => "レシピ(切替)",
+        "2" => "レシピ(固定)",
+        "3" => "FIFO限定",
+        "4" => "レシピ(切替)限定",
+        "5" => "レシピ(固定)限定",
+        _   => string.IsNullOrEmpty(flag) ? "-" : flag
+    };
 
     // ── 行スタイル ────────────────────────────────────────────────
     // VBソース prvVsfAreaEquipment_Disp の背景色ロジックを移植。
