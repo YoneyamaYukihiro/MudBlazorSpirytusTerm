@@ -1,0 +1,372 @@
+@page "/work-start"
+@inject WorkService WorkSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 作業開始 (EN0030)</PageTitle>
+
+@* ────────────────────── ローディングバー ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">作業開始 (EN0030)</MudText>
+
+@* ────────────────────── キャリアID入力 ────────────────────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="6文字で入力"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="@_carrierHelperText"
+                          Error="@(_carrierError)"
+                          OnKeyUp="OnCarrierKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="FetchLotInfoAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))"
+                       FullWidth="true">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>照合中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-1" Size="Size.Small" />
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="5" md="7">
+            @if (_lotInfo is not null)
+            {
+                <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">
+                    ロット取得済
+                </MudChip>
+            }
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── ロット情報 ────────────────────── *@
+@if (_lotInfo is not null)
+{
+    <MudGrid Spacing="2" Class="mb-2">
+
+        @* ── ロット情報カード ── *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ロット情報</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロットID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body1"><b>@_lotInfo.LotId</b></MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">機種</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.PdId @(string.IsNullOrEmpty(_lotInfo.PdName) ? "" : $"({_lotInfo.PdName})")</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット状態</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット管理者</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">フロー区分</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.FlowClass</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">WF枚数 / チップ数</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.WfNum 枚 / @_lotInfo.ChipQuantity 個</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── 時間・条件カード ── *@
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">時間・条件</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">開始日時</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotInfo.StartTime</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">タイムリミット</MudText></MudItem>
+                    <MudItem xs="7">
+                        <MudText Typo="Typo.body2" Color="@(string.IsNullOrEmpty(_lotInfo.LimitTime) ? Color.Default : Color.Warning)">
+                            @(string.IsNullOrEmpty(_lotInfo.LimitTime) ? "-" : _lotInfo.LimitTime)
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">作業条件</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@(string.IsNullOrEmpty(_lotInfo.WorkCondition) ? "-" : _lotInfo.WorkCondition)</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">コメント</MudText></MudItem>
+                    <MudItem xs="7">
+                        <MudText Typo="Typo.body2" Style="white-space: pre-wrap; word-break: break-all;">
+                            @(string.IsNullOrEmpty(_lotInfo.Comments) ? "-" : _lotInfo.Comments)
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ────────────────────── 装置選択 ────────────────────── *@
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">装置選択</MudText>
+
+        @if (_lotInfo.StepList is null || _lotInfo.StepList.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Warning">選択可能な装置がありません。</MudText>
+        }
+        else
+        {
+            <MudTable T="WpRow"
+                      Items="_wpRows"
+                      Dense="true"
+                      Hover="true"
+                      @bind-SelectedItem="_selectedWp"
+                      RowClassFunc="WpRowClass"
+                      Elevation="0"
+                      Style="cursor: pointer;">
+                <HeaderContent>
+                    <MudTh>大工程</MudTh>
+                    <MudTh>小工程</MudTh>
+                    <MudTh>D</MudTh>
+                    <MudTh>装置名</MudTh>
+                    <MudTh>装置ID</MudTh>
+                    <MudTh>代替番号</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.OpId</MudTd>
+                    <MudTd>@context.StepId</MudTd>
+                    <MudTd>@(context.IsDefault ? "○" : "")</MudTd>
+                    <MudTd><b>@context.WpName</b></MudTd>
+                    <MudTd Style="font-family: monospace;">@context.WpId</MudTd>
+                    <MudTd>@(string.IsNullOrEmpty(context.AltNumber) ? "" : context.AltNumber)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+
+    @* ────────────────────── 追加入力 ────────────────────── *@
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">追加入力</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="4" md="3">
+                <MudTextField @bind-Value="_toCarrierId"
+                              Label="アンローダキャリアID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="6"
+                              Placeholder="@_lotInfo.UnloaderCarrierId"
+                              HelperText="空の場合は既存のキャリアを使用" />
+            </MudItem>
+            @if (!string.IsNullOrEmpty(_lotInfo.CfCarrierId))
+            {
+                <MudItem xs="12" sm="4" md="3">
+                    <MudTextField @bind-Value="_cfCarrierId"
+                                  Label="CFキャリアID"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="6"
+                                  Placeholder="@_lotInfo.CfCarrierId" />
+                </MudItem>
+            }
+            <MudItem xs="12" sm="6" md="5">
+                <MudTextField @bind-Value="_workMemo"
+                              Label="作業メモ"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2"
+                              MaxLength="128" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ────────────────────── ボタン ────────────────────── *@
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                   OnClick="ConfirmWorkStartAsync"
+                   Disabled="@(_loading || _selectedWp is null)">
+            確 定
+        </MudButton>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll"
+                   Disabled="_loading">
+            クリア
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+
+    // ── 画面データ ──────────────────────────────────────────────
+
+    private string _carrierId       = "";
+    private string _toCarrierId     = "";
+    private string _cfCarrierId     = "";
+    private string _workMemo        = "";
+
+    private bool   _loading         = false;
+    private bool   _carrierError    = false;
+    private string _carrierHelperText = "Enterキーで照合";
+
+    private WorkService.LotCurStateResult? _lotInfo;
+    private List<WpRow>   _wpRows      = [];
+    private WpRow?        _selectedWp  = null;
+
+    // ── 装置グリッド行モデル ─────────────────────────────────────
+
+    private sealed record WpRow(
+        string OpId,
+        string StepId,
+        string StepDivision,
+        string AltNumber,
+        string WpId,
+        string WpName,
+        bool   IsDefault
+    );
+
+    // ── イベント ─────────────────────────────────────────────────
+
+    private async Task OnCarrierKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await FetchLotInfoAsync();
+    }
+
+    private async Task FetchLotInfoAsync()
+    {
+        _carrierError     = false;
+        _carrierHelperText = "Enterキーで照合";
+
+        if (string.IsNullOrWhiteSpace(_carrierId))
+            return;
+
+        if (_carrierId.Length != 6)
+        {
+            _carrierError     = true;
+            _carrierHelperText = "キャリアIDは6桁で入力してください。";
+            return;
+        }
+
+        _loading  = true;
+        _lotInfo  = null;
+        _wpRows   = [];
+        _selectedWp = null;
+        StateHasChanged();
+
+        var result = await WorkSvc.GetLotCurStateAsync(_carrierId.ToUpperInvariant());
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            var msg = string.IsNullOrEmpty(result.ErrorMessage) ? "ロット情報の取得に失敗しました。" : result.ErrorMessage;
+            Snackbar.Add(msg, Severity.Error);
+            return;
+        }
+
+        _lotInfo = result;
+
+        // 装置グリッド行の構築
+        _wpRows = [];
+        if (result.StepList is not null)
+        {
+            foreach (var step in result.StepList)
+            {
+                foreach (var wp in step.WpList)
+                {
+                    _wpRows.Add(new WpRow(
+                        OpId:          step.OpId,
+                        StepId:        step.StepId,
+                        StepDivision:  step.StepDivision,
+                        AltNumber:     step.AltNumber,
+                        WpId:          wp.WpId,
+                        WpName:        wp.WpName,
+                        IsDefault:     step.StepDivision == "1"
+                    ));
+                }
+            }
+        }
+
+        // デフォルト装置の自動選択（工程・装置ともに1件の場合）
+        if (_wpRows.Count == 1)
+            _selectedWp = _wpRows[0];
+        else if (!string.IsNullOrEmpty(result.DefaultWpId))
+            _selectedWp = _wpRows.FirstOrDefault(r => r.WpId == result.DefaultWpId);
+
+        // アンローダキャリアIDの初期値
+        _toCarrierId = result.UnloaderCarrierId;
+        _cfCarrierId = result.CfCarrierId;
+
+        Snackbar.Add($"ロット {result.LotId} を取得しました。", Severity.Success);
+    }
+
+    private string WpRowClass(WpRow row, int _)
+        => _selectedWp == row ? "mud-selected-item" : "";
+
+    private async Task ConfirmWorkStartAsync()
+    {
+        if (_lotInfo is null || _selectedWp is null)
+            return;
+
+        _loading = true;
+        StateHasChanged();
+
+        var request = new WorkService.WorkStartRequest(
+            LotId:         _lotInfo.LotId,
+            OpId:          _selectedWp.OpId,
+            StepId:        _selectedWp.StepId,
+            WpId:          _selectedWp.WpId,
+            EmpId:         "",                       // 作業者IDは省略（権限なしの場合）
+            LotLastUpdate: _lotInfo.LotLastUpdate,
+            Comments:      _workMemo,
+            AltNumber:     _selectedWp.AltNumber,
+            ToCarrierId:   _toCarrierId,
+            CfCarrierId:   _cfCarrierId
+        );
+
+        var result = await WorkSvc.WorkStartAsync(request);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            var msg = string.IsNullOrEmpty(result.ErrorMessage) ? "作業開始に失敗しました。" : result.ErrorMessage;
+            Snackbar.Add(msg, Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(
+            $"作業開始を登録しました。 ロット: {_lotInfo.LotId}  装置: {_selectedWp.WpName}",
+            Severity.Success);
+
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId      = "";
+        _toCarrierId    = "";
+        _cfCarrierId    = "";
+        _workMemo       = "";
+        _lotInfo        = null;
+        _wpRows         = [];
+        _selectedWp     = null;
+        _carrierError   = false;
+        _carrierHelperText = "Enterキーで照合";
+    }
+}

@@ -167,6 +167,151 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
         string ErrorMessage    = ""
     );
 
+    // ──────── ロット現在状態取得 ──────────────────────────────────
+
+    /// <summary>lot_.curstate の工程エントリ</summary>
+    public sealed record LotStepInfo(
+        string OpId,
+        string StepId,
+        string StepDivision,
+        string AltNumber,
+        IReadOnlyList<LotWpInfo> WpList
+    );
+
+    /// <summary>lot_.curstate の装置エントリ</summary>
+    public sealed record LotWpInfo(string WpId, string WpName);
+
+    /// <summary>ロット現在状態取得結果。VBソース: Lotprestate 構造体 (CtsbasxxCM0030.vb)</summary>
+    public sealed record LotCurStateResult(
+        bool   IsSuccess,
+        string LotId             = "",
+        string FlowClass         = "",
+        string PdId              = "",
+        string PdName            = "",
+        string NowSt             = "",
+        string WfNum             = "",
+        string ChipQuantity      = "",
+        string LimitTime         = "",
+        string WarnTime          = "",
+        string StartTime         = "",
+        string Comments          = "",
+        string WorkCondition     = "",
+        string LotHoldFlag       = "",
+        string LotLastUpdate     = "",
+        string EngEmpName        = "",
+        string CarrierId         = "",
+        string CfCarrierId       = "",
+        string UnloaderCarrierId = "",
+        // デフォルト選択値（工程リストが1件の場合自動セット）
+        string DefaultOpId       = "",
+        string DefaultStepId     = "",
+        string DefaultAltNumber  = "",
+        string DefaultWpId       = "",
+        string DefaultWpName     = "",
+        IReadOnlyList<LotStepInfo>? StepList = null,
+        string ErrorCode         = "",
+        string ErrorMessage      = ""
+    );
+
+    /// <summary>
+    /// ロット現在状態を取得する。
+    /// VBソース: pubblnLotCurstate_Sel (CtsbasxxCM0050.vb), MsgVer="04.00"
+    /// ClassDivision: "10" (CPstrCD10) = キャリアIDで検索
+    /// </summary>
+    public async Task<LotCurStateResult> GetLotCurStateAsync(
+        string carrierId,
+        string classDivision = "10",
+        CancellationToken ct = default)
+    {
+        var req = new TfMsg();
+        req.AddString(Tags.CarrierId,      carrierId);
+        req.AddString(Tags.ClassDivision,  classDivision);
+        req.AddString(Tags.MsgVer,         "04.00");
+
+        string raw;
+        try
+        {
+            raw = await mq.SendMessageAsync(MsgIds.LotCurState, req.ToTfString(), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "LotCurState request failed. CarrierId={CarrierId}", carrierId);
+            return new LotCurStateResult(false, ErrorMessage: ex.Message);
+        }
+
+        var msg = ParseOrEmpty(raw);
+        if (msg.GetString(Tags.Ret) != Tags.True)
+        {
+            var errCode = msg.GetString(Tags.ErrCode);
+            var errMsg  = msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("LotCurState returned non-TRUE. CarrierId={CarrierId}, ErrCode={ErrCode}, Err={Err}",
+                carrierId, errCode, errMsg);
+            return new LotCurStateResult(false, ErrorCode: errCode, ErrorMessage: errMsg);
+        }
+
+        // 工程リスト（STEP_LIST）解析
+        var stepAry = msg.GetMsgAry(Tags.StepList);
+        var steps   = new List<LotStepInfo>();
+        string defOpId = "", defStepId = "", defAltNumber = "", defWpId = "", defWpName = "";
+
+        foreach (var s in stepAry)
+        {
+            var opId      = s.GetString(Tags.OpId);
+            var stepId    = s.GetString(Tags.StepId);
+            var stepDiv   = s.GetString(Tags.StepDivision);
+            var altNum    = s.GetString(Tags.AltNumber);
+
+            var wpAry = s.GetMsgAry(Tags.WpList);
+            var wps   = wpAry.Select(w => new LotWpInfo(
+                WpId:   w.GetString(Tags.WpId),
+                WpName: w.GetString(Tags.WpName)
+            )).ToList();
+
+            steps.Add(new LotStepInfo(opId, stepId, stepDiv, altNum, wps));
+
+            // デフォルト工程選択（工程フラグ="1": デフォルト、もしくは工程が1件のみ）
+            if (defOpId == "" && (stepDiv == "1" || stepAry.Count == 1))
+            {
+                defOpId      = opId;
+                defStepId    = stepId;
+                defAltNumber = altNum;
+                if (wps.Count == 1)
+                {
+                    defWpId   = wps[0].WpId;
+                    defWpName = wps[0].WpName;
+                }
+            }
+        }
+
+        return new LotCurStateResult(
+            IsSuccess:        true,
+            LotId:            msg.GetString(Tags.LotId),
+            FlowClass:        msg.GetString(Tags.FlowClass),
+            PdId:             msg.GetString(Tags.PdId),
+            PdName:           msg.GetString(Tags.PdName),
+            NowSt:            msg.GetString(Tags.NowSt),
+            WfNum:            msg.GetString(Tags.WfNum),
+            ChipQuantity:     msg.GetString(Tags.ChipQuantity),
+            LimitTime:        msg.GetString(Tags.LimitTime),
+            WarnTime:         msg.GetString(Tags.WarnTime),
+            StartTime:        msg.GetString(Tags.StartTime),
+            Comments:         msg.GetString(Tags.Comments),
+            WorkCondition:    msg.GetString(Tags.WorkCondition),
+            LotHoldFlag:      msg.GetString(Tags.LotHoldFlag),
+            LotLastUpdate:    msg.GetString(Tags.LotLastUpdate),
+            EngEmpName:       msg.GetString(Tags.EngEmpName),
+            CarrierId:        msg.GetString(Tags.CarrierId),
+            CfCarrierId:      msg.GetString(Tags.CfCarrierId),
+            UnloaderCarrierId: msg.GetString(Tags.UnloaderCarrierId),
+            DefaultOpId:      defOpId,
+            DefaultStepId:    defStepId,
+            DefaultAltNumber: defAltNumber,
+            DefaultWpId:      defWpId,
+            DefaultWpName:    defWpName,
+            StepList:         steps
+        );
+    }
+
     // ──────── ロット作業開始 ─────────────────────────────────────
 
     /// <summary>

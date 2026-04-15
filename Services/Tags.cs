@@ -354,4 +354,9 @@ public static class Tags
     public const string VaConditionFlag      = "VA_CONDITION_FLAG";
     public const string BLotList             = "B_LOT_LIST";
     public const string LotKind              = "LOT_KIND";
+
+    // ──────── EN0030 作業開始 (lot_.curstate) ────────
+    public const string PdName              = "PD_NAME";
+    public const string WorkCondition       = "WORK_CONDITION";
+    public const string UnloaderCarrierId   = "UNLOADER_CARRIER_ID";
 }
