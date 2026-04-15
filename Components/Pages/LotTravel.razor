@@ -1,0 +1,234 @@
+@page "/lot-travel"
+@inject LotDetailListService Svc
+@using static MudBlazorSpirytusTerm.Services.LotDetailListService
+
+<PageTitle>SPIRYTUS - ロット流動票 (EN01G0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">ロット流動票 (EN01G0)</MudText>
+
+@* ────── エラーアラート ────── *@
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 検索入力 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          Disabled="_loading"
+                          OnKeyUp="OnKeyUp"
+                          Style="font-family: monospace; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_lotId"
+                          ValueChanged="@((string v) => _lotId = (v ?? "").ToUpperInvariant())"
+                          Label="ロットID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Immediate="true"
+                          Disabled="_loading"
+                          OnKeyUp="OnKeyUp"
+                          Style="font-family: monospace; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="6" sm="2" md="1">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="FetchAsync"
+                       Disabled="@(_loading || !CanFetch)"
+                       FullWidth="true">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                }
+                else
+                {
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── 結果表示 ────── *@
+@if (_result is not null)
+{
+    @* ── ロットヘッダー ── *@
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">ロットID</MudText>
+                <MudText Typo="Typo.body1"><b>@_result.LotId</b></MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">キャリアID</MudText>
+                <MudText Typo="Typo.body2">@_result.CarrierId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">機種ID</MudText>
+                <MudText Typo="Typo.body2">@_result.PdId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">LOT状態</MudText>
+                <MudText Typo="Typo.body2">@_result.NowSt
+                    @if (_result.HoldFlag == "1") { <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-1">保留</MudChip> }
+                    @if (_result.StopFlag == "1") { <MudChip T="string" Size="Size.Small" Color="Color.Error"   Class="ml-1">停止</MudChip> }
+                </MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">現在工順 / 最終工順</MudText>
+                <MudText Typo="Typo.body2">@_result.CurrentSeqNum / @_result.LastSeqNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">現在工程</MudText>
+                <MudText Typo="Typo.body2">@_result.OpId &nbsp; @_result.StepId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">WF枚数</MudText>
+                <MudText Typo="Typo.body2">@_result.WfNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">GRB区分</MudText>
+                <MudText Typo="Typo.body2">@_result.GrbClass</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ── 流動票グリッド ── *@
+    <MudPaper Elevation="1" Style="overflow-x: auto;">
+        <MudDataGrid T="DetailListItem"
+                     Items="_result.DetailList"
+                     Dense="true"
+                     Hover="true"
+                     FixedHeader="true"
+                     Height="calc(100vh - 380px)"
+                     RowStyleFunc="RowStyle"
+                     Elevation="0">
+            <Columns>
+                <PropertyColumn Property="x => x.SeqNum"       Title="№"        CellStyle="font-family:monospace;" />
+                <PropertyColumn Property="x => x.OpId"         Title="大工程" />
+                <PropertyColumn Property="x => x.StepId"       Title="小工程" />
+                <TemplateColumn Title="作業開始日時">
+                    <CellTemplate>
+                        <span style="white-space:nowrap;">@context.Item.StartTime</span>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="作業終了日時">
+                    <CellTemplate>
+                        <span style="white-space:nowrap;">@context.Item.EndTime</span>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="装置名">
+                    <CellTemplate>
+                        @string.Join(" / ", context.Item.WpList.Select(w => w.WpName))
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="ポート名">
+                    <CellTemplate>
+                        @string.Join(" ", context.Item.WpList.SelectMany(w => w.PortNames))
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.RecipeId"     Title="レシピID" />
+                <TemplateColumn Title="収集">
+                    <CellTemplate>
+                        @(context.Item.CollectionFlag == "1" ? "○" : "")
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.CarrierId"    Title="キャリアID" CellStyle="font-family:monospace;" />
+                <PropertyColumn Property="x => x.WfNum"        Title="WF枚数" />
+                <PropertyColumn Property="x => x.ChipNum"      Title="チップ数" />
+                <PropertyColumn Property="x => x.StartEmpName" Title="開始作業者" />
+                <PropertyColumn Property="x => x.EndEmpName"   Title="終了作業者" />
+                <TemplateColumn Title="コメント">
+                    <CellTemplate>
+                        @(context.Item.CommentFlag == "1" ? "○" : "")
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.GrbClass"     Title="GRB" />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    <MudText Typo="Typo.caption" Class="mt-1 mud-text-secondary">
+        @_result.DetailList.Count 件表示 （現在工順: @_result.CurrentSeqNum 行をハイライト）
+    </MudText>
+}
+
+@code {
+    [Parameter, SupplyParameterFromQuery(Name = "lotId")]     public string? LotIdParam     { get; set; }
+    [Parameter, SupplyParameterFromQuery(Name = "carrierId")] public string? CarrierIdParam { get; set; }
+
+    private string _carrierId    = string.Empty;
+    private string _lotId        = string.Empty;
+    private bool   _loading      = false;
+    private string _errorMessage = string.Empty;
+    private LotDetailListResult? _result;
+
+    private bool CanFetch => !string.IsNullOrWhiteSpace(_carrierId) || !string.IsNullOrWhiteSpace(_lotId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(CarrierIdParam)) _carrierId = CarrierIdParam;
+        if (!string.IsNullOrEmpty(LotIdParam))     _lotId     = LotIdParam;
+        if (CanFetch) await FetchAsync();
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && CanFetch)
+            await FetchAsync();
+    }
+
+    private async Task FetchAsync()
+    {
+        _errorMessage = string.Empty;
+        _loading      = true;
+        _result       = null;
+        StateHasChanged();
+
+        // START_SEQ_NUM 空 = 現在工順を中心に前後 16 件 (VB デフォルトと同じ)
+        var result = await Svc.GetLotDetailListAsync(
+            lotId:      _lotId.Trim(),
+            carrierId:  _carrierId.Trim(),
+            beforeNum:  "16",
+            afterNum:   "16");
+
+        _loading = false;
+
+        if (result is null)
+        {
+            _errorMessage = "ロット流動票の取得に失敗しました。";
+        }
+        else
+        {
+            _result = result;
+            // 入力欄を取得結果で補完
+            if (string.IsNullOrEmpty(_lotId))     _lotId     = result.LotId;
+            if (string.IsNullOrEmpty(_carrierId))  _carrierId = result.CarrierId;
+        }
+    }
+
+    // 現在工順の行をハイライト
+    private string RowStyle(DetailListItem row, int _) =>
+        !string.IsNullOrEmpty(_result?.CurrentSeqNum) && row.SeqNum == _result.CurrentSeqNum
+            ? "background-color: #E3F2FD; font-weight: bold;"
+            : string.Empty;
+}
