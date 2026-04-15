@@ -1,98 +1,165 @@
+@inject MenuService MenuSvc
+@implements IDisposable
 
 <MudNavMenu>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Notifications">お知らせ</MudNavLink>
     <MudDivider Class="my-2" />
 
     <MudNavGroup Title="流動系" Icon="@Icons.Material.Filled.Waves" Expanded="true">
-        @foreach (var item in _flowMenuItems)
+        @if (_loading)
         {
-            @if (item.Href == "#")
+            <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">読み込み中...</MudNavLink>
+        }
+        else if (!string.IsNullOrEmpty(_flowError))
+        {
+            <MudNavLink Icon="@Icons.Material.Filled.Warning" Disabled="true">取得失敗</MudNavLink>
+        }
+        else if (_flowFavorites is null || _flowFavorites.Count == 0)
+        {
+            <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">登録なし</MudNavLink>
+        }
+        else
+        {
+            @foreach (var fav in _flowFavorites)
             {
-                <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">@item.Title</MudNavLink>
-            }
-            else
-            {
-                <MudNavLink Href="@item.Href" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ChevronRight">@item.Title</MudNavLink>
+                var href  = ResolveHref(fav.FunctionId);
+                var label = ResolveLabel(fav.FunctionId);
+                @if (href == "#")
+                {
+                    <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">@label</MudNavLink>
+                }
+                else
+                {
+                    <MudNavLink Href="@href" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ChevronRight">@label</MudNavLink>
+                }
             }
         }
     </MudNavGroup>
 
     <MudNavGroup Title="ツール系" Icon="@Icons.Material.Filled.Build" Expanded="false">
-        @foreach (var item in _toolMenuItems)
+        @if (_loading)
         {
-            @if (item.Href == "#")
+            <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">読み込み中...</MudNavLink>
+        }
+        else if (!string.IsNullOrEmpty(_toolError))
+        {
+            <MudNavLink Icon="@Icons.Material.Filled.Warning" Disabled="true">取得失敗</MudNavLink>
+        }
+        else if (_toolFavorites is null || _toolFavorites.Count == 0)
+        {
+            <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">登録なし</MudNavLink>
+        }
+        else
+        {
+            @foreach (var fav in _toolFavorites)
             {
-                <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">@item.Title</MudNavLink>
-            }
-            else
-            {
-                <MudNavLink Href="@item.Href" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ChevronRight">@item.Title</MudNavLink>
+                var href  = ResolveHref(fav.FunctionId);
+                var label = ResolveLabel(fav.FunctionId);
+                @if (href == "#")
+                {
+                    <MudNavLink Icon="@Icons.Material.Filled.ChevronRight" Disabled="true">@label</MudNavLink>
+                }
+                else
+                {
+                    <MudNavLink Href="@href" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.ChevronRight">@label</MudNavLink>
+                }
             }
         }
-    </MudNavGroup>
-
-    <MudNavGroup Title="お気に入り" Icon="@Icons.Material.Filled.Star" Expanded="false">
-        <MudNavLink Icon="@Icons.Material.Outlined.Info" Disabled="true">登録なし</MudNavLink>
     </MudNavGroup>
 
 </MudNavMenu>
 
 @code {
-    private record MenuItem(string Title, string Key, string Href);
 
-    private readonly List<MenuItem> _flowMenuItems =
-    [
-        new("作業開始",                     "EN0030",  "/work-start"),
-        new("ロット投入(基板)",              "EN0040",  "#"),
-        new("作業終了",                     "EN0060",  "#"),
-        new("処理開始",                     "EN0070",  "#"),
-        new("処理終了",                     "EN0080",  "#"),
-        new("ロット保留",                    "EN0050",  "#"),
-        new("ロット保留解除",                "EN00A0",  "#"),
-        new("バッチ作業開始",                "EN00I0",  "#"),
-        new("バッチ作業終了",                "EN00K0",  "#"),
-        new("バッチ処理開始",                "EN00L0",  "#"),
-        new("バッチ処理終了",                "EN00N0",  "#"),
-        new("バッチ管理",                   "EN00M0",  "#"),
-        new("CFロット編成",                  "EN00B0",  "#"),
-        new("ロット投入(組立)",              "EN00Q0",  "#"),
-        new("ダミー Load/Unload/再投入",     "EN00R0",  "#"),
-        new("CFKI作業終了",                 "EN00E0",  "#"),
-        new("対向基板処置登録",              "EN00H0",  "#"),
-        new("次工程送出",                    "EN0100",  "#"),
-        new("特殊流動(リワーク・追加・先行)", "EN00Y0",  "#"),
-        new("工程戻し",                     "EN00Z0",  "#"),
-        new("装置グループ別ロット一覧",       "EN00J0",  "#"),
-        new("装置別ロット一覧",              "EN0150",  "/lot-list"),
-        new("装置別ロット一覧(防湿ALD)",     "EN0151",  "#"),
-        new("作業開始取消/処理開始取消",     "EN0130",  "#"),
-        new("ロット編成(保留/払出WF)",       "EN0120",  "#"),
-        new("ロット分割",                    "EN0160",  "#"),
-        new("ロット終了(ロットアウト)",       "EN0170",  "#"),
-        new("ロット再測定",                  "EN01B0",  "#"),
-        new("TPAL貼り合わせ登録",            "EN01A0",  "#"),
-    ];
+    private bool   _loading       = true;
+    private string _flowError     = "";
+    private string _toolError     = "";
+    private IReadOnlyList<MenuService.FavoriteEntry>? _flowFavorites;
+    private IReadOnlyList<MenuService.FavoriteEntry>? _toolFavorites;
 
-    private readonly List<MenuItem> _toolMenuItems =
-    [
-        new("投入予定ロット登録",                   "EN0020",  "#"),
-        new("投入予定ロット一覧",                   "EN00P0",  "#"),
-        new("投入予定登録(品確・モニター・ダミー)",  "EN00O0",  "#"),
-        new("投入予定工順登録(組立)",               "EN00X0",  "#"),
-        new("在庫管理",                            "EN00F0",  "#"),
-        new("キャリア管理",                         "EN00G0",  "#"),
-        new("レシピ設定変更",                       "EN00S0",  "#"),
-        new("装置データ参照/登録",                  "EN00T0",  "#"),
-        new("装置状態変更",                         "EN0110",  "#"),
-        new("運用モード変更/装置状態変更",           "EN00C0",  "#"),
-        new("工程異常/不適合品処理票登録",           "EN00U0",  "#"),
-        new("工程異常/不適合品処理票一覧",           "EN00V0",  "#"),
-        new("WF状態変更登録",                       "EN0180",  "#"),
-        new("チップ状態変更登録",                   "EN0190",  "#"),
-        new("ロットコメント",                        "EN0140",  "#"),
-        new("ロット情報詳細",                        "EN01C0",  "#"),
-        new("ガイダンス",                            "EN01D0",  "#"),
-        new("レチクル管理",                          "EN00Z0",  "#"),
-        new("お知らせ",                              "MN0002",  "#"),
-    ];
+    private CancellationTokenSource _cts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var flowTask = MenuSvc.GetFlowFavoritesAsync(_cts.Token);
+        var toolTask = MenuSvc.GetToolFavoritesAsync(_cts.Token);
+        await Task.WhenAll(flowTask, toolTask);
+
+        var flowResult = flowTask.Result;
+        var toolResult = toolTask.Result;
+
+        if (!flowResult.IsSuccess)
+            _flowError = string.IsNullOrEmpty(flowResult.ErrorMessage) ? "取得失敗" : flowResult.ErrorMessage;
+        else
+            _flowFavorites = flowResult.List;
+
+        if (!toolResult.IsSuccess)
+            _toolError = string.IsNullOrEmpty(toolResult.ErrorMessage) ? "取得失敗" : toolResult.ErrorMessage;
+        else
+            _toolFavorites = toolResult.List;
+
+        _loading = false;
+    }
+
+    private static string ResolveHref(string functionId) => functionId switch
+    {
+        "EN0030"  => "/work-start",
+        "EN0150"  => "/lot-list",
+        "EN0151"  => "/lot-list",
+        _         => "#"
+    };
+
+    private static string ResolveLabel(string functionId) => functionId switch
+    {
+        "EN0020"  => "投入予定ロット登録",
+        "EN0030"  => "作業開始",
+        "EN0040"  => "ロット投入(基板)",
+        "EN0050"  => "ロット保留",
+        "EN0060"  => "作業終了",
+        "EN0070"  => "処理開始",
+        "EN0080"  => "処理終了",
+        "EN0100"  => "次工程送出",
+        "EN0110"  => "装置状態変更",
+        "EN0120"  => "ロット編成(保留/払出WF)",
+        "EN0130"  => "作業開始取消/処理開始取消",
+        "EN0140"  => "ロットコメント",
+        "EN0150"  => "装置別ロット一覧",
+        "EN0151"  => "装置別ロット一覧(防湿ALD)",
+        "EN0160"  => "ロット分割",
+        "EN0170"  => "ロット終了(ロットアウト)",
+        "EN0180"  => "WF状態変更登録",
+        "EN0190"  => "チップ状態変更登録",
+        "EN00A0"  => "ロット保留解除",
+        "EN00B0"  => "CFロット編成",
+        "EN00C0"  => "運用モード変更/装置状態変更",
+        "EN00E0"  => "CFKI作業終了",
+        "EN00F0"  => "在庫管理",
+        "EN00G0"  => "キャリア管理",
+        "EN00H0"  => "対向基板処置登録",
+        "EN00I0"  => "バッチ作業開始",
+        "EN00J0"  => "装置グループ別ロット一覧",
+        "EN00K0"  => "バッチ作業終了",
+        "EN00L0"  => "バッチ処理開始",
+        "EN00M0"  => "バッチ管理",
+        "EN00N0"  => "バッチ処理終了",
+        "EN00O0"  => "投入予定登録(品確・モニター・ダミー)",
+        "EN00P0"  => "投入予定ロット一覧",
+        "EN00Q0"  => "ロット投入(組立)",
+        "EN00R0"  => "ダミー Load/Unload/再投入",
+        "EN00S0"  => "レシピ設定変更",
+        "EN00T0"  => "装置データ参照/登録",
+        "EN00U0"  => "工程異常/不適合品処理票登録",
+        "EN00V0"  => "工程異常/不適合品処理票一覧",
+        "EN00X0"  => "投入予定工順登録(組立)",
+        "EN00Y0"  => "特殊流動(リワーク・追加・先行)",
+        "EN00Z0"  => "工程戻し",
+        "EN01A0"  => "TPAL貼り合わせ登録",
+        "EN01B0"  => "ロット再測定",
+        "EN01C0"  => "ロット情報詳細",
+        "EN01D0"  => "ガイダンス",
+        "MN0002"  => "お知らせ",
+        _         => functionId
+    };
+
+    public void Dispose() => _cts.Cancel();
 }
