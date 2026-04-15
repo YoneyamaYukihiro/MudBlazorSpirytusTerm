@@ -208,7 +208,7 @@
                    Color="Color.Default"
                    Size="Size.Large"
                    StartIcon="@Icons.Material.Filled.Clear"
-                   OnClick="ClearAll"
+                   OnClick="@(() => ClearAll())"
                    Disabled="_loading">
             クリア
         </MudButton>
