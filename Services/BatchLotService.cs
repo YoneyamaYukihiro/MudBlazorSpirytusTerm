@@ -57,6 +57,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
     public sealed record LotListResult(
         bool IsSuccess,
         string ErrorMessage = "",
+        string ErrorCode = "",
         IReadOnlyList<LotEntry>? Lots = null
     );
 
@@ -185,10 +186,11 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = msg.GetString(Tags.Msg);
-            logger.LogWarning("LotMcGpLotList returned FALSE. Err={Err}", err);
-            return new LotListResult(false, string.IsNullOrEmpty(err) ? "ロット一覧の取得に失敗しました。" : err);
+            var (code, message) = msg.GetErrorInfo();
+            logger.LogWarning("LotMcGpLotList returned FALSE. Code={Code} Err={Err}", code, message);
+            return new LotListResult(false,
+                ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(message) ? "ロット一覧の取得に失敗しました。" : message);
         }
 
         var lots = msg.GetMsgAry(Tags.LotList).Select(e =>
