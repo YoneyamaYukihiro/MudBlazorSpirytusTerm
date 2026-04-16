@@ -1,0 +1,262 @@
+@page "/recipe-setting-change"
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - レシピ設定変更 (EN00S0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">レシピ設定変更 (EN00S0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── キャリアID入力 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="Enterキーで照合"
+                          Error="@_carrierError"
+                          OnKeyUp="OnCarrierKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))">
+                @if (_loading && !_fetched)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>照合中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-1" Size="Size.Small" />
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ロット情報 + レシピ変更設定 ────── *@
+@if (_fetched)
+{
+    <MudGrid Spacing="2" Class="mb-3">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ロット情報</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロットID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body1"><b>@_lotId</b></MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">機種ID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_pdId</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">大工程</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_opId</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">小工程</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_stepId</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">レシピ変更設定</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_currentRecipeId"
+                                      Label="現在のレシピID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="20"
+                                      ReadOnly="true"
+                                      Disabled="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_newRecipeId"
+                                      Label="変更後レシピID *"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="20"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_empId"
+                                      Label="作業者ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="10"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_changeReason"
+                                      Label="変更理由 *"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Lines="3"
+                                      MaxLength="256"
+                                      Disabled="_loading" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ────── レシピ一覧 ────── *@
+    @if (_recipeRows.Count > 0)
+    {
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">使用可能レシピ一覧</MudText>
+            <MudTable T="RecipeRow" Items="_recipeRows" Dense="true" Hover="true"
+                      @bind-SelectedItem="_selectedRecipe" Elevation="0" Style="cursor: pointer;">
+                <HeaderContent>
+                    <MudTh>レシピID</MudTh>
+                    <MudTh>レシピ名</MudTh>
+                    <MudTh>デフォルト</MudTh>
+                    <MudTh>コメント</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd><b>@context.RecipeId</b></MudTd>
+                    <MudTd>@context.RecipeName</MudTd>
+                    <MudTd>@(context.IsDefault ? "○" : "")</MudTd>
+                    <MudTd>@context.Comments</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+
+    @* ────── ボタン ────── *@
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Warning"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.SwapHoriz"
+                   OnClick="ConfirmAsync"
+                   Disabled="@(_loading || string.IsNullOrWhiteSpace(_newRecipeId))">
+            @if (_loading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                <span>処理中...</span>
+            }
+            else
+            {
+                <span>変更確定</span>
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_loading">
+            クリア
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private string _carrierId      = "";
+    private string _lotId          = "";
+    private string _pdId           = "";
+    private string _opId           = "";
+    private string _stepId         = "";
+    private string _currentRecipeId = "";
+    private string _newRecipeId    = "";
+    private string _empId          = "";
+    private string _changeReason   = "";
+    private bool   _carrierError   = false;
+    private bool   _loading        = false;
+    private bool   _fetched        = false;
+    private string _errorMessage   = "";
+
+    private List<RecipeRow> _recipeRows   = [];
+    private RecipeRow?      _selectedRecipe;
+
+    private sealed record RecipeRow(
+        string RecipeId,
+        string RecipeName,
+        bool   IsDefault,
+        string Comments
+    );
+
+    private async Task OnCarrierKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FetchAsync();
+    }
+
+    private async Task FetchAsync()
+    {
+        _carrierError = false;
+        if (string.IsNullOrWhiteSpace(_carrierId)) return;
+        if (_carrierId.Length != 6) { _carrierError = true; return; }
+
+        _loading      = true;
+        _fetched      = false;
+        _recipeRows   = [];
+        _errorMessage = "";
+        StateHasChanged();
+
+        // 実装中 - lot_.curstate で照合 → lot_.userecp_ でレシピ一覧取得
+        await Task.Delay(400);
+        _loading          = false;
+        _fetched          = true;
+        _lotId            = "LOT56789";
+        _pdId             = "PDXXX01";
+        _opId             = "OP200";
+        _stepId           = "ST300";
+        _currentRecipeId  = "RECIPE_A";
+        _recipeRows = new List<RecipeRow>
+        {
+            new("RECIPE_A", "標準レシピA", true, "通常処理"),
+            new("RECIPE_B", "レシピB",     false, "高品質処理"),
+            new("RECIPE_C", "レシピC",     false, "短縮処理"),
+        };
+        Snackbar.Add($"ロット {_lotId} のレシピ情報を取得しました。", Severity.Info);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        // 実装中 - レシピ変更メッセージ送信
+        await Task.Delay(500);
+        _loading = false;
+        Snackbar.Add($"レシピを {_currentRecipeId} → {_newRecipeId} に変更しました。 ロット: {_lotId}", Severity.Success);
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId       = "";
+        _carrierError    = false;
+        _fetched         = false;
+        _lotId           = "";
+        _pdId            = "";
+        _opId            = "";
+        _stepId          = "";
+        _currentRecipeId = "";
+        _newRecipeId     = "";
+        _empId           = "";
+        _changeReason    = "";
+        _recipeRows      = [];
+        _selectedRecipe  = null;
+        _errorMessage    = "";
+    }
+}

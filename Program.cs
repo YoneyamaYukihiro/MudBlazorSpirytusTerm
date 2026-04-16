@@ -45,6 +45,11 @@ builder.Services.AddScoped<TimeRestrictFlowService>();
 builder.Services.AddScoped<LotSkipStepService>();
 builder.Services.AddScoped<LotOutService>();
 builder.Services.AddScoped<LotStepBackService>();
+builder.Services.AddScoped<LotThrowinSubstrateService>();
+builder.Services.AddScoped<LotCompositionService>();
+builder.Services.AddScoped<LotDivideService>();
+builder.Services.AddScoped<LotThrowRsvExtService>();
+builder.Services.AddScoped<EquipmentDataService>();
 
 var app = builder.Build();
 
