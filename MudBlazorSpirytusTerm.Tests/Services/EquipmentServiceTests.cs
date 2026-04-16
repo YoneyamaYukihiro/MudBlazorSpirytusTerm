@@ -1,4 +1,4 @@
-using Moq;
+﻿using Moq;
 using MudBlazorSpirytusTerm.Services;
 
 namespace MudBlazorSpirytusTerm.Tests.Services;
@@ -10,7 +10,7 @@ public class EquipmentServiceTests
     private EquipmentService CreateService(Mock<ITfMessageClient> mockMq)
         => new(mockMq.Object, _cfg, TestHelper.CreateLogger<EquipmentService>());
 
-    // ──────── GetMcGroupListAsync ────────
+    // 笏笏笏笏笏笏笏笏 GetMcGroupListAsync 笏笏笏笏笏笏笏笏
 
     [Fact]
     public async Task GetMcGroupListAsync_Success_ReturnsList()
@@ -20,7 +20,7 @@ public class EquipmentServiceTests
             var ary = new TfMsgAry();
             var g = new TfMsg();
             g.AddString(Tags.McGroupId, "GRP01");
-            g.AddString(Tags.McGroupName, "テストグループ");
+            g.AddString(Tags.McGroupName, "TestGroup");
             g.AddString(Tags.BatchFlag, "0");
             ary.Add(g);
             msg.AddMsgAry(Tags.McGroupList, ary);
@@ -33,7 +33,7 @@ public class EquipmentServiceTests
 
         Assert.Single(result);
         Assert.Equal("GRP01", result[0].Id);
-        Assert.Equal("テストグループ", result[0].Name);
+        Assert.Equal("TestGroup", result[0].Name);
         Assert.Equal("0", result[0].BatchFlag);
     }
 
@@ -60,7 +60,7 @@ public class EquipmentServiceTests
         Assert.Empty(result);
     }
 
-    // ──────── GetEquipmentStateAsync ────────
+    // 笏笏笏笏笏笏笏笏 GetEquipmentStateAsync 笏笏笏笏笏笏笏笏
 
     [Fact]
     public async Task GetEquipmentStateAsync_Success_ReturnsState()
@@ -71,10 +71,10 @@ public class EquipmentServiceTests
             msg.AddString(Tags.MesModeType, "AUTO");
             msg.AddString(Tags.ModeStatus, "RUN");
             msg.AddString(Tags.UseId, "USE01");
-            msg.AddString(Tags.UseName, "通常使用");
+            msg.AddString(Tags.UseName, "騾壼ｸｸ菴ｿ逕ｨ");
             msg.AddString(Tags.WpTypeFlag, "0");
             msg.AddString(Tags.WpStopFlag, "0");
-            msg.AddString(Tags.WpStatusName, "稼動中");
+            msg.AddString(Tags.WpStatusName, "遞ｼ蜍穂ｸｭ");
             msg.AddString(Tags.CollectTypeFlag, "0");
             msg.AddString(Tags.RecipeFlowNum, "1");
             msg.AddString(Tags.WpCancelCarrierFlag, "0");
@@ -93,11 +93,12 @@ public class EquipmentServiceTests
 
         var result = await svc.GetEquipmentStateAsync("WP001");
 
-        Assert.NotNull(result);
-        Assert.Equal("MODE01", result.MesModeId);
-        Assert.Equal("稼動中", result.WpStatusName);
-        Assert.Single(result.PortList);
-        Assert.Equal("PORT01", result.PortList[0].PortId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("MODE01", result.Data!.MesModeId);
+        Assert.Equal("遞ｼ蜍穂ｸｭ", result.Data!.WpStatusName);
+        Assert.Single(result.Data!.PortList);
+        Assert.Equal("PORT01", result.Data!.PortList[0].PortId);
     }
 
     [Fact]
@@ -109,10 +110,10 @@ public class EquipmentServiceTests
 
         var result = await svc.GetEquipmentStateAsync("WP001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
-    // ──────── GetStockerListAsync ────────
+    // 笏笏笏笏笏笏笏笏 GetStockerListAsync 笏笏笏笏笏笏笏笏
 
     [Fact]
     public async Task GetStockerListAsync_Success_ReturnsList()
@@ -122,7 +123,7 @@ public class EquipmentServiceTests
             var ary = new TfMsgAry();
             var s = new TfMsg();
             s.AddString(Tags.StockerId, "STK01");
-            s.AddString(Tags.StockerName, "ストッカーA");
+            s.AddString(Tags.StockerName, "繧ｹ繝医ャ繧ｫ繝ｼA");
             ary.Add(s);
             msg.AddMsgAry(Tags.StockerList, ary);
         });
@@ -136,3 +137,4 @@ public class EquipmentServiceTests
         Assert.Equal("STK01", result[0].StockerId);
     }
 }
+

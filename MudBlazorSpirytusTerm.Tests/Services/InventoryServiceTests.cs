@@ -29,9 +29,9 @@ public class InventoryServiceTests
 
         var result = await svc.AsmDivideAsync("LOT001", "EMP001", "20250415100000", wf1, wf2);
 
-        Assert.NotNull(result);
-        Assert.Equal("LOT001A", result.Value.LotId1);
-        Assert.Equal("LOT001B", result.Value.LotId2);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("LOT001A", result.Data.LotId1);
+        Assert.Equal("LOT001B", result.Data.LotId2);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class InventoryServiceTests
         var result = await svc.AsmDivideAsync("LOT001", "EMP001", "20250415100000",
             Array.Empty<InventoryService.WfMapItem>(), Array.Empty<InventoryService.WfMapItem>());
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class InventoryServiceTests
         var result = await svc.AsmDivideAsync("LOT001", "EMP001", "20250415100000",
             Array.Empty<InventoryService.WfMapItem>(), Array.Empty<InventoryService.WfMapItem>());
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── GetHoldListAsync ────────

@@ -428,7 +428,8 @@ else
         {
             // VBソース cmdLotList_Click: lot_.list____ → eq__.state___ の順に取得
             _response = await LotListSvc.GetLotListAsync(_req);
-            _eqState  = await EquipmentSvc.GetEquipmentStateAsync(_req.WpId);
+            var equipmentStateResult = await EquipmentSvc.GetEquipmentStateAsync(_req.WpId);
+            _eqState = equipmentStateResult.IsSuccess ? equipmentStateResult.Data : null;
 
             if (_response.IsSuccess)
             {
