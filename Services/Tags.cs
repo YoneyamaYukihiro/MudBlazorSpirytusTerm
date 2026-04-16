@@ -416,4 +416,14 @@ public static class Tags
     public const string EndOpId            = "END_OP_ID";           // 終了大工程
     public const string EndStepId          = "END_STEP_ID";         // 終了小工程
     public const string SectionPriority    = "SECTION_PRIORITY";    // 区間優先度
+
+    // ──────── EN02O0 時間制限流動設定 (time.restrictstatus / time.restrictregist) ────────
+    public const string FromOpId           = "FROM_OP_ID";          // 開始大工程(FROM)
+    public const string FromStepId         = "FROM_STEP_ID";        // 開始小工程(FROM)
+    public const string RestrictType       = "RESTRICT_TYPE";       // 制限タイプ
+    public const string RestrictFlowList   = "RESTRICT_FLOW_LIST";  // フロー制限リスト
+    public const string RestrictWpList     = "RESTRICT_WP_LIST";    // 装置制限リスト
+    public const string LotStopOn          = "LOT_STOP_ON";         // ロット保留(0:手動, 1:自動)
+    public const string LotStopOff         = "LOT_STOP_OFF";        // ロット保留解除(0:手動, 1:自動)
+    public const string WaitLotNum         = "WAIT_LOT_NUM";        // 時間制限 在庫数/作業待数
 }

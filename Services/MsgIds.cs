@@ -124,6 +124,10 @@ public static class MsgIds
     public const string LotChgSecPriority  = "lot_.chgsecpriority";
     public const string ProcList           = "proc.list____";
 
+    // ──────── EN02O0 時間制限流動設定 ────────
+    public const string TimeRestrictStatus = "time.restrictstatus";
+    public const string TimeRestrictRegist = "time.restrictregist";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";
