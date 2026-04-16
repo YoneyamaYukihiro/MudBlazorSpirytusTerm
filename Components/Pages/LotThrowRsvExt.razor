@@ -1,0 +1,220 @@
+@page "/lot-throw-rsv-ext"
+@inject LotThrowRsvExtService RsvExtSvc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.LotThrowRsvExtService
+
+<PageTitle>SPIRYTUS - 投入予定登録(品確・モニター・ダミー) (EN00O0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">投入予定登録(品確・モニター・ダミー) (EN00O0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+@if (!string.IsNullOrEmpty(_resultLotId))
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _resultLotId = string.Empty">
+        投入予定を登録しました。採番ロットID: <b>@_resultLotId</b>
+    </MudAlert>
+}
+
+@* ────── 登録区分選択 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">登録区分</MudText>
+    <MudRadioGroup T="string" @bind-Value="_classDivision">
+        <MudRadio T="string" Value="@("QA")" Color="Color.Primary">品確 (QA)</MudRadio>
+        <MudRadio T="string" Value="@("MN")" Color="Color.Secondary">モニター (MN)</MudRadio>
+        <MudRadio T="string" Value="@("DM")" Color="Color.Default">ダミー (DM)</MudRadio>
+    </MudRadioGroup>
+</MudPaper>
+
+@* ────── 機種・工順情報 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">機種・工順情報</MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="ProductItem"
+                       @bind-Value="_selectedProduct"
+                       Label="機種 *"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       ToStringFunc="@(p => p is null ? "" : $"{p.PdId} {p.PdName}")"
+                       Disabled="@(_loading || _products.Count == 0)">
+                @foreach (var p in _products)
+                {
+                    <MudSelectItem Value="@p">@p.PdId @p.PdName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="FlowClassItem"
+                       @bind-Value="_selectedFlowClass"
+                       Label="種別区分"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       ToStringFunc="@(f => f is null ? "" : $"{f.FlowClassId} {f.FlowClassName}")"
+                       Disabled="@(_loading || _flowClasses.Count == 0)">
+                @foreach (var f in _flowClasses)
+                {
+                    <MudSelectItem Value="@f">@f.FlowClassId @f.FlowClassName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudTextField @bind-Value="_wfNum"
+                          Label="WF枚数 *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="3"
+                          InputType="InputType.Number"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_planThrowinDate"
+                          Label="投入予定日 (YYYYMMDD) *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="8"
+                          Placeholder="例: 20251231"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_engEmpId"
+                          Label="ロット担当者ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_empId"
+                          Label="作業者ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_comments"
+                          Label="コメント(作業メモ)"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="3"
+                          MaxLength="256"
+                          Disabled="_loading" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ボタン ────── *@
+<MudStack Row="true" Spacing="2">
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Save"
+               OnClick="RegisterAsync"
+               Disabled="@(_loading || _selectedProduct is null || string.IsNullOrWhiteSpace(_wfNum))">
+        @if (_loading)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+            <span>登録中...</span>
+        }
+        else
+        {
+            <span>登録確定</span>
+        }
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Clear"
+               OnClick="ClearAll" Disabled="_loading">
+        クリア
+    </MudButton>
+</MudStack>
+
+@code {
+    private string        _classDivision    = "QA";
+    private string        _wfNum            = "";
+    private string        _planThrowinDate  = "";
+    private string        _engEmpId         = "";
+    private string        _empId            = "";
+    private string        _comments         = "";
+    private bool          _loading          = false;
+    private string        _errorMessage     = "";
+    private string        _resultLotId      = "";
+
+    private IReadOnlyList<ProductItem>   _products    = [];
+    private IReadOnlyList<FlowClassItem> _flowClasses = [];
+    private ProductItem?                 _selectedProduct;
+    private FlowClassItem?               _selectedFlowClass;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        var pdTask  = RsvExtSvc.GetProductListAsync();
+        var fcTask  = RsvExtSvc.GetFlowClassListAsync();
+        await Task.WhenAll(pdTask, fcTask);
+        _products    = pdTask.Result;
+        _flowClasses = fcTask.Result;
+        _loading     = false;
+    }
+
+    private async Task RegisterAsync()
+    {
+        if (_selectedProduct is null || string.IsNullOrWhiteSpace(_wfNum)) return;
+        _loading     = true;
+        _resultLotId = "";
+        _errorMessage = "";
+        StateHasChanged();
+
+        var req = new RegisterRequest(
+            PdId:            _selectedProduct.PdId,
+            FlowClass:       _selectedFlowClass?.FlowClassId ?? _selectedProduct.FlowClass,
+            WfNum:           _wfNum,
+            PlanThrowinDate: _planThrowinDate,
+            EngEmpId:        _engEmpId,
+            EmpId:           _empId,
+            ClassDivision:   _classDivision,
+            Comments:        _comments);
+
+        var result = await RsvExtSvc.RegisterAsync(req);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _resultLotId = result.LotId;
+        Snackbar.Add($"投入予定を登録しました。ロットID: {result.LotId}", Severity.Success);
+        ClearFormFields();
+    }
+
+    private void ClearFormFields()
+    {
+        _wfNum           = "";
+        _planThrowinDate = "";
+        _engEmpId        = "";
+        _empId           = "";
+        _comments        = "";
+        _selectedFlowClass = null;
+    }
+
+    private void ClearAll()
+    {
+        ClearFormFields();
+        _selectedProduct = null;
+        _classDivision   = "QA";
+        _resultLotId     = "";
+        _errorMessage    = "";
+    }
+}

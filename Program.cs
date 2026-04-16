@@ -43,6 +43,8 @@ builder.Services.AddScoped<LotSeqChangeService>();
 builder.Services.AddScoped<SectionPriorityService>();
 builder.Services.AddScoped<TimeRestrictFlowService>();
 builder.Services.AddScoped<LotSkipStepService>();
+builder.Services.AddScoped<LotOutService>();
+builder.Services.AddScoped<LotStepBackService>();
 
 var app = builder.Build();
 

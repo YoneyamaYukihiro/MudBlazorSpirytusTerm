@@ -96,7 +96,8 @@
             <MudText Typo="Typo.subtitle2" Class="mb-2">戻し工程選択</MudText>
             <MudGrid Spacing="2" AlignItems="AlignItems.End">
                 <MudItem xs="12" sm="4">
-                    <MudSelect @bind-Value="_selectedOpId"
+                    <MudSelect Value="@_selectedOpId"
+                               T="string"
                                Label="戻り大工程"
                                Variant="Variant.Outlined"
                                Margin="Margin.Dense"
