@@ -116,6 +116,27 @@ public static class MsgIds
     public const string BatWaitingLotList   = "bat_.waitinglotlist";
     public const string MasWpList           = "mas_.wplist__";
 
+    // ──────── EN0260 ロット処理順変更 ────────
+    public const string LotChgSeqNum       = "lot_.chgseqnum";
+
+    // ──────── EN02I0 区間優先設定 ────────
+    public const string LotSecPriority     = "lot_.secpriority";
+    public const string LotChgSecPriority  = "lot_.chgsecpriority";
+    public const string ProcList           = "proc.list____";
+
+    // ──────── EN02O0 時間制限流動設定 ────────
+    public const string TimeRestrictStatus = "time.restrictstatus";
+    public const string TimeRestrictRegist = "time.restrictregist";
+
+    // ──────── EN00M0 バッチ管理 ────────
+    public const string LotMcGpLotList = "lot_.mcgplotlist";
+    public const string BatChange      = "bat_.change__";
+
+    // ──────── EN0250 工程スキップ ────────
+    public const string LotSkipStep    = "lot_.skipstep";
+    public const string LotChkSkipStep = "lot_.chkskipstep";
+    public const string LotGetRestrict = "lot_.getrestrict";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";

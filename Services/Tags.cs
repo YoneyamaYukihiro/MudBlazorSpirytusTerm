@@ -408,4 +408,31 @@ public static class Tags
     public const string FunctionId          = "FUNCTION_ID";
     public const string Information         = "INFORMATION";
     public const string Class               = "CLASS";
+
+    // ──────── EN02I0 区間優先設定 (lot_.secpriority / lot_.chgsecpriority) ────────
+    public const string SecPriorityList     = "SECPRIORITY_LIST";   // 区間優先設定リスト
+    public const string StartOpId          = "START_OP_ID";         // 開始大工程
+    public const string StartStepId        = "START_STEP_ID";       // 開始小工程
+    public const string EndOpId            = "END_OP_ID";           // 終了大工程
+    public const string EndStepId          = "END_STEP_ID";         // 終了小工程
+    public const string SectionPriority    = "SECTION_PRIORITY";    // 区間優先度
+
+    // ──────── EN00M0 バッチ管理 (lot_.mcgplotlist / bat_.change__) ────────
+    public const string JigId             = "JIG_ID";              // 冶具ID
+    public const string PanelKind         = "PANEL_KIND";          // パネル種別(0:TFT, 1:CF)
+    public const string HBatchId          = "H_BATCH_ID";          // 表面処理バッチID
+    public const string CurrentStatusId   = "CURRENT_STATUS_ID";   // 現在ステータスID
+    public const string CurrentStatusName = "CURRENT_STATUS_NAME"; // 現在ステータス名
+    public const string OptionText        = "OPTION_TEXT";         // 作業条件
+    public const string LotNum            = "LOT_NUM";             // 編成ロット数
+
+    // ──────── EN02O0 時間制限流動設定 (time.restrictstatus / time.restrictregist) ────────
+    public const string FromOpId           = "FROM_OP_ID";          // 開始大工程(FROM)
+    public const string FromStepId         = "FROM_STEP_ID";        // 開始小工程(FROM)
+    public const string RestrictType       = "RESTRICT_TYPE";       // 制限タイプ
+    public const string RestrictFlowList   = "RESTRICT_FLOW_LIST";  // フロー制限リスト
+    public const string RestrictWpList     = "RESTRICT_WP_LIST";    // 装置制限リスト
+    public const string LotStopOn          = "LOT_STOP_ON";         // ロット保留(0:手動, 1:自動)
+    public const string LotStopOff         = "LOT_STOP_OFF";        // ロット保留解除(0:手動, 1:自動)
+    public const string WaitLotNum         = "WAIT_LOT_NUM";        // 時間制限 在庫数/作業待数
 }

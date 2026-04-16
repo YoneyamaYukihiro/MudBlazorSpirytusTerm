@@ -1,0 +1,411 @@
+@page "/time-restrict-flow"
+@inject TimeRestrictFlowService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 時間制限流動設定 (EN02O0)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">時間制限流動設定 (EN02O0)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── 設定エリア ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" md="9">
+            <MudRadioGroup T="string" Value="_restrictType" ValueChanged="OnRestrictTypeChanged">
+                <MudRadio Value="@Type1" Color="Color.Primary">@Type1Label</MudRadio>
+                <MudRadio Value="@Type2" Color="Color.Primary" Class="mt-1">@Type2Label</MudRadio>
+            </MudRadioGroup>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@_loading"
+                       OnClick="FetchAsync">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>取得中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Class="mr-1" />
+                    <span>最新取得</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+else if (_fetched)
+{
+    @* ────────────────────── フロー設定グリッド ────────────────────── *@
+    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">フロー設定</MudText>
+    <div class="mb-3">
+        <MudDataGrid T="FlowRow"
+                     Items="@_flowRows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true">
+            <Columns>
+                <TemplateColumn T="FlowRow" Title="No"
+                    HeaderStyle="min-width:40px;max-width:40px;"
+                    CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                    <CellTemplate>@context.Item.No</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="FlowRow" Title="ロット保留"
+                    HeaderStyle="min-width:110px;max-width:110px;"
+                    CellStyle="min-width:110px;max-width:110px;">
+                    <CellTemplate>
+                        <MudSelect T="string"
+                                   Value="@context.Item.LotStopOn"
+                                   ValueChanged="@(v => OnFlowLotStopOnChanged(context.Item, v))"
+                                   Variant="Variant.Text"
+                                   Margin="Margin.Dense"
+                                   Dense="true"
+                                   Style="font-size:0.8rem;">
+                            <MudSelectItem T="string" Value="@ValManual">手動</MudSelectItem>
+                            <MudSelectItem T="string" Value="@ValAuto">自動</MudSelectItem>
+                        </MudSelect>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.FromOpId"   Title="大工程(FROM)" HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.FromStepId" Title="小工程(FROM)" HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.ToOpId"     Title="大工程(TO)"   HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.ToStepId"   Title="小工程(TO)"   HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.EditTime"    Title="最終更新日時" HeaderStyle="min-width:150px;" />
+                <PropertyColumn Property="x => x.EditEmpName" Title="最終更新者"   HeaderStyle="min-width:100px;" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+
+    @* ────────────────────── 装置設定グリッド ────────────────────── *@
+    <MudText Typo="Typo.subtitle2" Class="mb-1">装置設定</MudText>
+    <div class="mb-3">
+        <MudDataGrid T="WpRow"
+                     Items="@_wpRows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true">
+            <Columns>
+                <TemplateColumn T="WpRow" Title="No"
+                    HeaderStyle="min-width:40px;max-width:40px;"
+                    CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                    <CellTemplate>@context.Item.No</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.WpName"         Title="装置名" HeaderStyle="min-width:130px;" />
+                <PropertyColumn Property="x => x.ProcessingName"  Title="処理部" HeaderStyle="min-width:130px;" />
+                <TemplateColumn T="WpRow" Title="ロット保留解除"
+                    HeaderStyle="min-width:160px;max-width:160px;"
+                    CellStyle="min-width:160px;max-width:160px;">
+                    <CellTemplate>
+                        @if (_isBatchType)
+                        {
+                            <MudText Typo="Typo.body2" Style="font-size:0.8rem;">バッチ編成設定に従う</MudText>
+                        }
+                        else
+                        {
+                            <MudSelect T="string"
+                                       Value="@context.Item.LotStopOff"
+                                       ValueChanged="@(v => OnWpLotStopOffChanged(context.Item, v))"
+                                       Variant="Variant.Text"
+                                       Margin="Margin.Dense"
+                                       Dense="true"
+                                       Style="font-size:0.8rem;">
+                                <MudSelectItem T="string" Value="@ValManual">手動</MudSelectItem>
+                                <MudSelectItem T="string" Value="@ValAuto">自動</MudSelectItem>
+                            </MudSelect>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="WpRow" Title="時間制限 在庫数/作業待数"
+                    HeaderStyle="min-width:160px;max-width:160px;"
+                    CellStyle="min-width:160px;max-width:160px;">
+                    <CellTemplate>
+                        @if (_isBatchType)
+                        {
+                            <MudText Typo="Typo.body2" Style="font-size:0.8rem;">装置最大処理数に従う</MudText>
+                        }
+                        else
+                        {
+                            <MudNumericField T="int"
+                                             Value="@ParseWaitLotNum(context.Item.WaitLotNum)"
+                                             ValueChanged="@(v => OnWpWaitLotNumChanged(context.Item, v))"
+                                             Variant="Variant.Text"
+                                             Margin="Margin.Dense"
+                                             Min="1"
+                                             Max="9"
+                                             Style="font-size:0.8rem;" />
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.EditTime"    Title="最終更新日時" HeaderStyle="min-width:150px;" />
+                <PropertyColumn Property="x => x.EditEmpName" Title="最終更新者"   HeaderStyle="min-width:100px;" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+
+    @* ────────────────────── 確定ボタン ────────────────────── *@
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       Size="Size.Medium"
+                       Disabled="@(_registering || !HasEdited)"
+                       OnClick="RegistAsync">
+                @if (_registering)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>送信中...</span>
+                }
+                else
+                {
+                    <span>確定</span>
+                }
+            </MudButton>
+            <MudText Typo="Typo.caption" Class="ml-2">
+                情報取得日時: @_fetchTime.ToString("yyyy/MM/dd HH:mm:ss")　フロー: @_flowRows.Count 件　装置: @_wpRows.Count 件
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        制限タイプを選択して「最新取得」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 定数 ──────────────────────────────────────────────────────
+    // VBソース: CMstrRestrictType1, CMstrRestrictType2
+    private const string Type1 = "1";
+    private const string Type2 = "2";
+    private const string Type1Label = "開始/終了2工程(時間制限：以内)、後装置：処理部レシピあり";
+    private const string Type2Label = "開始/終了2工程(時間制限：以内)、後装置：バッチ装置";
+    // VBソース: CMstrValueZeroName="手動"(0), CMstrValueOneName="自動"(1)
+    private const string ValManual = "0";
+    private const string ValAuto   = "1";
+
+    // ── 行モデル ───────────────────────────────────────────────────
+
+    private sealed class FlowRow
+    {
+        public int    No           { get; init; }
+        public bool   IsEdited     { get; set; }
+        public string FromOpId     { get; init; } = "";
+        public string FromStepId   { get; init; } = "";
+        public string ToOpId       { get; init; } = "";
+        public string ToStepId     { get; init; } = "";
+        public string LotStopOn    { get; set; }  = "";
+        public string EditEmpName  { get; init; } = "";
+        public string EditTime     { get; init; } = "";
+    }
+
+    private sealed class WpRow
+    {
+        public int    No             { get; init; }
+        public bool   IsEdited       { get; set; }
+        public string WpId           { get; init; } = "";
+        public string WpName         { get; init; } = "";
+        public string SeqNum         { get; init; } = "";
+        public string ProcessingName { get; init; } = "";
+        public string LotStopOff     { get; set; }  = "";
+        public string WaitLotNum     { get; set; }  = "";
+        public string EditEmpName    { get; init; } = "";
+        public string EditTime       { get; init; } = "";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────
+
+    private string _restrictType = Type1;
+    private bool _isBatchType => _restrictType == Type2;
+
+    private List<FlowRow> _flowRows = [];
+    private List<WpRow>   _wpRows   = [];
+    private bool _loading;
+    private bool _registering;
+    private bool _fetched;
+    private string _error = string.Empty;
+    private DateTime _fetchTime;
+
+    private bool HasEdited => _flowRows.Any(r => r.IsEdited) || _wpRows.Any(r => r.IsEdited);
+
+    // ── RESTRICT_TYPE 変更 ────────────────────────────────────────
+    // VBソース: optType_Click → グリッドクリア
+
+    private void OnRestrictTypeChanged(string type)
+    {
+        _restrictType = type;
+        _flowRows = [];
+        _wpRows   = [];
+        _fetched  = false;
+    }
+
+    // ── 最新取得 ─────────────────────────────────────────────────
+    // VBソース: cmdGet_Click → pubblnRestrictStatus_Sel
+
+    private async Task FetchAsync()
+    {
+        _loading = true;
+        _error   = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Svc.GetRestrictStatusAsync(_restrictType);
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            _flowRows = (result.FlowItems ?? [])
+                .Select((item, i) => new FlowRow
+                {
+                    No          = i + 1,
+                    FromOpId    = item.FromOpId,
+                    FromStepId  = item.FromStepId,
+                    ToOpId      = item.ToOpId,
+                    ToStepId    = item.ToStepId,
+                    LotStopOn   = item.LotStopOn,
+                    EditEmpName = item.EditEmpName,
+                    EditTime    = item.EditTime
+                }).ToList();
+
+            _wpRows = (result.WpItems ?? [])
+                .Select((item, i) => new WpRow
+                {
+                    No             = i + 1,
+                    WpId           = item.WpId,
+                    WpName         = item.WpName,
+                    SeqNum         = item.SeqNum,
+                    ProcessingName = item.ProcessingName,
+                    LotStopOff     = item.LotStopOff,
+                    WaitLotNum     = item.WaitLotNum,
+                    EditEmpName    = item.EditEmpName,
+                    EditTime       = item.EditTime
+                }).ToList();
+
+            _fetchTime = DateTime.Now;
+            _fetched   = true;
+            Snackbar.Add($"フロー {_flowRows.Count} 件、装置 {_wpRows.Count} 件取得", Severity.Success);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 編集ハンドラ ─────────────────────────────────────────────
+
+    private void OnFlowLotStopOnChanged(FlowRow row, string value)
+    {
+        row.LotStopOn = value;
+        row.IsEdited  = true;
+    }
+
+    private void OnWpLotStopOffChanged(WpRow row, string value)
+    {
+        row.LotStopOff = value;
+        row.IsEdited   = true;
+    }
+
+    private void OnWpWaitLotNumChanged(WpRow row, int value)
+    {
+        row.WaitLotNum = value.ToString();
+        row.IsEdited   = true;
+    }
+
+    private static int ParseWaitLotNum(string s) =>
+        int.TryParse(s, out var n) ? n : 1;
+
+    // ── 確定 ──────────────────────────────────────────────────────
+    // VBソース: cmdRegist_Click → pubblnRestrictRegist_Upd
+    // 変更行のみ EDIT_FLAG="1" で送信する。
+
+    private async Task RegistAsync()
+    {
+        if (!HasEdited) return;
+
+        _registering = true;
+        _error       = string.Empty;
+
+        try
+        {
+            var flowItems = _flowRows.Select(r => new TimeRestrictFlowService.RegistFlowItem(
+                FromOpId:   r.FromOpId,
+                FromStepId: r.FromStepId,
+                ToOpId:     r.ToOpId,
+                ToStepId:   r.ToStepId,
+                LotStopOn:  r.LotStopOn,
+                EditFlag:   r.IsEdited ? "1" : "0"
+            )).ToList();
+
+            var wpItems = _wpRows.Select(r => new TimeRestrictFlowService.RegistWpItem(
+                WpId:       r.WpId,
+                SeqNum:     r.SeqNum,
+                LotStopOff: r.LotStopOff,
+                WaitLotNum: r.WaitLotNum,
+                EditFlag:   r.IsEdited ? "1" : "0"
+            )).ToList();
+
+            var result = await Svc.RegistRestrictAsync(
+                empId:        string.Empty,  // VBソース: pstrUserID (ログインユーザーID)
+                restrictType: _restrictType,
+                flowItems:    flowItems,
+                wpItems:      wpItems);
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("時間制限流動設定を登録しました。", Severity.Success);
+                // 登録後に最新データを再取得する
+                // VBソース: 登録成功後に pubblnRestrictStatus_Sel を再呼び出し
+                await FetchAsync();
+            }
+            else
+            {
+                _error = string.IsNullOrEmpty(result.MsgCode)
+                    ? result.ErrorMessage
+                    : $"{result.MsgCode}\n{result.ErrorMessage}";
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _registering = false;
+        }
+    }
+}

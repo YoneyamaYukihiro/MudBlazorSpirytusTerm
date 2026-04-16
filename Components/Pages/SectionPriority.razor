@@ -1,0 +1,746 @@
+@page "/section-priority"
+@inject SectionPriorityService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 区間優先設定 (EN02I0)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">区間優先設定 (EN02I0)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── 検索エリア ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+
+    @* 検索モード選択 *@
+    <MudRadioGroup T="int" Value="_searchMode" ValueChanged="OnSearchModeChangedAsync" Class="mb-2">
+        <MudRadio Value="0" Color="Color.Primary">ロット</MudRadio>
+        <MudRadio Value="1" Color="Color.Primary">装置名</MudRadio>
+        <MudRadio Value="2" Color="Color.Primary">特定工程</MudRadio>
+        <MudRadio Value="4" Color="Color.Primary">区間優先設定あり</MudRadio>
+    </MudRadioGroup>
+
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+
+        @* ロット検索入力 *@
+        @if (_searchMode == 0)
+        {
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_lotIdInput"
+                              Label="ロットID（10桁未満はワイルドカード検索）"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="ロットIDを入力"
+                              OnKeyDown="OnLotIdKeyDownAsync" />
+            </MudItem>
+        }
+
+        @* 装置名検索入力 *@
+        @if (_searchMode == 1)
+        {
+            <MudItem xs="12" sm="4">
+                <MudSelect T="SectionPriorityService.WpEntry"
+                           Label="装置名"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Value="_selectedWp"
+                           ValueChanged="v => _selectedWp = v"
+                           Disabled="@_wpsLoading"
+                           Clearable="true"
+                           ToStringFunc="@(w => w is null ? "" : $"{w.WpId} {w.WpName}".TrimEnd())"
+                           AnchorOrigin="Origin.BottomLeft">
+                    @if (_wpsLoading)
+                    {
+                        <MudSelectItem T="SectionPriorityService.WpEntry" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                    }
+                    else
+                    {
+                        foreach (var w in _allEquipments)
+                        {
+                            <MudSelectItem T="SectionPriorityService.WpEntry" Value="w">@w.WpId @w.WpName</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+
+        @* 特定工程検索入力 *@
+        @if (_searchMode == 2)
+        {
+            <MudItem xs="12" sm="3">
+                <MudSelect T="SectionPriorityService.OpEntry"
+                           Label="大工程"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Value="_selectedOp"
+                           ValueChanged="OnOpChangedAsync"
+                           Disabled="@_opsLoading"
+                           Clearable="true"
+                           ToStringFunc="@(o => o?.OpId ?? "")"
+                           AnchorOrigin="Origin.BottomLeft">
+                    @if (_opsLoading)
+                    {
+                        <MudSelectItem T="SectionPriorityService.OpEntry" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                    }
+                    else
+                    {
+                        foreach (var op in _ops)
+                        {
+                            <MudSelectItem T="SectionPriorityService.OpEntry" Value="op">@op.OpId</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect T="SectionPriorityService.StepEntry"
+                           Label="小工程"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Value="_selectedStep"
+                           ValueChanged="v => _selectedStep = v"
+                           Disabled="@(_stepsLoading || _selectedOp is null)"
+                           Clearable="true"
+                           ToStringFunc="@(s => s?.StepId ?? "")"
+                           AnchorOrigin="Origin.BottomLeft">
+                    @if (_stepsLoading)
+                    {
+                        <MudSelectItem T="SectionPriorityService.StepEntry" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                    }
+                    else
+                    {
+                        foreach (var step in _steps)
+                        {
+                            <MudSelectItem T="SectionPriorityService.StepEntry" Value="step">@step.StepId</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+
+        @* 区間優先設定ありモードは追加入力なし *@
+        @if (_searchMode == 4)
+        {
+            <MudItem xs="12" sm="6">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">区間優先設定ありのロットを全件取得します。</MudText>
+            </MudItem>
+        }
+
+        @* 検索ボタン *@
+        <MudItem xs="12" sm="2">
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Medium"
+                           Disabled="@(!CanSearch || _loading)"
+                           OnClick="SearchAsync">
+                    @if (_loading)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        <span>検索中...</span>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                        <span>検索</span>
+                    }
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           Size="Size.Medium"
+                           Disabled="@(!CanSearch || _loading || _rows.Count == 0)"
+                           OnClick="SearchAddAsync">
+                    <span>追加</span>
+                </MudButton>
+            </MudStack>
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── 操作ボタン ────────────────────── *@
+@if (_rows.Count > 0)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Small"
+                       OnClick="ToggleAllCheck">
+                @(_allChecked ? "全OFF" : "全ON")
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       Size="Size.Small"
+                       Disabled="@(_registering || !HasChecked)"
+                       OnClick="RegistAsync">
+                @if (_registering)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>送信中...</span>
+                }
+                else
+                {
+                    <span>確定</span>
+                }
+            </MudButton>
+            <MudText Typo="Typo.caption" Class="ml-2">
+                情報取得日時: @_fetchTime.ToString("yyyy/MM/dd HH:mm:ss")　件数: @_rows.Count 件　チェック: @_rows.Count(r => r.IsChecked) 件
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── 色凡例 ────────────────────── *@
+@if (_rows.Count > 0)
+{
+    <div class="mb-1" style="font-size:0.75rem;display:flex;flex-wrap:wrap;gap:4px;">
+        <span style="background:#FFFF99;padding:1px 6px;border:1px solid #ccc;">保留/停止</span>
+    </div>
+}
+
+@* ────────────────────── ロット一覧 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+else if (_rows.Count > 0)
+{
+    <div class="grid-wrapper">
+        <MudDataGrid T="SecPriorityRow"
+                     Items="@_rows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true"
+                     Height="100%"
+                     RowStyleFunc="@GetRowStyle">
+            <Columns>
+                <TemplateColumn T="SecPriorityRow" Title="No"
+                    HeaderStyle="min-width:40px;max-width:40px;"
+                    CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                    <CellTemplate>@context.Item.No</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="SecPriorityRow" Title="対象"
+                    HeaderStyle="min-width:50px;max-width:50px;"
+                    CellStyle="min-width:50px;max-width:50px;text-align:center;">
+                    <CellTemplate>
+                        <MudCheckBox T="bool"
+                                     Value="@context.Item.IsChecked"
+                                     ValueChanged="@(v => context.Item.IsChecked = v)"
+                                     Size="Size.Small"
+                                     Color="Color.Primary" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.LotId"   Title="ロットID"   HeaderStyle="min-width:110px;" />
+                <PropertyColumn Property="x => x.GrbClass" Title="GRB"       HeaderStyle="min-width:50px;" />
+                <TemplateColumn T="SecPriorityRow" Title="開始大工程"
+                    HeaderStyle="min-width:140px;"
+                    CellStyle="min-width:140px;">
+                    <CellTemplate>
+                        <MudTextField T="string"
+                                      Value="@context.Item.StartOpId"
+                                      ValueChanged="@(v => context.Item.StartOpId = v ?? "")"
+                                      Variant="Variant.Text"
+                                      Margin="Margin.Dense"
+                                      DisableUnderLine="false"
+                                      Style="font-size:0.8rem;" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="SecPriorityRow" Title="開始小工程"
+                    HeaderStyle="min-width:140px;"
+                    CellStyle="min-width:140px;">
+                    <CellTemplate>
+                        <MudTextField T="string"
+                                      Value="@context.Item.StartStepId"
+                                      ValueChanged="@(v => context.Item.StartStepId = v ?? "")"
+                                      Variant="Variant.Text"
+                                      Margin="Margin.Dense"
+                                      DisableUnderLine="false"
+                                      Style="font-size:0.8rem;" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="SecPriorityRow" Title="終了大工程"
+                    HeaderStyle="min-width:140px;"
+                    CellStyle="min-width:140px;">
+                    <CellTemplate>
+                        <MudTextField T="string"
+                                      Value="@context.Item.EndOpId"
+                                      ValueChanged="@(v => context.Item.EndOpId = v ?? "")"
+                                      Variant="Variant.Text"
+                                      Margin="Margin.Dense"
+                                      DisableUnderLine="false"
+                                      Style="font-size:0.8rem;" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="SecPriorityRow" Title="終了小工程"
+                    HeaderStyle="min-width:140px;"
+                    CellStyle="min-width:140px;">
+                    <CellTemplate>
+                        <MudTextField T="string"
+                                      Value="@context.Item.EndStepId"
+                                      ValueChanged="@(v => context.Item.EndStepId = v ?? "")"
+                                      Variant="Variant.Text"
+                                      Margin="Margin.Dense"
+                                      DisableUnderLine="false"
+                                      Style="font-size:0.8rem;" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="SecPriorityRow" Title="区間優先度"
+                    HeaderStyle="min-width:90px;max-width:90px;"
+                    CellStyle="min-width:90px;max-width:90px;">
+                    <CellTemplate>
+                        <MudTextField T="string"
+                                      Value="@context.Item.SectionPriority"
+                                      ValueChanged="@(v => context.Item.SectionPriority = v ?? "")"
+                                      Variant="Variant.Text"
+                                      Margin="Margin.Dense"
+                                      DisableUnderLine="false"
+                                      Style="font-size:0.8rem;text-align:right;" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.LotPriority" Title="優先度" HeaderStyle="min-width:55px;" CellStyle="text-align:right;" />
+                <PropertyColumn Property="x => x.EmpName"     Title="設定ユーザ" HeaderStyle="min-width:110px;" />
+                <PropertyColumn Property="x => x.EntryTime"   Title="設定日時"   HeaderStyle="min-width:150px;" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">該当データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+}
+else if (!_loading && _firstSearched)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        該当データがありません。
+    </MudText>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        検索条件を設定して「検索」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 行モデル ───────────────────────────────────────────────────
+
+    private sealed class SecPriorityRow
+    {
+        public int    No              { get; init; }
+        public bool   IsChecked       { get; set; }
+        public string LotId           { get; init; } = "";
+        public string GrbClass        { get; init; } = "";
+        public string CarrierId       { get; init; } = "";
+        public string StartOpId       { get; set; }  = "";
+        public string StartStepId     { get; set; }  = "";
+        public string EndOpId         { get; set; }  = "";
+        public string EndStepId       { get; set; }  = "";
+        public string SectionPriority { get; set; }  = "";
+        public string LotPriority     { get; init; } = "";
+        public string EmpName         { get; init; } = "";
+        public string EntryTime       { get; init; } = "";
+        public string LotHoldFlag     { get; init; } = "";
+        public string LotStopFlag     { get; init; } = "";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────
+
+    // 検索モード: 0=ロット, 1=装置名, 2=特定工程, 4=区間優先設定あり
+    private int _searchMode = 0;
+
+    // ロット検索
+    private string _lotIdInput = string.Empty;
+
+    // 装置名検索
+    private IReadOnlyList<SectionPriorityService.WpEntry>  _allEquipments = [];
+    private SectionPriorityService.WpEntry?                _selectedWp;
+    private bool _wpsLoading;
+
+    // 特定工程検索
+    private IReadOnlyList<SectionPriorityService.OpEntry>   _ops     = [];
+    private IReadOnlyList<SectionPriorityService.StepEntry> _steps   = [];
+    private SectionPriorityService.OpEntry?                 _selectedOp;
+    private SectionPriorityService.StepEntry?               _selectedStep;
+    private bool _opsLoading;
+    private bool _stepsLoading;
+
+    // グリッド
+    private List<SecPriorityRow> _rows = [];
+    private bool _loading;
+    private bool _registering;
+    private bool _firstSearched;
+    private bool _allChecked;
+    private string _error = string.Empty;
+    private DateTime _fetchTime;
+
+    private bool HasChecked => _rows.Any(r => r.IsChecked);
+
+    private bool CanSearch => _searchMode switch
+    {
+        0 => !string.IsNullOrWhiteSpace(_lotIdInput) && _lotIdInput.Length >= 2,
+        1 => _selectedWp is not null,
+        2 => _selectedOp is not null,
+        4 => true,
+        _ => false
+    };
+
+    // ── 初期化 ────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        // ロット検索が初期モードなので他のデータは不要
+        // 装置名モードは遅延読み込み
+    }
+
+    // ── 検索モード変更 ───────────────────────────────────────────
+
+    private async Task OnSearchModeChangedAsync(int mode)
+    {
+        _searchMode    = mode;
+        _selectedWp    = null;
+        _selectedOp    = null;
+        _selectedStep  = null;
+        _steps         = [];
+
+        if (mode == 1 && _allEquipments.Count == 0)
+        {
+            await LoadAllEquipmentsAsync();
+        }
+        else if (mode == 2 && _ops.Count == 0)
+        {
+            await LoadOpListAsync();
+        }
+    }
+
+    // ── 装置一覧 遅延読み込み ─────────────────────────────────────
+
+    private async Task LoadAllEquipmentsAsync()
+    {
+        _wpsLoading = true;
+        StateHasChanged();
+        try
+        {
+            _allEquipments = await Svc.GetAllEquipmentsAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"装置一覧取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _wpsLoading = false;
+        }
+    }
+
+    // ── 大工程一覧 遅延読み込み ───────────────────────────────────
+
+    private async Task LoadOpListAsync()
+    {
+        _opsLoading = true;
+        StateHasChanged();
+        try
+        {
+            _ops = await Svc.GetOpListAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = $"大工程取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _opsLoading = false;
+        }
+    }
+
+    // ── 大工程変更 → 小工程再取得 ─────────────────────────────────
+
+    private async Task OnOpChangedAsync(SectionPriorityService.OpEntry? op)
+    {
+        _selectedOp   = op;
+        _selectedStep = null;
+        _steps        = [];
+        if (op is null) return;
+
+        _stepsLoading = true;
+        StateHasChanged();
+        try
+        {
+            _steps = await Svc.GetStepListAsync(op.OpId);
+        }
+        catch (Exception ex)
+        {
+            _error = $"小工程取得エラー: {ex.Message}";
+        }
+        finally
+        {
+            _stepsLoading = false;
+        }
+    }
+
+    // ── ロットID テキスト Enter キー ──────────────────────────────
+
+    private async Task OnLotIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanSearch && !_loading)
+            await SearchAsync();
+    }
+
+    // ── 検索 ─────────────────────────────────────────────────────
+    // VBソース: cmdSerch_Click → prvvsfLotListShow(False, False)
+
+    private async Task SearchAsync()
+    {
+        _loading = true;
+        _error   = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var lotIds = await ResolveSearchLotIdsAsync();
+            if (lotIds is null) return;
+
+            await LoadSectionPriorityAsync(lotIds, append: false);
+        }
+        finally
+        {
+            _loading      = false;
+            _firstSearched = true;
+        }
+    }
+
+    // ── 追加検索 ─────────────────────────────────────────────────
+    // VBソース: cmdSerchAdd_Click → prvvsfLotListShow(True, False)
+
+    private async Task SearchAddAsync()
+    {
+        _loading = true;
+        _error   = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var lotIds = await ResolveSearchLotIdsAsync();
+            if (lotIds is null) return;
+
+            await LoadSectionPriorityAsync(lotIds, append: true);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 共通: 検索条件からlotIdsリストを解決 ────────────────────
+
+    private async Task<List<string>?> ResolveSearchLotIdsAsync()
+    {
+        if (_searchMode == 4)
+        {
+            // 区間優先設定あり: "ALL" をそのまま渡す
+            return ["ALL"];
+        }
+
+        if (_searchMode == 0)
+        {
+            // ロット検索
+            var input = _lotIdInput.Trim();
+            if (input.Length >= 10)
+            {
+                // 10桁以上: そのままロットIDとして扱う
+                return [input];
+            }
+            else
+            {
+                // 10桁未満: proc.list____ でワイルドカード検索
+                var pattern = input + "*";
+                var result  = await Svc.SearchLotsByLotIdAsync(pattern);
+                if (!result.IsSuccess)
+                {
+                    _error = result.ErrorMessage;
+                    Snackbar.Add(result.ErrorMessage, Severity.Error);
+                    return null;
+                }
+                return result.LotIds?.ToList() ?? [];
+            }
+        }
+        else if (_searchMode == 1)
+        {
+            // 装置名検索
+            if (_selectedWp is null) return [];
+            var result = await Svc.SearchLotsByEquipmentAsync(_selectedWp.WpId);
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return null;
+            }
+            return result.LotIds?.ToList() ?? [];
+        }
+        else if (_searchMode == 2)
+        {
+            // 特定工程検索
+            if (_selectedOp is null) return [];
+            var result = await Svc.SearchLotsByProcessAsync(
+                _selectedOp.OpId,
+                _selectedStep?.StepId ?? string.Empty);
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return null;
+            }
+            return result.LotIds?.ToList() ?? [];
+        }
+
+        return [];
+    }
+
+    // ── 共通: lot_.secpriority 呼び出し & グリッド更新 ──────────
+
+    private async Task LoadSectionPriorityAsync(List<string> lotIds, bool append)
+    {
+        if (lotIds.Count == 0 && _searchMode != 4)
+        {
+            if (!append)
+            {
+                _rows = [];
+                Snackbar.Add("該当ロットが見つかりませんでした。", Severity.Info);
+            }
+            return;
+        }
+
+        var result = await Svc.GetSectionPriorityAsync(lotIds);
+        if (!result.IsSuccess)
+        {
+            _error = result.ErrorMessage;
+            Snackbar.Add(result.ErrorMessage, Severity.Error);
+            return;
+        }
+
+        var items = result.Items ?? [];
+
+        if (!append)
+        {
+            // 新規検索: 全置き換え
+            _rows = items.Select((item, i) => MapRow(item, i + 1)).ToList();
+        }
+        else
+        {
+            // 追加検索: 重複ロットIDは追加しない
+            var existingIds = _rows.Select(r => r.LotId).ToHashSet();
+            var startNo = _rows.Count + 1;
+            var newRows = items
+                .Where(item => !existingIds.Contains(item.LotId))
+                .Select((item, i) => MapRow(item, startNo + i))
+                .ToList();
+            _rows.AddRange(newRows);
+        }
+
+        _fetchTime   = DateTime.Now;
+        _allChecked  = false;
+        Snackbar.Add($"{items.Count} 件取得", Severity.Success);
+    }
+
+    private static SecPriorityRow MapRow(SectionPriorityService.SecPriorityItem item, int no) =>
+        new SecPriorityRow
+        {
+            No              = no,
+            IsChecked       = false,
+            LotId           = item.LotId,
+            GrbClass        = item.GrbClass,
+            CarrierId       = item.CarrierId,
+            StartOpId       = item.StartOpId,
+            StartStepId     = item.StartStepId,
+            EndOpId         = item.EndOpId,
+            EndStepId       = item.EndStepId,
+            SectionPriority = item.SectionPriority,
+            LotPriority     = item.LotPriority,
+            EmpName         = item.EmpName,
+            EntryTime       = item.EntryTime,
+            LotHoldFlag     = item.LotHoldFlag,
+            LotStopFlag     = item.LotStopFlag
+        };
+
+    // ── 全ON/全OFF トグル ─────────────────────────────────────────
+    // VBソース: cmdAllOn_Click
+
+    private void ToggleAllCheck()
+    {
+        _allChecked = !_allChecked;
+        foreach (var r in _rows)
+            r.IsChecked = _allChecked;
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────
+    // VBソース: cmdRegist_Click
+
+    private async Task RegistAsync()
+    {
+        var checkedRows = _rows.Where(r => r.IsChecked).ToList();
+        if (checkedRows.Count == 0) return;
+
+        _registering = true;
+        _error       = string.Empty;
+        try
+        {
+            var changeItems = checkedRows.Select(r => new SectionPriorityService.ChangeItem(
+                LotId:           r.LotId,
+                StartOpId:       r.StartOpId,
+                StartStepId:     r.StartStepId,
+                EndOpId:         r.EndOpId,
+                EndStepId:       r.EndStepId,
+                SectionPriority: r.SectionPriority,
+                EmpId:           string.Empty   // VBソース: pstrUserID (ログインユーザーID)
+            )).ToList();
+
+            var result = await Svc.ChangeSectionPriorityAsync(changeItems);
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("区間優先設定を登録しました。", Severity.Success);
+                // 登録成功後、現在表示中のロットリストで再検索して再表示
+                // VBソース: prvvsfLotListShow(False, True) - 再描画フラグTrue
+                var currentLotIds = _rows.Select(r => r.LotId).ToList();
+                _rows = [];
+                StateHasChanged();
+                await LoadSectionPriorityAsync(currentLotIds, append: false);
+            }
+            else
+            {
+                _error = string.IsNullOrEmpty(result.MsgCode)
+                    ? result.ErrorMessage
+                    : $"{result.MsgCode}\n{result.ErrorMessage}";
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _registering = false;
+        }
+    }
+
+    // ── 行スタイル ────────────────────────────────────────────────
+    // VBソース: CPlngHoldLotColor の条件適用
+
+    private static string GetRowStyle(SecPriorityRow row, int _)
+    {
+        if (row.LotHoldFlag == "1" || row.LotStopFlag == "1")
+            return "background-color:#FFFF99;";
+        return string.Empty;
+    }
+}
