@@ -12,8 +12,8 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
     private readonly string _menuFlowLoginId = cfg["Spirytus:MenuFlowLoginId"] ?? string.Empty;
     /// <summary>ツール系タブ LOGIN_ID。VBソース: CMstrMenuIdTool = "MENUTOOL"</summary>
     private readonly string _menuToolLoginId = cfg["Spirytus:MenuToolLoginId"] ?? string.Empty;
-    /// <summary>MENU_KIND。VBソース: pstrSBID & ";" & pstrTerminalMode (例: "1A0;A")</summary>
-    private readonly string _menuKind        = cfg["Spirytus:MenuKind"]        ?? string.Empty;
+    /// <summary>MENU_KIND。VBソース: pstrSBID & ";" & pstrTerminalMode (例: "1A0;A")。DefaultSbId と MenuKind を結合して構築。</summary>
+    private readonly string _menuKind        = $"{cfg["Spirytus:DefaultSbId"] ?? string.Empty};{cfg["Spirytus:MenuKind"] ?? string.Empty}";
 
     // ──────── 公開型 ────────────────────────────────────────────
 
