@@ -417,6 +417,15 @@ public static class Tags
     public const string EndStepId          = "END_STEP_ID";         // 終了小工程
     public const string SectionPriority    = "SECTION_PRIORITY";    // 区間優先度
 
+    // ──────── EN00M0 バッチ管理 (lot_.mcgplotlist / bat_.change__) ────────
+    public const string JigId             = "JIG_ID";              // 冶具ID
+    public const string PanelKind         = "PANEL_KIND";          // パネル種別(0:TFT, 1:CF)
+    public const string HBatchId          = "H_BATCH_ID";          // 表面処理バッチID
+    public const string CurrentStatusId   = "CURRENT_STATUS_ID";   // 現在ステータスID
+    public const string CurrentStatusName = "CURRENT_STATUS_NAME"; // 現在ステータス名
+    public const string OptionText        = "OPTION_TEXT";         // 作業条件
+    public const string LotNum            = "LOT_NUM";             // 編成ロット数
+
     // ──────── EN02O0 時間制限流動設定 (time.restrictstatus / time.restrictregist) ────────
     public const string FromOpId           = "FROM_OP_ID";          // 開始大工程(FROM)
     public const string FromStepId         = "FROM_STEP_ID";        // 開始小工程(FROM)

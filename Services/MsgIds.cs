@@ -128,6 +128,10 @@ public static class MsgIds
     public const string TimeRestrictStatus = "time.restrictstatus";
     public const string TimeRestrictRegist = "time.restrictregist";
 
+    // ──────── EN00M0 バッチ管理 ────────
+    public const string LotMcGpLotList = "lot_.mcgplotlist";
+    public const string BatChange      = "bat_.change__";
+
     // ──────── EN0250 工程スキップ ────────
     public const string LotSkipStep    = "lot_.skipstep";
     public const string LotChkSkipStep = "lot_.chkskipstep";
