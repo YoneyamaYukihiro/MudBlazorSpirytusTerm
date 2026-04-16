@@ -16,6 +16,7 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
     public sealed record CarrierStateResult(
         bool   IsSuccess,
         string ErrorMessage  = "",
+        string ErrorCode     = "",
         string LotId         = "",
         string PdId          = "",
         string PdName        = "",
@@ -59,8 +60,10 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
             var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True)
             {
-                var err = msg.GetString(Tags.ErrMsg);
-                return new CarrierStateResult(false, string.IsNullOrEmpty(err) ? "照合に失敗しました。" : err);
+                var (code, err) = msg.GetErrorInfo();
+                return new CarrierStateResult(false,
+                    ErrorCode: code,
+                    ErrorMessage: string.IsNullOrEmpty(err) ? "照合に失敗しました。" : err);
             }
             return new CarrierStateResult(
                 IsSuccess:     true,

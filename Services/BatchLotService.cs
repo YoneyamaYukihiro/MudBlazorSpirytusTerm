@@ -77,7 +77,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
     public sealed record BatchChangeResult(
         bool IsSuccess,
         string ErrorMessage = "",
-        string MsgCode = "",
+        string ErrorCode = "",
         string BatchId = ""
     );
 
@@ -294,11 +294,11 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var msgCode = msg.GetString(Tags.MsgCode);
-            var err     = msg.GetString(Tags.Msg);
-            if (string.IsNullOrEmpty(err)) err = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("BatChange returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, err);
-            return new BatchChangeResult(false, string.IsNullOrEmpty(err) ? "バッチ変更に失敗しました。" : err, msgCode);
+            var (code, err) = msg.GetErrorInfo();
+            logger.LogWarning("BatChange returned FALSE. Code={Code}, Err={Err}", code, err);
+            return new BatchChangeResult(false,
+                ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(err) ? "バッチ変更に失敗しました。" : err);
         }
 
         return new BatchChangeResult(true, BatchId: msg.GetString(Tags.BatchId));

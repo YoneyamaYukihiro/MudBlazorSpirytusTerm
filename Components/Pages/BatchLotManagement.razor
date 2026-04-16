@@ -472,7 +472,7 @@
             _errorMessage = string.IsNullOrEmpty(result.ErrorMessage)
                 ? "バッチ操作に失敗しました。"
                 : result.ErrorMessage;
-            _errorCode = result.MsgCode;
+            _errorCode = result.ErrorCode;
             return;
         }
 
