@@ -8,14 +8,7 @@ builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-if (OperatingSystem.IsWindows())
-{
-    builder.Services.AddScoped<ITfMessageClient, TfMessageClient>();
-}
-else
-{
-    builder.Services.AddScoped<ITfMessageClient, UnavailableTfMessageClient>();
-}
+builder.Services.AddScoped<ITfMessageClient, ActiveMqMessageClient>();
 
 builder.Services.AddScoped<LotListService>();
 builder.Services.AddScoped<EquipmentService>();

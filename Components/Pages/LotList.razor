@@ -421,13 +421,8 @@ else
         try
         {
             // VBソース cmdLotList_Click: lot_.list____ → eq__.state___ の順に取得
-            // Blazorでは並行取得してパフォーマンス向上
-            var lotTask = LotListSvc.GetLotListAsync(_req);
-            var eqTask  = EquipmentSvc.GetEquipmentStateAsync(_req.WpId);
-            await Task.WhenAll(lotTask, eqTask);
-
-            _response = lotTask.Result;
-            _eqState  = eqTask.Result;
+            _response = await LotListSvc.GetLotListAsync(_req);
+            _eqState  = await EquipmentSvc.GetEquipmentStateAsync(_req.WpId);
 
             if (_response.IsSuccess)
             {

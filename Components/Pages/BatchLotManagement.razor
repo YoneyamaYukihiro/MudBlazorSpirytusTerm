@@ -383,14 +383,10 @@
         _fetched      = false;
         StateHasChanged();
 
-        var productTask = BatchLotSvc.GetLotListAsync(_selectedMcGroupId, "2T");
-        var monitorTask = BatchLotSvc.GetLotListAsync(_selectedMcGroupId, "2Z");
-        await Task.WhenAll(productTask, monitorTask);
+        var productResult = await BatchLotSvc.GetLotListAsync(_selectedMcGroupId, "2T");
+        var monitorResult = await BatchLotSvc.GetLotListAsync(_selectedMcGroupId, "2Z");
 
         _loading = false;
-
-        var productResult = productTask.Result;
-        var monitorResult = monitorTask.Result;
 
         if (!productResult.IsSuccess && !monitorResult.IsSuccess)
         {

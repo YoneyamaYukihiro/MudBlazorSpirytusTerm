@@ -389,13 +389,9 @@ else
         _flowClassesLoading = true;
         try
         {
-            var opTask = Svc.GetOpListAsync();
-            var pdTask = Svc.GetPdListAsync();
-            var fcTask = Svc.GetFlowClassListAsync();
-            await Task.WhenAll(opTask, pdTask, fcTask);
-            _ops         = opTask.Result;
-            _pds         = pdTask.Result;
-            _flowClasses = fcTask.Result;
+            _ops         = await Svc.GetOpListAsync();
+            _pds         = await Svc.GetPdListAsync();
+            _flowClasses = await Svc.GetFlowClassListAsync();
         }
         catch (Exception ex)
         {

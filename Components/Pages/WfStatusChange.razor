@@ -304,13 +304,8 @@ else if (!_loading)
 
         try
         {
-            // 1. ロット情報取得 + WFリスト取得 を並行
-            var curStateTask   = Svc.GetLotInfoAsync(carrierId, isChipMode: false);
-            var waferListTask  = Svc.GetWaferListAsync(carrierId);
-            await Task.WhenAll(curStateTask, waferListTask);
-
-            var curState  = curStateTask.Result;
-            var waferList = waferListTask.Result;
+            var curState  = await Svc.GetLotInfoAsync(carrierId, isChipMode: false);
+            var waferList = await Svc.GetWaferListAsync(carrierId);
 
             if (!curState.IsSuccess)
             {

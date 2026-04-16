@@ -244,13 +244,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var pdTask  = PdSvc.GetPdListAsync();
-        var fcTask  = PdSvc.GetFlowClassListAsync();
-        await Task.WhenAll(pdTask, fcTask);
-
-        _pds         = pdTask.Result;
+        _pds         = await PdSvc.GetPdListAsync();
         _pdsLoading  = false;
-        _flowClasses = fcTask.Result;
+        _flowClasses = await PdSvc.GetFlowClassListAsync();
         _flowClassesLoading = false;
     }
 
