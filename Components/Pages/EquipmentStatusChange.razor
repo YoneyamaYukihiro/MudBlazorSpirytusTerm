@@ -1,0 +1,515 @@
+@page "/equipment-status-change"
+@inject EquipmentService EqSvc
+@inject EquipmentModeService ModeSvc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.EquipmentService
+@using static MudBlazorSpirytusTerm.Services.EquipmentModeService
+
+<PageTitle>SPIRYTUS - 装置状態変更 (EN0110)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">装置状態変更 (EN0110)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 装置グループ・装置選択 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="McGroup"
+                       Label="装置グループ"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedGroup"
+                       ValueChanged="OnGroupChangedAsync"
+                       Clearable="true"
+                       ToStringFunc="@(g => g is null ? "" : $"{g.Id} {g.Name}")"
+                       AnchorOrigin="Origin.BottomLeft"
+                       Disabled="@(_groupsLoading || _loading)">
+                @if (_groupsLoading)
+                {
+                    <MudSelectItem T="McGroup" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var g in _groups)
+                    {
+                        <MudSelectItem T="McGroup" Value="g">@g.Id @g.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="Equipment"
+                       Label="装置"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedEquipment"
+                       ValueChanged="OnEquipmentChangedAsync"
+                       Clearable="true"
+                       ToStringFunc="@(e => e is null ? "" : $"{e.WpId} {e.WpName}")"
+                       AnchorOrigin="Origin.BottomLeft"
+                       Disabled="@(_selectedGroup is null || _eqLoading || _loading)">
+                @if (_eqLoading)
+                {
+                    <MudSelectItem T="Equipment" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var eq in _equipments)
+                    {
+                        <MudSelectItem T="Equipment" Value="eq">@eq.WpId @eq.WpName</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       Disabled="@(_selectedEquipment is null || _loading)"
+                       OnClick="LoadEquipmentStateAsync">
+                @if (_loading && _eqState is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>取得中...</span>
+                }
+                else
+                {
+                    <span>装置状態取得</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── 装置現在状態 ────── *@
+@if (_eqState is not null && _selectedEquipment is not null)
+{
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">現在の装置状態</MudText>
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">装置ID</MudText>
+                <MudText Typo="Typo.body2">@_selectedEquipment.WpId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">装置名</MudText>
+                <MudText Typo="Typo.body2">@_selectedEquipment.WpName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">現在状態</MudText>
+                <MudChip T="string"
+                         Color="@GetUseChipColor(_eqState.UseId)"
+                         Size="Size.Small">
+                    @_eqState.UseName
+                </MudChip>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">状態ID</MudText>
+                <MudText Typo="Typo.body2">@_eqState.UseId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">運用モード</MudText>
+                <MudText Typo="Typo.body2">@_eqState.MesModeId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">稼動状態</MudText>
+                <MudText Typo="Typo.body2">@(_eqState.WpStopFlag == "1" ? "停止中" : "通常")</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ────── 状態変更フォーム ────── *@
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-3">装置状態変更</MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="WpUseItem"
+                           Label="変更後装置状態"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Value="_selectedUse"
+                           ValueChanged="OnUseChangedAsync"
+                           ToStringFunc="@(u => u is null ? "" : $"{u.UseId} {u.UseName}")"
+                           AnchorOrigin="Origin.BottomLeft"
+                           Disabled="@(_useListLoading || _loading)">
+                    @if (_useListLoading)
+                    {
+                        <MudSelectItem T="WpUseItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                    }
+                    else
+                    {
+                        foreach (var u in _useList)
+                        {
+                            <MudSelectItem T="WpUseItem" Value="u">@u.UseId @u.UseName</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @if (_selectedUse is not null)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudSelect T="WpMessageItem"
+                               Label="メッセージ"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Value="_selectedMessage"
+                               ValueChanged="@((WpMessageItem? m) => _selectedMessage = m)"
+                               ToStringFunc="@(m => m is null ? "" : $"{m.MessageId} {m.MessageText}")"
+                               AnchorOrigin="Origin.BottomLeft"
+                               Clearable="true"
+                               Disabled="@(_msgListLoading || _messages.Count == 0)">
+                        @if (_msgListLoading)
+                        {
+                            <MudSelectItem T="WpMessageItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                        }
+                        else if (_messages.Count == 0)
+                        {
+                            <MudSelectItem T="WpMessageItem" Value="null" Disabled="true">メッセージなし</MudSelectItem>
+                        }
+                        else
+                        {
+                            foreach (var m in _messages)
+                            {
+                                <MudSelectItem T="WpMessageItem" Value="m">@m.MessageId @m.MessageText</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
+
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField @bind-Value="_empId"
+                              Label="社員ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="社員IDを入力"
+                              OnKeyDown="OnEmpIdKeyDownAsync" />
+            </MudItem>
+            <MudItem xs="12" sm="8" md="6">
+                <MudTextField @bind-Value="_comments"
+                              Label="コメント"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="コメント（任意）" />
+            </MudItem>
+        </MudGrid>
+
+        @* ── 選択した状態のプレビュー ── *@
+        @if (_selectedUse is not null)
+        {
+            <MudDivider Class="my-3" />
+            <MudGrid Spacing="1" Class="mb-3">
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">変更内容プレビュー</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudChip T="string" Color="@GetUseChipColor(_eqState.UseId)" Size="Size.Small">
+                            @_eqState.UseName
+                        </MudChip>
+                        <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" />
+                        <MudChip T="string" Color="@GetUseChipColor(_selectedUse.UseId)" Size="Size.Small">
+                            @_selectedUse.UseName
+                        </MudChip>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        }
+
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
+                       Disabled="@(!CanConfirm || _confirming)"
+                       OnClick="ConfirmAsync">
+                @if (_confirming)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>送信中...</span>
+                }
+                else
+                {
+                    <span>確定</span>
+                }
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Disabled="@_confirming"
+                       OnClick="ClearForm">
+                クリア
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @* ────── 装置状態一覧（マスタ参照） ────── *@
+    @if (_useList.Count > 0)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">装置状態マスタ一覧</MudText>
+            <MudTable T="WpUseItem"
+                      Items="_useList"
+                      Dense="true"
+                      Hover="true"
+                      Bordered="true"
+                      Elevation="0"
+                      RowClassFunc="UseRowClass"
+                      OnRowClick="@(e => OnRowClickSelectUse(e.Item))">
+                <HeaderContent>
+                    <MudTh>状態ID</MudTh>
+                    <MudTh>状態名</MudTh>
+                    <MudTh>通常</MudTh>
+                    <MudTh>停止</MudTh>
+                    <MudTh>メッセージ</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="状態ID">@context.UseId</MudTd>
+                    <MudTd DataLabel="状態名">
+                        <MudChip T="string" Color="@GetUseChipColor(context.UseId)" Size="Size.Small">
+                            @context.UseName
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="通常">@(context.NormalStateFlag == "1" ? "○" : "")</MudTd>
+                    <MudTd DataLabel="停止">@(context.UseStopFlag == "1" ? "停止" : "")</MudTd>
+                    <MudTd DataLabel="メッセージ">@context.MessageText</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary">データがありません</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    }
+}
+else if (!_loading && _selectedEquipment is null)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        装置グループと装置を選択して「装置状態取得」を押してください。
+    </MudText>
+}
+
+@code {
+
+    // ── 状態 ──────────────────────────────────────────────────────
+    private bool   _loading        = false;
+    private bool   _groupsLoading  = true;
+    private bool   _eqLoading      = false;
+    private bool   _useListLoading = false;
+    private bool   _msgListLoading = false;
+    private bool   _confirming     = false;
+    private string _errorMessage   = string.Empty;
+
+    // 装置グループ・装置選択
+    private IReadOnlyList<McGroup>   _groups          = [];
+    private McGroup?                 _selectedGroup;
+    private IReadOnlyList<Equipment> _equipments      = [];
+    private Equipment?               _selectedEquipment;
+    private EquipmentState?          _eqState;
+
+    // 装置状態マスタ・メッセージ
+    private IReadOnlyList<WpUseItem>     _useList  = [];
+    private IReadOnlyList<WpMessageItem> _messages = [];
+
+    // フォーム入力
+    private WpUseItem?     _selectedUse     = null;
+    private WpMessageItem? _selectedMessage  = null;
+    private string         _empId           = string.Empty;
+    private string         _comments        = string.Empty;
+
+    // ── CanExecute ────────────────────────────────────────────────
+    private bool CanConfirm => _selectedEquipment is not null
+                               && _selectedUse is not null
+                               && !string.IsNullOrWhiteSpace(_empId);
+
+    // ── 初期化 ────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        var groupsTask   = EqSvc.GetMcGroupListAsync();
+        var useListTask  = ModeSvc.GetWpUseListAsync();
+
+        await Task.WhenAll(groupsTask, useListTask);
+
+        _groups        = groupsTask.Result;
+        _useList       = useListTask.Result;
+        _groupsLoading = false;
+    }
+
+    // ── 装置グループ変更 ─────────────────────────────────────────
+    private async Task OnGroupChangedAsync(McGroup? g)
+    {
+        _selectedGroup     = g;
+        _selectedEquipment = null;
+        _equipments        = [];
+        _eqState           = null;
+        _errorMessage      = string.Empty;
+        ClearForm();
+
+        if (g is null) return;
+
+        _eqLoading = true;
+        StateHasChanged();
+
+        _equipments = await EqSvc.GetEquipmentListAsync(g.Id);
+        _eqLoading  = false;
+    }
+
+    // ── 装置変更 ─────────────────────────────────────────────────
+    private async Task OnEquipmentChangedAsync(Equipment? eq)
+    {
+        _selectedEquipment = eq;
+        _eqState           = null;
+        _errorMessage      = string.Empty;
+        ClearForm();
+
+        if (eq is null) return;
+
+        await LoadMessagesAsync(eq.WpId);
+    }
+
+    // ── 装置状態取得 ─────────────────────────────────────────────
+    // VBソース: cmdSearch_Click → eq__.state___
+    private async Task LoadEquipmentStateAsync()
+    {
+        if (_selectedEquipment is null) return;
+
+        _loading      = true;
+        _errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            _eqState = await EqSvc.GetEquipmentStateAsync(_selectedEquipment.WpId);
+            if (_eqState is null)
+            {
+                _errorMessage = "装置状態の取得に失敗しました。";
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 装置状態選択変更 ─────────────────────────────────────────
+    // VBソース: cmbUseName_Validate → prvblnWpMsg_Disp
+    private async Task OnUseChangedAsync(WpUseItem? u)
+    {
+        _selectedUse    = u;
+        _selectedMessage = null;
+
+        if (u is not null && _selectedEquipment is not null)
+        {
+            await LoadMessagesAsync(_selectedEquipment.WpId);
+        }
+    }
+
+    // ── メッセージリスト取得 ─────────────────────────────────────
+    private async Task LoadMessagesAsync(string wpId)
+    {
+        _msgListLoading = true;
+        StateHasChanged();
+        _messages       = await ModeSvc.GetWpMsgListAsync(wpId);
+        _msgListLoading = false;
+    }
+
+    // ── 社員IDでEnterキー ─────────────────────────────────────────
+    private async Task OnEmpIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanConfirm && !_confirming)
+            await ConfirmAsync();
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────
+    // VBソース: cmdExecution_Click → pubblnEqChguse_Ins
+    private async Task ConfirmAsync()
+    {
+        if (_selectedEquipment is null || _selectedUse is null) return;
+
+        _confirming   = true;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            var request = new ChangeWpUseRequest(
+                WpId:       _selectedEquipment.WpId,
+                UseId:      _selectedUse.UseId,
+                EmpId:      _empId.Trim(),
+                OldUseId:   _eqState?.UseId ?? string.Empty,
+                WpStopFlag: _selectedUse.UseStopFlag,
+                MessageId:  _selectedMessage?.MessageId ?? string.Empty,
+                Comments:   _comments.Trim()
+            );
+
+            var (isSuccess, entryTime, errorMessage) = await ModeSvc.ChangeWpUseAsync(request);
+
+            if (isSuccess)
+            {
+                Snackbar.Add("装置状態変更が完了しました。", Severity.Success);
+                // 状態を再取得して最新状態を表示
+                await LoadEquipmentStateAsync();
+                ClearForm();
+            }
+            else
+            {
+                _errorMessage = errorMessage;
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── フォームクリア ────────────────────────────────────────────
+    private void ClearForm()
+    {
+        _selectedUse    = null;
+        _selectedMessage = null;
+        _empId          = string.Empty;
+        _comments       = string.Empty;
+    }
+
+    // ── テーブル行クリックで状態選択 ─────────────────────────────
+    private void OnRowClickSelectUse(WpUseItem? item)
+    {
+        if (item is not null)
+            _ = OnUseChangedAsync(item);
+    }
+
+    // ── テーブル行スタイル（現在選択中の行をハイライト） ─────────
+    private string UseRowClass(WpUseItem item, int index)
+    {
+        if (_selectedUse is not null && _selectedUse.UseId == item.UseId)
+            return "mud-theme-primary";
+        if (_eqState is not null && _eqState.UseId == item.UseId)
+            return "mud-table-row-selected";
+        return string.Empty;
+    }
+
+    // ── チップカラー（装置状態IDに応じた色分け） ─────────────────
+    private static Color GetUseChipColor(string useId) => useId switch
+    {
+        "10" => Color.Success,    // 通常・量産
+        "20" => Color.Warning,    // 試験・評価
+        "30" => Color.Error,      // 異常
+        "40" => Color.Info,       // 保守・PM
+        "50" => Color.Secondary,  // 停止
+        _    => Color.Default
+    };
+}
