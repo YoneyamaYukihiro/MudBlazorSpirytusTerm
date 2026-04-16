@@ -119,6 +119,11 @@ public static class MsgIds
     // ──────── EN0260 ロット処理順変更 ────────
     public const string LotChgSeqNum       = "lot_.chgseqnum";
 
+    // ──────── EN02I0 区間優先設定 ────────
+    public const string LotSecPriority     = "lot_.secpriority";
+    public const string LotChgSecPriority  = "lot_.chgsecpriority";
+    public const string ProcList           = "proc.list____";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";

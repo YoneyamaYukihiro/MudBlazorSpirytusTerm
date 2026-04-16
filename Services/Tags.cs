@@ -408,4 +408,12 @@ public static class Tags
     public const string FunctionId          = "FUNCTION_ID";
     public const string Information         = "INFORMATION";
     public const string Class               = "CLASS";
+
+    // ──────── EN02I0 区間優先設定 (lot_.secpriority / lot_.chgsecpriority) ────────
+    public const string SecPriorityList     = "SECPRIORITY_LIST";   // 区間優先設定リスト
+    public const string StartOpId          = "START_OP_ID";         // 開始大工程
+    public const string StartStepId        = "START_STEP_ID";       // 開始小工程
+    public const string EndOpId            = "END_OP_ID";           // 終了大工程
+    public const string EndStepId          = "END_STEP_ID";         // 終了小工程
+    public const string SectionPriority    = "SECTION_PRIORITY";    // 区間優先度
 }
