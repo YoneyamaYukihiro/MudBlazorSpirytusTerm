@@ -1,0 +1,179 @@
+@page "/lot-throw-rsv-register"
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 投入予定ロット登録 (EN0020)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">投入予定ロット登録 (EN0020)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+@if (!string.IsNullOrEmpty(_resultLotId))
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _resultLotId = string.Empty">
+        投入予定ロットを登録しました。採番ロットID: <b>@_resultLotId</b>
+    </MudAlert>
+}
+
+@* ────── 基本情報 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">基本情報</MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_pdId"
+                          Label="機種ID *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="20"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_flowClass"
+                          Label="種別区分 *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="4"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudTextField @bind-Value="_wfNum"
+                          Label="WF枚数 *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="3"
+                          InputType="InputType.Number"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_planThrowinDate"
+                          Label="投入予定日 (YYYYMMDD) *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="8"
+                          Placeholder="例: 20251231"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_engEmpId"
+                          Label="ロット担当者ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_empId"
+                          Label="作業者ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_prOrderId"
+                          Label="P/Rオーダー番号"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="20"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSwitch T="bool" @bind-Value="_autoApprove" Label="自動承認" Color="Color.Primary" Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_comments"
+                          Label="コメント(作業メモ)"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="3"
+                          MaxLength="256"
+                          Disabled="_loading" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ボタン ────── *@
+<MudStack Row="true" Spacing="2">
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Save"
+               OnClick="RegisterAsync"
+               Disabled="@(_loading || string.IsNullOrWhiteSpace(_pdId) || string.IsNullOrWhiteSpace(_wfNum))">
+        @if (_loading)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+            <span>登録中...</span>
+        }
+        else
+        {
+            <span>登録確定</span>
+        }
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Clear"
+               OnClick="ClearAll" Disabled="_loading">
+        クリア
+    </MudButton>
+</MudStack>
+
+@code {
+    private string _pdId            = "";
+    private string _flowClass       = "";
+    private string _wfNum           = "";
+    private string _planThrowinDate = "";
+    private string _engEmpId        = "";
+    private string _empId           = "";
+    private string _prOrderId       = "";
+    private string _comments        = "";
+    private bool   _autoApprove     = false;
+    private bool   _loading         = false;
+    private string _errorMessage    = "";
+    private string _resultLotId     = "";
+
+    private async Task RegisterAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_pdId) || string.IsNullOrWhiteSpace(_wfNum)) return;
+        _loading      = true;
+        _resultLotId  = "";
+        _errorMessage = "";
+        StateHasChanged();
+
+        // 実装中 - lot_.throwrsv MsgVer="03.00" で登録 → 自動承認時は lot_.approve_ も送信
+        await Task.Delay(500);
+        _loading     = false;
+        _resultLotId = $"LOT{DateTime.Now:MMddHHmm}";
+        Snackbar.Add($"投入予定ロットを登録しました。ロットID: {_resultLotId}", Severity.Success);
+        ClearFormFields();
+    }
+
+    private void ClearFormFields()
+    {
+        _wfNum           = "";
+        _planThrowinDate = "";
+        _engEmpId        = "";
+        _empId           = "";
+        _prOrderId       = "";
+        _comments        = "";
+    }
+
+    private void ClearAll()
+    {
+        ClearFormFields();
+        _pdId        = "";
+        _flowClass   = "";
+        _autoApprove = false;
+        _resultLotId = "";
+        _errorMessage = "";
+    }
+}

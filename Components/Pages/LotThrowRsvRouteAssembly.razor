@@ -1,0 +1,228 @@
+@page "/lot-throw-rsv-route-assembly"
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 投入予定工順登録(組立) (EN00X0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">投入予定工順登録(組立) (EN00X0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+@if (!string.IsNullOrEmpty(_resultLotId))
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _resultLotId = string.Empty">
+        投入予定工順を登録しました。採番ロットID: <b>@_resultLotId</b>
+    </MudAlert>
+}
+
+@* ────── 工順作成基礎情報 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">工順作成基礎情報</MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_pdId"
+                          Label="機種ID *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="20"
+                          Disabled="_loading"
+                          HelperText="機種IDを入力して工順一覧を取得" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="LoadPdEntryListAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_pdId))">
+                工順取得
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_flowClass"
+                          Label="種別区分"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="4"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_wfNum"
+                          Label="WF枚数 *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="3"
+                          InputType="InputType.Number"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_planThrowinDate"
+                          Label="投入予定日 (YYYYMMDD) *"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="8"
+                          Placeholder="例: 20251231"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_engEmpId"
+                          Label="ロット担当者ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_empId"
+                          Label="作業者ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="10"
+                          Disabled="_loading" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── マスタ工順一覧 ────── *@
+@if (_entryList.Count > 0)
+{
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">工順選択</MudText>
+        <MudTable T="EntryRow" Items="_entryList" Dense="true" Hover="true"
+                  @bind-SelectedItem="_selectedEntry" Elevation="0" Style="cursor: pointer;">
+            <HeaderContent>
+                <MudTh>エントリID</MudTh>
+                <MudTh>工順名</MudTh>
+                <MudTh>WF枚数</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><b>@context.EntryId</b></MudTd>
+                <MudTd>@context.EntryName</MudTd>
+                <MudTd>@context.WfNum</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@* ────── ロット詳細情報 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ロット詳細情報</MudText>
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_prOrderId"
+                          Label="P/Rオーダー番号"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="20"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_comments"
+                          Label="コメント(作業メモ)"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="3"
+                          MaxLength="256"
+                          Disabled="_loading" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ボタン ────── *@
+<MudStack Row="true" Spacing="2">
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Save"
+               OnClick="RegisterAsync"
+               Disabled="@(_loading || string.IsNullOrWhiteSpace(_pdId) || string.IsNullOrWhiteSpace(_wfNum))">
+        @if (_loading)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+            <span>登録中...</span>
+        }
+        else
+        {
+            <span>登録確定</span>
+        }
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+               StartIcon="@Icons.Material.Filled.Clear"
+               OnClick="ClearAll" Disabled="_loading">
+        クリア
+    </MudButton>
+</MudStack>
+
+@code {
+    private string   _pdId            = "";
+    private string   _flowClass       = "";
+    private string   _wfNum           = "";
+    private string   _planThrowinDate = "";
+    private string   _engEmpId        = "";
+    private string   _empId           = "";
+    private string   _prOrderId       = "";
+    private string   _comments        = "";
+    private bool     _loading         = false;
+    private string   _errorMessage    = "";
+    private string   _resultLotId     = "";
+
+    private List<EntryRow> _entryList    = [];
+    private EntryRow?      _selectedEntry;
+
+    private sealed record EntryRow(string EntryId, string EntryName, string WfNum);
+
+    private async Task LoadPdEntryListAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_pdId)) return;
+        _loading = true;
+        StateHasChanged();
+
+        // 実装中 - mas_.pdentrylist MsgVer="03.00" で工順取得
+        await Task.Delay(300);
+        _entryList = new List<EntryRow>
+        {
+            new("ENTRY001", "標準工順", "25"),
+            new("ENTRY002", "短縮工順", "25"),
+        };
+        _loading = false;
+        Snackbar.Add($"機種 {_pdId} の工順一覧を取得しました。", Severity.Info);
+    }
+
+    private async Task RegisterAsync()
+    {
+        _loading      = true;
+        _resultLotId  = "";
+        _errorMessage = "";
+        StateHasChanged();
+
+        // 実装中 - lot_.throwrsv MsgVer="03.00" で登録
+        await Task.Delay(500);
+        _loading     = false;
+        _resultLotId = $"LOT{DateTime.Now:MMddHHmm}";
+        Snackbar.Add($"投入予定工順を登録しました。ロットID: {_resultLotId}", Severity.Success);
+    }
+
+    private void ClearAll()
+    {
+        _pdId            = "";
+        _flowClass       = "";
+        _wfNum           = "";
+        _planThrowinDate = "";
+        _engEmpId        = "";
+        _empId           = "";
+        _prOrderId       = "";
+        _comments        = "";
+        _entryList       = [];
+        _selectedEntry   = null;
+        _resultLotId     = "";
+        _errorMessage    = "";
+    }
+}
