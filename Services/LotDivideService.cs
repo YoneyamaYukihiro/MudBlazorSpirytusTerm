@@ -16,6 +16,7 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
     public sealed record CarrierStateResult(
         bool   IsSuccess,
         string ErrorMessage  = "",
+        string ErrorCode     = "",
         string LotId         = "",
         string PdId          = "",
         string PdName        = "",
@@ -66,8 +67,10 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
             var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True)
             {
-                var err = msg.GetString(Tags.ErrMsg);
-                return new CarrierStateResult(false, string.IsNullOrEmpty(err) ? "照合に失敗しました。" : err);
+                var (code, err) = msg.GetErrorInfo();
+                return new CarrierStateResult(false,
+                    ErrorCode: code,
+                    ErrorMessage: string.IsNullOrEmpty(err) ? "照合に失敗しました。" : err);
             }
             return new CarrierStateResult(
                 IsSuccess:     true,
