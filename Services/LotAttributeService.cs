@@ -85,7 +85,7 @@ public sealed class LotAttributeService(ITfMessageClient mq, IConfiguration cfg,
     /// ロット属性情報を取得する。
     /// VBソース: pubblnLotAttribute_Sel, MsgVer="05.00"
     /// </summary>
-    public async Task<LotAttributeInfo?> GetLotAttributeAsync(
+    public async Task<MesResult<LotAttributeInfo>> GetLotAttributeAsync(
         string lotId,
         string carrierId        = "",
         CancellationToken ct    = default)
@@ -104,18 +104,19 @@ public sealed class LotAttributeService(ITfMessageClient mq, IConfiguration cfg,
         catch (Exception ex)
         {
             logger.LogError(ex, "LotAttribute request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<LotAttributeInfo>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotAttribute returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<LotAttributeInfo>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return new LotAttributeInfo(
+        return new MesResult<LotAttributeInfo>(true, new LotAttributeInfo(
             OrderNum:           msg.GetString(Tags.OrderNum),
             LotId:              msg.GetString(Tags.LotId),
             CarrierId:          msg.GetString(Tags.CarrierId),
@@ -158,7 +159,7 @@ public sealed class LotAttributeService(ITfMessageClient mq, IConfiguration cfg,
             AtlasFlowNumber:    msg.GetString(Tags.AtlasFlowNumber),
             ScreenSizeId:       msg.GetString(Tags.ScreenSizeId),
             CfScreenSizeId:     msg.GetString(Tags.CfScreenSizeId)
-        );
+        ));
     }
 
     // ──────── ロット情報変更 ─────────────────────────────────────

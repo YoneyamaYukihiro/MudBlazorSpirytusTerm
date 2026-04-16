@@ -41,6 +41,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
         string GuidanceMsg      = "",
         string GuidanceMsgCode  = "",
         string EntryTime        = "",
+        string ErrorCode        = "",
         string ErrorMessage     = ""
     );
 
@@ -181,10 +182,10 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("ChgMode returned non-TRUE. Subject={Subject}, WpId={WpId}, Err={Err}",
-                subject, request.WpId, err);
-            return new EqChgModeResult(false, ErrorMessage: err);
+                subject, request.WpId, message);
+            return new EqChgModeResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new EqChgModeResult(
@@ -282,10 +283,10 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("EqChgProcOrder returned non-TRUE. WpId={WpId}, Err={Err}",
-                request.WpId, err);
-            return new EqChgModeResult(false, ErrorMessage: err);
+                request.WpId, message);
+            return new EqChgModeResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new EqChgModeResult(

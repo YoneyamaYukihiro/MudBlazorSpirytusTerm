@@ -152,7 +152,7 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
     /// 装置状態を取得する。
     /// VBソース: MsgVer="03.00", CPstreq__state___
     /// </summary>
-    public async Task<EquipmentState?> GetEquipmentStateAsync(
+    public async Task<MesResult<EquipmentState>> GetEquipmentStateAsync(
         string wpId, CancellationToken ct = default)
     {
         var req = new TfMsg();
@@ -167,14 +167,15 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "EqState request failed. WpId={WpId}", wpId);
-            return null;
+            return new MesResult<EquipmentState>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("EqState returned non-TRUE. WpId={WpId}, Raw={Raw}", wpId, Summarize(raw));
-            return null;
+            return new MesResult<EquipmentState>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var portAry = msg.GetMsgAry(Tags.PortList);
@@ -183,7 +184,7 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
             PortStatus: p.GetString(Tags.PortStatus)
         )).ToList();
 
-        return new EquipmentState(
+        return new MesResult<EquipmentState>(true, new EquipmentState(
             MesModeId:            msg.GetString(Tags.MesModeId),
             MesModeType:          msg.GetString(Tags.MesModeType),
             ModeStatus:           msg.GetString(Tags.ModeStatus),
@@ -197,7 +198,7 @@ public sealed class EquipmentService(ITfMessageClient mq, IConfiguration cfg, IL
             WpCancelCarrierFlag:  msg.GetString(Tags.WpCancelCarrierFlag),
             McType:               msg.GetString(Tags.McType),
             PortList:             ports
-        );
+        ));
     }
 
     // ──────── ストッカーリスト取得 ────────────────────────────────

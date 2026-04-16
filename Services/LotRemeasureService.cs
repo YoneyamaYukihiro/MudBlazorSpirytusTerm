@@ -23,6 +23,7 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
 
     public sealed record LotCurStateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string OpId = "",
@@ -37,6 +38,7 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
 
     public sealed record RemeasureResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string GuidMsg = "",
         string GuidMsgCode = ""
@@ -73,10 +75,9 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotCurState(EN01B0) returned FALSE. Err={Err}", err);
-            return new LotCurStateResult(false, string.IsNullOrEmpty(err) ? "ロット情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotCurState(EN01B0) returned FALSE. Err={Err}", message);
+            return new LotCurStateResult(false, code, string.IsNullOrEmpty(message) ? "ロット情報の取得に失敗しました。" : message);
         }
 
         return new LotCurStateResult(
@@ -129,10 +130,9 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotStepRestart returned FALSE. Err={Err}", err);
-            return new RemeasureResult(false, string.IsNullOrEmpty(err) ? "ロット再測定登録に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotStepRestart returned FALSE. Err={Err}", message);
+            return new RemeasureResult(false, code, string.IsNullOrEmpty(message) ? "ロット再測定登録に失敗しました。" : message);
         }
 
         return new RemeasureResult(

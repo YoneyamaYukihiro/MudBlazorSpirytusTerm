@@ -37,6 +37,7 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
 
     public sealed record LotCurStateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string OpId = "",
@@ -52,6 +53,7 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
 
     public sealed record NextStepListResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         IReadOnlyList<NextStepEntry>? StepList = null
     );
@@ -62,6 +64,7 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
     /// </summary>
     public sealed record ChkSkipResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string Result = "",    // "0"=OK, "1"=時間制限, "2"=号機記憶, "3"=両方
         string OpId = "",
@@ -70,6 +73,7 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
 
     public sealed record GetRestrictResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string RestrictTypeId = "",   // "1"=時間, "2"=号機記憶, "3"=両方
         string LimitTime = "",
@@ -82,6 +86,7 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
 
     public sealed record SkipStepResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string MsgCode = "",
         string ActionFlag = "",
@@ -119,10 +124,9 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotCurState(EN0250) returned FALSE. Err={Err}", err);
-            return new LotCurStateResult(false, string.IsNullOrEmpty(err) ? "ロット情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotCurState(EN0250) returned FALSE. Err={Err}", message);
+            return new LotCurStateResult(false, code, string.IsNullOrEmpty(message) ? "ロット情報の取得に失敗しました。" : message);
         }
 
         var stepList = aMsg.GetMsgAry(Tags.StepList)
@@ -185,10 +189,9 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotNextStepList(EN0250) returned FALSE. Err={Err}", err);
-            return new NextStepListResult(false, string.IsNullOrEmpty(err) ? "次工程一覧の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotNextStepList(EN0250) returned FALSE. Err={Err}", message);
+            return new NextStepListResult(false, code, string.IsNullOrEmpty(message) ? "次工程一覧の取得に失敗しました。" : message);
         }
 
         var stepList = aMsg.GetMsgAry(Tags.NextStepList)
@@ -235,10 +238,9 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotChkSkipStep returned FALSE. Err={Err}", err);
-            return new ChkSkipResult(false, string.IsNullOrEmpty(err) ? "スキップ可否チェックに失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotChkSkipStep returned FALSE. Err={Err}", message);
+            return new ChkSkipResult(false, code, string.IsNullOrEmpty(message) ? "スキップ可否チェックに失敗しました。" : message);
         }
 
         return new ChkSkipResult(
@@ -280,10 +282,9 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotGetRestrict returned FALSE. Err={Err}", err);
-            return new GetRestrictResult(false, string.IsNullOrEmpty(err) ? "時間制限情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotGetRestrict returned FALSE. Err={Err}", message);
+            return new GetRestrictResult(false, code, string.IsNullOrEmpty(message) ? "時間制限情報の取得に失敗しました。" : message);
         }
 
         return new GetRestrictResult(
@@ -336,11 +337,10 @@ public sealed class LotSkipStepService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = aMsg.GetErrorInfo();
             var msgCode = aMsg.GetString(Tags.MsgCode);
-            var err     = aMsg.GetString(Tags.Msg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.ErrMsg);
-            logger.LogWarning("LotSkipStep returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, err);
-            return new SkipStepResult(false, string.IsNullOrEmpty(err) ? "工程スキップに失敗しました。" : err, msgCode);
+            logger.LogWarning("LotSkipStep returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, message);
+            return new SkipStepResult(false, code, string.IsNullOrEmpty(message) ? "工程スキップに失敗しました。" : message, msgCode);
         }
 
         return new SkipStepResult(

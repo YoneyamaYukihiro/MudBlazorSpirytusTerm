@@ -45,7 +45,11 @@
 @* ────────────────────── エラー表示 ────────────────────── *@
 @if (!string.IsNullOrEmpty(_error))
 {
-    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => { _error = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_error
     </MudAlert>
 }
@@ -289,7 +293,8 @@ else if (!_loading)
     private bool   _loading;
     private bool   _loadingHistory;
     private bool   _confirming;
-    private string _error = string.Empty;
+    private string _error     = string.Empty;
+    private string _errorCode = string.Empty;
 
     private bool CanSearch      => !string.IsNullOrWhiteSpace(_carrierId) && _carrierId.Trim().Length >= 1;
     private bool CanLoadHistory => !string.IsNullOrWhiteSpace(_selectedOpId) && !string.IsNullOrWhiteSpace(_selectedStepId);
@@ -327,6 +332,7 @@ else if (!_loading)
 
         _loading          = true;
         _error            = string.Empty;
+        _errorCode        = string.Empty;
         _lotInfo          = null;
         _opList           = null;
         _stepList         = null;
@@ -343,7 +349,8 @@ else if (!_loading)
             var curState = await Svc.GetLotInfoAsync(carrierId);
             if (!curState.IsSuccess)
             {
-                _error = curState.ErrorMessage;
+                _error     = curState.ErrorMessage;
+                _errorCode = curState.ErrorCode;
                 Snackbar.Add(curState.ErrorMessage, Severity.Error);
                 return;
             }
@@ -353,7 +360,8 @@ else if (!_loading)
             var opStepResult = await Svc.GetOpStepListAsync(curState.LotId);
             if (!opStepResult.IsSuccess)
             {
-                _error = opStepResult.ErrorMessage;
+                _error     = opStepResult.ErrorMessage;
+                _errorCode = opStepResult.ErrorCode;
                 Snackbar.Add(opStepResult.ErrorMessage, Severity.Warning);
                 return;
             }
@@ -413,6 +421,7 @@ else if (!_loading)
 
         _loadingHistory = true;
         _error          = string.Empty;
+        _errorCode      = string.Empty;
         _eventRows      = [];
         _hasDeleteProhibited = false;
         StateHasChanged();
@@ -424,7 +433,8 @@ else if (!_loading)
 
             if (!result.IsSuccess)
             {
-                _error = result.ErrorMessage;
+                _error     = result.ErrorMessage;
+                _errorCode = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Warning);
                 return;
             }
@@ -466,6 +476,7 @@ else if (!_loading)
 
         _confirming = true;
         _error      = string.Empty;
+        _errorCode  = string.Empty;
 
         try
         {
@@ -490,13 +501,15 @@ else if (!_loading)
                 var errorMsg = string.IsNullOrEmpty(result.MsgCode)
                     ? result.ErrorMessage
                     : $"{result.MsgCode}\n{result.ErrorMessage}";
-                _error = errorMsg;
+                _error     = errorMsg;
+                _errorCode = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error     = ex.Message;
+            _errorCode = string.Empty;
             Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
         }
         finally
@@ -522,5 +535,6 @@ else if (!_loading)
         _hasDeleteProhibited = false;
         _histLotLastUpdate   = string.Empty;
         _error               = string.Empty;
+        _errorCode           = string.Empty;
     }
 }

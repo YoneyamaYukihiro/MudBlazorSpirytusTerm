@@ -131,7 +131,11 @@
 @* ────────────────────── エラー表示 ────────────────────── *@
 @if (!string.IsNullOrEmpty(_error))
 {
-    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => { _error = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_error
     </MudAlert>
 }
@@ -295,7 +299,8 @@ else if (!_loading)
     private bool _loading;
     private bool _registering;
     private bool _firstLoaded;
-    private string _error = string.Empty;
+    private string _error     = string.Empty;
+    private string _errorCode = string.Empty;
     private DateTime _fetchTime;
 
     private List<LotRow> _rows = [];
@@ -371,6 +376,7 @@ else if (!_loading)
 
         _loading    = true;
         _error      = string.Empty;
+        _errorCode  = string.Empty;
         _seqCounter = 0;
 
         try
@@ -379,8 +385,9 @@ else if (!_loading)
 
             if (!result.IsSuccess)
             {
-                _error = result.ErrorMessage;
-                _rows  = [];
+                _error     = result.ErrorMessage;
+                _errorCode = result.ErrorCode;
+                _rows      = [];
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
                 return;
             }
@@ -483,6 +490,7 @@ else if (!_loading)
         // 全解除は空リストで lot_.chgseqnum を呼ぶ
         _registering = true;
         _error       = string.Empty;
+        _errorCode   = string.Empty;
         try
         {
             var result = await Svc.ChangeSeqNumAsync(_selectedEquipment.WpId, []);
@@ -493,7 +501,8 @@ else if (!_loading)
             }
             else
             {
-                _error = result.ErrorMessage;
+                _error     = result.ErrorMessage;
+                _errorCode = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
             }
         }
@@ -517,6 +526,7 @@ else if (!_loading)
 
         _registering = true;
         _error       = string.Empty;
+        _errorCode   = string.Empty;
         try
         {
             var changeItems = _rows
@@ -539,7 +549,8 @@ else if (!_loading)
             }
             else
             {
-                _error = result.ErrorMessage;
+                _error     = result.ErrorMessage;
+                _errorCode = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
             }
         }

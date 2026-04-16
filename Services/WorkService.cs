@@ -696,22 +696,7 @@ public sealed class WorkService(ITfMessageClient mq, IConfiguration cfg, ILogger
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
 
-    /// <summary>
-    /// RET=1 応答からエラーコードとメッセージを取得する。
-    /// 返答は MSG_CODE / MSG を使う場合と ERR_CODE / ERR_MSG を使う場合がある。
-    /// MSG_CODE / MSG を優先し、空の場合は ERR_CODE / ERR_MSG にフォールバック。
-    /// </summary>
-    private static (string Code, string Message) GetErrorInfo(TfMsg msg)
-    {
-        var msgCode = msg.GetString(Tags.MsgCode);
-        var msgText = msg.GetString(Tags.Msg);
-        var errCode = msg.GetString(Tags.ErrCode);
-        var errMsg  = msg.GetString(Tags.ErrMsg);
-
-        var code    = !string.IsNullOrEmpty(msgCode) ? msgCode : errCode;
-        var message = !string.IsNullOrEmpty(msgText) ? msgText : errMsg;
-        return (code, message);
-    }
+    private static (string Code, string Message) GetErrorInfo(TfMsg msg) => msg.GetErrorInfo();
 
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;

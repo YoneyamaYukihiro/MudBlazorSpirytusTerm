@@ -129,7 +129,8 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetEventCommentAsync("LOT001", "5", "20250415100000");
 
-        Assert.Equal("イベントコメント内容", result);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("イベントコメント内容", result.Data);
     }
 
     [Fact]
@@ -141,7 +142,7 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetEventCommentAsync("LOT001", "5", "20250415100000");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── GetUseRecpAsync ────────
@@ -177,8 +178,9 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetUseRecpAsync("OP01", "STEP01", "LOT001");
 
-        Assert.NotNull(result);
-        Assert.Equal("COND01", result.SelectConditionId);
-        Assert.Single(result.WpList);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("COND01", result.Data!.SelectConditionId);
+        Assert.Single(result.Data!.WpList);
     }
 }

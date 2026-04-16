@@ -15,7 +15,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -175,6 +179,7 @@
     private string _lotId        = string.Empty;
     private bool   _loading      = false;
     private string _errorMessage = string.Empty;
+    private string _errorCode    = string.Empty;
     private string? _fetchedAt;
     private LotDetailInfo? _detail;
 
@@ -204,6 +209,7 @@
     private async Task FetchAsync()
     {
         _errorMessage = string.Empty;
+        _errorCode    = string.Empty;
         _loading      = true;
         _detail       = null;
         _fetchedAt    = null;
@@ -229,6 +235,7 @@
         else
         {
             _errorMessage = resp.ErrorMessage;
+            _errorCode    = resp.ErrorCode;
         }
     }
 

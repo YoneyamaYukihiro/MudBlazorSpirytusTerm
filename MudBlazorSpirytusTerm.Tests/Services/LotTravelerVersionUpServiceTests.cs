@@ -37,13 +37,14 @@ public class LotTravelerVersionUpServiceTests
         var result = await svc.GetChgTrvListAsync(
             pdIds: new[] { "PD01" }, flowClasses: new[] { "TFT" });
 
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("LOT001", result[0].LotId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Single(result.Data!);
+        Assert.Equal("LOT001", result.Data![0].LotId);
     }
 
     [Fact]
-    public async Task GetChgTrvListAsync_Error_ReturnsNull()
+    public async Task GetChgTrvListAsync_Error_ReturnsFailure()
     {
         var response = TestHelper.BuildErrorResponse();
         var mock = TestHelper.CreateMock(MsgIds.LotChgTrvList, response);
@@ -52,11 +53,11 @@ public class LotTravelerVersionUpServiceTests
         var result = await svc.GetChgTrvListAsync(
             pdIds: Array.Empty<string>(), flowClasses: Array.Empty<string>());
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
-    public async Task GetChgTrvListAsync_Exception_ReturnsNull()
+    public async Task GetChgTrvListAsync_Exception_ReturnsFailure()
     {
         var mock = TestHelper.CreateMockThrows(MsgIds.LotChgTrvList, new Exception());
         var svc = CreateService(mock);
@@ -64,7 +65,7 @@ public class LotTravelerVersionUpServiceTests
         var result = await svc.GetChgTrvListAsync(
             pdIds: Array.Empty<string>(), flowClasses: Array.Empty<string>());
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── ChgTravelerAsync ────────
@@ -91,13 +92,14 @@ public class LotTravelerVersionUpServiceTests
         };
         var result = await svc.ChgTravelerAsync("EMP001", lots);
 
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("LOT001", result[0].LotId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Single(result.Data!);
+        Assert.Equal("LOT001", result.Data![0].LotId);
     }
 
     [Fact]
-    public async Task ChgTravelerAsync_Error_ReturnsNull()
+    public async Task ChgTravelerAsync_Error_ReturnsFailure()
     {
         var response = TestHelper.BuildErrorResponse();
         var mock = TestHelper.CreateMock(MsgIds.LotChgTraveler, response);
@@ -106,7 +108,7 @@ public class LotTravelerVersionUpServiceTests
         var lots = Array.Empty<LotTravelerVersionUpService.ChgTravelerLotItem>();
         var result = await svc.ChgTravelerAsync("EMP001", lots);
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── ChgTrvProhibitAsync ────────
@@ -148,11 +150,12 @@ public class LotTravelerVersionUpServiceTests
 
         var result = await svc.ChkContEtApcAsync("LOT001");
 
-        Assert.Equal("OK", result);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("OK", result.Data);
     }
 
     [Fact]
-    public async Task ChkContEtApcAsync_Error_ReturnsNull()
+    public async Task ChkContEtApcAsync_Error_ReturnsFailure()
     {
         var response = TestHelper.BuildErrorResponse();
         var mock = TestHelper.CreateMock(MsgIds.LotChkContEtApc, response);
@@ -160,6 +163,6 @@ public class LotTravelerVersionUpServiceTests
 
         var result = await svc.ChkContEtApcAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 }

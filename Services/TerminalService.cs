@@ -25,7 +25,7 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
     /// 端末設定情報（デフォルト装置IDなど）を取得する。
     /// VBソース: MsgVer="01.00", CPstrutilreftminfo
     /// </summary>
-    public async Task<TerminalInfo?> GetTerminalInfoAsync(
+    public async Task<MesResult<TerminalInfo>> GetTerminalInfoAsync(
         string hostName, CancellationToken ct = default)
     {
         var req = new TfMsg();
@@ -41,24 +41,25 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
         catch (Exception ex)
         {
             logger.LogError(ex, "UtilRefTmInfo request failed. HostName={HostName}", hostName);
-            return null;
+            return new MesResult<TerminalInfo>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("UtilRefTmInfo returned non-TRUE. HostName={HostName}, Raw={Raw}",
                 hostName, Summarize(raw));
-            return null;
+            return new MesResult<TerminalInfo>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return new TerminalInfo(
+        return new MesResult<TerminalInfo>(true, new TerminalInfo(
             WpId:          msg.GetString(Tags.CurrentWpId),
             McGroupId:     msg.GetString(Tags.McGroupId),
             OpId:          msg.GetString(Tags.OpId),
             StepId:        msg.GetString(Tags.StepId),
             CarrierTypeId: msg.GetString(Tags.CarrierTypeId)
-        );
+        ));
     }
 
     // ──────── 端末設定情報登録 ────────────────────────────────────

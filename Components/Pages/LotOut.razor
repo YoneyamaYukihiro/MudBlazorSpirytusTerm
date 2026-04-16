@@ -45,7 +45,11 @@
 @* ────────────────────── エラー表示 ────────────────────── *@
 @if (!string.IsNullOrEmpty(_error))
 {
-    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => { _error = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_error
     </MudAlert>
 }
@@ -173,7 +177,8 @@ else if (!_loading)
 
     private bool   _loading;
     private bool   _confirming;
-    private string _error = string.Empty;
+    private string _error     = string.Empty;
+    private string _errorCode = string.Empty;
 
     private bool CanSearch  => !string.IsNullOrWhiteSpace(_carrierId) && _carrierId.Trim().Length >= 1;
     private bool CanConfirm => _lotInfo is not null
@@ -204,9 +209,10 @@ else if (!_loading)
         var carrierId = _carrierId.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(carrierId)) return;
 
-        _loading  = true;
-        _error    = string.Empty;
-        _lotInfo  = null;
+        _loading    = true;
+        _error      = string.Empty;
+        _errorCode  = string.Empty;
+        _lotInfo    = null;
         StateHasChanged();
 
         try
@@ -215,7 +221,8 @@ else if (!_loading)
 
             if (!result.IsSuccess)
             {
-                _error = result.ErrorMessage;
+                _error     = result.ErrorMessage;
+                _errorCode = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
                 return;
             }
@@ -239,6 +246,7 @@ else if (!_loading)
 
         _confirming = true;
         _error      = string.Empty;
+        _errorCode  = string.Empty;
 
         try
         {
@@ -269,13 +277,15 @@ else if (!_loading)
                 var errorMsg = string.IsNullOrEmpty(result.MsgCode)
                     ? result.ErrorMessage
                     : $"{result.MsgCode}\n{result.ErrorMessage}";
-                _error = errorMsg;
+                _error     = errorMsg;
+                _errorCode = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error     = ex.Message;
+            _errorCode = string.Empty;
             Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
         }
         finally
@@ -296,5 +306,6 @@ else if (!_loading)
         _comments         = string.Empty;
         _lotInfo          = null;
         _error            = string.Empty;
+        _errorCode        = string.Empty;
     }
 }

@@ -26,6 +26,7 @@ public sealed class LotThrowinSubstrateService(ITfMessageClient mq, IConfigurati
 
     public sealed record ThrowinResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string GuidMsg = "",
         string GuidMsgCode = ""
@@ -33,6 +34,7 @@ public sealed class LotThrowinSubstrateService(ITfMessageClient mq, IConfigurati
 
     public sealed record CarrierStateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string PdId = "",
@@ -64,8 +66,8 @@ public sealed class LotThrowinSubstrateService(ITfMessageClient mq, IConfigurati
             var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True)
             {
-                var err = msg.GetString(Tags.ErrMsg);
-                return new CarrierStateResult(false, string.IsNullOrEmpty(err) ? "キャリア照合に失敗しました。" : err);
+                var (code, message) = msg.GetErrorInfo();
+                return new CarrierStateResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(message) ? "キャリア照合に失敗しました。" : message);
             }
             return new CarrierStateResult(
                 IsSuccess:    true,
@@ -176,10 +178,10 @@ public sealed class LotThrowinSubstrateService(ITfMessageClient mq, IConfigurati
         var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
-            var err = resp.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = resp.GetString(Tags.Msg);
-            logger.LogWarning("LotThrowinSubstrate returned FALSE: {Err}", err);
-            return new ThrowinResult(false, string.IsNullOrEmpty(err) ? "投入処理に失敗しました。" : err);
+            var (code, message) = resp.GetErrorInfo();
+            if (string.IsNullOrEmpty(message)) message = resp.GetString(Tags.Msg);
+            logger.LogWarning("LotThrowinSubstrate returned FALSE: {Err}", message);
+            return new ThrowinResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(message) ? "投入処理に失敗しました。" : message);
         }
 
         return new ThrowinResult(

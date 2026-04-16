@@ -101,7 +101,11 @@ else
     @* ── エラー ── *@
     @if (!string.IsNullOrWhiteSpace(_error))
     {
-        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-1" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        <MudAlert Severity="Severity.Error" Dense="true" Class="mb-1" ShowCloseIcon="true" CloseIconClicked="() => { _error = string.Empty; _errorCode = string.Empty; }">
+            @if (!string.IsNullOrEmpty(_errorCode))
+            {
+                <b>[@_errorCode]</b><span> </span>
+            }
             @_error
         </MudAlert>
     }
@@ -338,6 +342,7 @@ else
     private EquipmentService.EquipmentState? _eqState;
     private bool _loading;
     private string _error = string.Empty;
+    private string _errorCode = string.Empty;
     private DateTime _fetchTime;
 
     /// <summary>No列用: ロットアイテム → 行番号(1始まり) の事前計算マップ</summary>
@@ -415,8 +420,9 @@ else
 
     private async Task LoadAsync()
     {
-        _loading = true;
-        _error   = string.Empty;
+        _loading    = true;
+        _error      = string.Empty;
+        _errorCode  = string.Empty;
 
         try
         {
@@ -434,7 +440,8 @@ else
             }
             else
             {
-                _error = _response.ErrorMessage;
+                _error     = _response.ErrorMessage;
+                _errorCode = _response.ErrorCode;
                 Snackbar.Add(_response.ErrorMessage, Severity.Error);
             }
         }
@@ -459,6 +466,7 @@ else
         _eqState           = null;
         _rowNoMap          = new();
         _error             = string.Empty;
+        _errorCode         = string.Empty;
     }
 
     // ── 処理順ルール変換 ──────────────────────────────────────────

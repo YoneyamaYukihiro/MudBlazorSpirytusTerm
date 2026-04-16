@@ -164,6 +164,20 @@ public sealed class TfMsg
         return empty;
     }
 
+    /// <summary>
+    /// RET=1 応答から MSG_CODE/MSG を優先して取得し、なければ ERR_CODE/ERR_MSG にフォールバックする。
+    /// 返答は MSG_CODE/MSG を使う場合と ERR_CODE/ERR_MSG を使う場合があるため両方を確認する。
+    /// </summary>
+    public (string Code, string Message) GetErrorInfo()
+    {
+        var msgCode = GetString(Tags.MsgCode);
+        var msgText = GetString(Tags.Msg);
+        return (
+            !string.IsNullOrEmpty(msgCode) ? msgCode : GetString(Tags.ErrCode),
+            !string.IsNullOrEmpty(msgText) ? msgText : GetString(Tags.ErrMsg)
+        );
+    }
+
     private static TfMsg ParseTfMsg(ReadOnlySpan<char> s, ref int pos)
     {
         SkipSpaces(s, ref pos);

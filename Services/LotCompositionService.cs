@@ -37,6 +37,7 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
 
     public sealed record CompositionResult(
         bool   IsSuccess,
+        string ErrorCode    = "",
         string ErrorMessage = "",
         string GuidMsg      = "",
         string GuidMsgCode  = ""
@@ -128,16 +129,16 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
         catch (Exception ex)
         {
             logger.LogWarning(ex, "LotComposition send failed");
-            return new CompositionResult(false, $"通信エラー: {ex.Message}");
+            return new CompositionResult(false, ErrorMessage: $"通信エラー: {ex.Message}");
         }
 
         var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
-            var err = resp.GetString(Tags.ErrMsg);
+            var (code, err) = resp.GetErrorInfo();
             if (string.IsNullOrEmpty(err)) err = resp.GetString(Tags.Msg);
             logger.LogWarning("LotComposition returned FALSE: {Err}", err);
-            return new CompositionResult(false, string.IsNullOrEmpty(err) ? "編成処理に失敗しました。" : err);
+            return new CompositionResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(err) ? "編成処理に失敗しました。" : err);
         }
 
         return new CompositionResult(

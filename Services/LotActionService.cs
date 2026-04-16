@@ -30,6 +30,7 @@ public sealed class LotActionService(ITfMessageClient mq, IConfiguration cfg, IL
         bool IsSuccess,
         string GuidanceMsg = "",
         string GuidanceMsgCode = "",
+        string ErrorCode = "",
         string ErrorMessage = ""
     );
 
@@ -69,10 +70,10 @@ public sealed class LotActionService(ITfMessageClient mq, IConfiguration cfg, IL
 
         if (ret != Tags.True)
         {
-            var errMsg = msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotChgCtlwp returned non-TRUE. LotId={LotId}, Err={Err}",
-                request.LotId, errMsg);
-            return new ChangeControlWpResult(false, ErrorMessage: errMsg);
+                request.LotId, message);
+            return new ChangeControlWpResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new ChangeControlWpResult(

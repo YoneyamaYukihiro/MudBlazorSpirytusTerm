@@ -136,8 +136,7 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var code    = !string.IsNullOrEmpty(msg.GetString(Tags.MsgCode)) ? msg.GetString(Tags.MsgCode) : msg.GetString(Tags.ErrCode);
-            var message = !string.IsNullOrEmpty(msg.GetString(Tags.Msg))     ? msg.GetString(Tags.Msg)     : msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotDetailList returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
                 lotId, code, message);
             return new LotDetailListResponse(false, ErrorCode: code, ErrorMessage: message);
@@ -202,7 +201,7 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
     /// 履歴コメントを取得する。
     /// VBソース: pubblnLotEventComment_Sel, MsgVer="01.00"
     /// </summary>
-    public async Task<string?> GetEventCommentAsync(
+    public async Task<MesResult<string>> GetEventCommentAsync(
         string lotId,
         string seqNum,
         string entryTime,
@@ -223,18 +222,19 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
         catch (Exception ex)
         {
             logger.LogError(ex, "LotEventComment request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<string>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotEventComment returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<string>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetString(Tags.Comments);
+        return new MesResult<string>(true, msg.GetString(Tags.Comments));
     }
 
     // ──────── レシピ情報取得 ─────────────────────────────────────
@@ -243,7 +243,7 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
     /// レシピ情報を取得する。
     /// VBソース: pubblnLotUseRecp_Sel, MsgVer="01.00"
     /// </summary>
-    public async Task<LotUseRecpResult?> GetUseRecpAsync(
+    public async Task<MesResult<LotUseRecpResult>> GetUseRecpAsync(
         string opId,
         string stepId,
         string lotId,
@@ -264,15 +264,16 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
         catch (Exception ex)
         {
             logger.LogError(ex, "LotUseRecp request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<LotUseRecpResult>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotUseRecp returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<LotUseRecpResult>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var wpAry = msg.GetMsgAry(Tags.WpList);
@@ -301,9 +302,9 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
                 RecipeList:  recipeList);
         }).ToList();
 
-        return new LotUseRecpResult(
+        return new MesResult<LotUseRecpResult>(true, new LotUseRecpResult(
             SelectConditionId: msg.GetString(Tags.SelectConditionId),
-            WpList:            wpList);
+            WpList:            wpList));
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────

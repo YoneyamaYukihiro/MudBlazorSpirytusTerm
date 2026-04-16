@@ -76,6 +76,7 @@ public sealed class LotDetailService(ITfMessageClient mq, IConfiguration cfg, IL
     public sealed record LotDetailResponse(
         bool IsSuccess,
         LotDetailInfo? Detail,
+        string ErrorCode = "",
         string ErrorMessage = ""
     );
 
@@ -121,11 +122,11 @@ public sealed class LotDetailService(ITfMessageClient mq, IConfiguration cfg, IL
         var ret = aMsg.GetString(Tags.Ret);
         if (ret != Tags.True)
         {
-            var errMsg = aMsg.GetString(Tags.ErrMsg);
+            var (code, errMsg) = aMsg.GetErrorInfo();
             logger.LogWarning("LotDetail returned FALSE: {Err}", errMsg);
-            return Fail(string.IsNullOrEmpty(errMsg)
-                ? $"ロット情報詳細取得に失敗しました (RET={ret})"
-                : errMsg);
+            return Fail(
+                string.IsNullOrEmpty(errMsg) ? $"ロット情報詳細取得に失敗しました (RET={ret})" : errMsg,
+                code);
         }
 
         // 分割ロットリスト
@@ -192,5 +193,5 @@ public sealed class LotDetailService(ITfMessageClient mq, IConfiguration cfg, IL
     }
 
     // ──────── ヘルパー ────────
-    private static LotDetailResponse Fail(string message) => new(false, null, message);
+    private static LotDetailResponse Fail(string message, string code = "") => new(false, null, code, message);
 }

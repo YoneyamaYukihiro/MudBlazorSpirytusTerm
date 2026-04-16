@@ -29,13 +29,14 @@ public class TerminalServiceTests
 
         var result = await svc.GetTerminalInfoAsync("HOST01");
 
-        Assert.NotNull(result);
-        Assert.Equal("WP001", result.WpId);
-        Assert.Equal("GRP01", result.McGroupId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("WP001", result.Data!.WpId);
+        Assert.Equal("GRP01", result.Data!.McGroupId);
     }
 
     [Fact]
-    public async Task GetTerminalInfoAsync_Error_ReturnsNull()
+    public async Task GetTerminalInfoAsync_Error_ReturnsFailure()
     {
         var response = TestHelper.BuildErrorResponse();
         var mock = TestHelper.CreateMock(MsgIds.UtilRefTmInfo, response);
@@ -43,18 +44,18 @@ public class TerminalServiceTests
 
         var result = await svc.GetTerminalInfoAsync("HOST01");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
-    public async Task GetTerminalInfoAsync_Exception_ReturnsNull()
+    public async Task GetTerminalInfoAsync_Exception_ReturnsFailure()
     {
         var mock = TestHelper.CreateMockThrows(MsgIds.UtilRefTmInfo, new Exception());
         var svc = CreateService(mock);
 
         var result = await svc.GetTerminalInfoAsync("HOST01");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── SaveTerminalInfoAsync ────────

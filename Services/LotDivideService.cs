@@ -44,6 +44,7 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
 
     public sealed record DivideResult(
         bool   IsSuccess,
+        string ErrorCode    = "",
         string ErrorMessage = "",
         string GuidMsg      = "",
         string GuidMsgCode  = ""
@@ -126,16 +127,16 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogWarning(ex, "LotDivide send failed");
-            return new DivideResult(false, $"通信エラー: {ex.Message}");
+            return new DivideResult(false, ErrorMessage: $"通信エラー: {ex.Message}");
         }
 
         var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
-            var err = resp.GetString(Tags.ErrMsg);
+            var (code, err) = resp.GetErrorInfo();
             if (string.IsNullOrEmpty(err)) err = resp.GetString(Tags.Msg);
             logger.LogWarning("LotDivide returned FALSE: {Err}", err);
-            return new DivideResult(false, string.IsNullOrEmpty(err) ? "ロット分割に失敗しました。" : err);
+            return new DivideResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(err) ? "ロット分割に失敗しました。" : err);
         }
 
         return new DivideResult(

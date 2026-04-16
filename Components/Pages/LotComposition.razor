@@ -15,7 +15,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -186,6 +190,7 @@
     private bool   _carrierError = false;
     private bool   _loading      = false;
     private string _errorMessage = "";
+    private string _errorCode    = "";
     private string _guidMsg      = "";
     private string _guidMsgCode  = "";
 
@@ -227,6 +232,7 @@
         _guidMsg      = "";
         _guidMsgCode  = "";
         _errorMessage = "";
+        _errorCode    = "";
         StateHasChanged();
 
         var result = await CompositionSvc.GetCarrierStateAsync(_carrierId);
@@ -235,6 +241,7 @@
         if (!result.IsSuccess)
         {
             _errorMessage = result.ErrorMessage;
+            _errorCode    = result.ErrorCode;
             return;
         }
 
@@ -268,6 +275,7 @@
         if (!result.IsSuccess)
         {
             _errorMessage = result.ErrorMessage;
+            _errorCode    = result.ErrorCode;
             return;
         }
 
@@ -285,6 +293,7 @@
         _slotRows     = [];
         _empId        = "";
         _errorMessage = "";
+        _errorCode    = "";
         _guidMsg      = "";
         _guidMsgCode  = "";
         _selectedPriority = _priorities.Count > 0 ? _priorities[0] : null;

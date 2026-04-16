@@ -44,6 +44,7 @@ public sealed class LotHoldService(ITfMessageClient mq, IConfiguration cfg, ILog
 
     public sealed record ActionResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string HoldTime = ""
     );
@@ -161,16 +162,16 @@ public sealed class LotHoldService(ITfMessageClient mq, IConfiguration cfg, ILog
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Send failed. MsgId={MsgId}", msgId);
-            return new ActionResult(false, $"通信エラー: {ex.Message}");
+            return new ActionResult(false, ErrorMessage: $"通信エラー: {ex.Message}");
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
+            var (code, err) = msg.GetErrorInfo();
             if (string.IsNullOrEmpty(err)) err = msg.GetString(Tags.Msg);
             logger.LogWarning("MsgId={MsgId} returned FALSE: {Err}", msgId, err);
-            return new ActionResult(false, string.IsNullOrEmpty(err) ? "処理に失敗しました。" : err);
+            return new ActionResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(err) ? "処理に失敗しました。" : err);
         }
 
         return new ActionResult(true, HoldTime: msg.GetString(Tags.HoldTime));

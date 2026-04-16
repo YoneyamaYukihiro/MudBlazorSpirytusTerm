@@ -34,6 +34,7 @@ public sealed class LotThrowRsvExtService(ITfMessageClient mq, IConfiguration cf
 
     public sealed record RegisterResult(
         bool   IsSuccess,
+        string ErrorCode    = "",
         string ErrorMessage = "",
         string LotId        = ""
     );
@@ -127,10 +128,10 @@ public sealed class LotThrowRsvExtService(ITfMessageClient mq, IConfiguration cf
         var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
-            var err = resp.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = resp.GetString(Tags.Msg);
-            logger.LogWarning("LotThrowRsvExt returned FALSE: {Err}", err);
-            return new RegisterResult(false, string.IsNullOrEmpty(err) ? "投入予定登録に失敗しました。" : err);
+            var (code, message) = resp.GetErrorInfo();
+            if (string.IsNullOrEmpty(message)) message = resp.GetString(Tags.Msg);
+            logger.LogWarning("LotThrowRsvExt returned FALSE: {Err}", message);
+            return new RegisterResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(message) ? "投入予定登録に失敗しました。" : message);
         }
 
         return new RegisterResult(true, LotId: resp.GetString(Tags.LotId));

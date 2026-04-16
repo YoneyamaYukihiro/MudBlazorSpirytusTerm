@@ -36,8 +36,8 @@ public sealed class LotThrowRsvService(ITfMessageClient mq, IConfiguration cfg, 
     /// ロット投入予約を登録する。
     /// VBソース: pubblnLotThrowrsv_Ins, MsgVer="03.00"
     /// </summary>
-    /// <returns>採番されたロットID、失敗時null</returns>
-    public async Task<string?> ThrowRsvAsync(
+    /// <returns>採番されたロットID、失敗時エラー情報</returns>
+    public async Task<MesResult<string>> ThrowRsvAsync(
         LotThrowRsvRequest request,
         CancellationToken ct = default)
     {
@@ -66,18 +66,19 @@ public sealed class LotThrowRsvService(ITfMessageClient mq, IConfiguration cfg, 
         catch (Exception ex)
         {
             logger.LogError(ex, "LotThrowRsv request failed. PdId={PdId}", request.PdId);
-            return null;
+            return new MesResult<string>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotThrowRsv returned non-TRUE. PdId={PdId}, Raw={Raw}",
                 request.PdId, Summarize(raw));
-            return null;
+            return new MesResult<string>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetString(Tags.LotId);
+        return new MesResult<string>(true, msg.GetString(Tags.LotId));
     }
 
     // ──────── 投入ロット承認 ─────────────────────────────────────

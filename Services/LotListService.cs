@@ -29,6 +29,7 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         string WpStatusName,
         string McType,
         IReadOnlyList<LotInfo> LotList,
+        string ErrorCode = "",
         string ErrorMessage = ""
     );
 
@@ -137,11 +138,11 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         var ret = aMsg.GetString(Tags.Ret);
         if (ret != Tags.True)
         {
-            var errMsg = aMsg.GetString(Tags.ErrMsg);
+            var (code, errMsg) = aMsg.GetErrorInfo();
             logger.LogWarning("LotList returned FALSE: {Err}", errMsg);
             if (errMsg.Length > 0)
             {
-                return Fail(errMsg);
+                return Fail(errMsg, code);
             }
 
             var rawSummary = SummarizeRaw(primaryRaw);
@@ -230,6 +231,6 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         return s;
     }
 
-    private static LotListResponse Fail(string message) =>
-        new(false, "", "", "", "", "", "", "", [], message);
+    private static LotListResponse Fail(string message, string code = "") =>
+        new(false, "", "", "", "", "", "", "", [], code, message);
 }

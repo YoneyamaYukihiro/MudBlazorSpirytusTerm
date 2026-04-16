@@ -30,6 +30,7 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
     /// </summary>
     public sealed record LotCurStateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string OpId = "",
@@ -63,6 +64,7 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
     /// </summary>
     public sealed record OpStepListResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         IReadOnlyList<OpEntry>? OpList = null
     );
@@ -89,6 +91,7 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
     /// </summary>
     public sealed record EventHistResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string LotLastUpdate = "",
@@ -101,6 +104,7 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
     /// </summary>
     public sealed record StepBackResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string MsgCode = ""
     );
@@ -136,10 +140,9 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotCurState(EN02A0) returned FALSE. Err={Err}", err);
-            return new LotCurStateResult(false, string.IsNullOrEmpty(err) ? "ロット情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotCurState(EN02A0) returned FALSE. Err={Err}", message);
+            return new LotCurStateResult(false, code, string.IsNullOrEmpty(message) ? "ロット情報の取得に失敗しました。" : message);
         }
 
         return new LotCurStateResult(
@@ -186,10 +189,9 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("MntOpStepList(EN02A0) returned FALSE. Err={Err}", err);
-            return new OpStepListResult(false, string.IsNullOrEmpty(err) ? "流動済工程情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("MntOpStepList(EN02A0) returned FALSE. Err={Err}", message);
+            return new OpStepListResult(false, code, string.IsNullOrEmpty(message) ? "流動済工程情報の取得に失敗しました。" : message);
         }
 
         var opList = aMsg.GetMsgAry(Tags.OpList)
@@ -237,10 +239,9 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("MntEventHist(EN02A0) returned FALSE. Err={Err}", err);
-            return new EventHistResult(false, string.IsNullOrEmpty(err) ? "イベント履歴の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("MntEventHist(EN02A0) returned FALSE. Err={Err}", message);
+            return new EventHistResult(false, code, string.IsNullOrEmpty(message) ? "イベント履歴の取得に失敗しました。" : message);
         }
 
         var evList = aMsg.GetMsgAry(TagEventList)
@@ -307,11 +308,10 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
         var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = aMsg.GetErrorInfo();
             var msgCode = aMsg.GetString(Tags.MsgCode);
-            var err     = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("MntDelHist(EN02A0) returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, err);
-            return new StepBackResult(false, string.IsNullOrEmpty(err) ? "工程戻しに失敗しました。" : err, msgCode);
+            logger.LogWarning("MntDelHist(EN02A0) returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, message);
+            return new StepBackResult(false, code, string.IsNullOrEmpty(message) ? "工程戻しに失敗しました。" : message, msgCode);
         }
 
         return new StepBackResult(true);

@@ -126,8 +126,8 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     /// 組立在庫分割予約を登録する。
     /// VBソース: pubblnLotAsmdivide_Ins, MsgVer="04.00"
     /// </summary>
-    /// <returns>(DivideLotId1, DivideLotId2)、失敗時null</returns>
-    public async Task<(string LotId1, string LotId2)?> AsmDivideAsync(
+    /// <returns>(DivideLotId1, DivideLotId2)、失敗時エラー情報</returns>
+    public async Task<MesResult<(string LotId1, string LotId2)>> AsmDivideAsync(
         string lotId,
         string empId,
         string lotLastUpdate,
@@ -175,18 +175,19 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "LotAsmDivide request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<(string LotId1, string LotId2)>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotAsmDivide returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<(string LotId1, string LotId2)>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return (msg.GetString(Tags.DivideLotId1), msg.GetString(Tags.DivideLotId2));
+        return new MesResult<(string LotId1, string LotId2)>(true, (msg.GetString(Tags.DivideLotId1), msg.GetString(Tags.DivideLotId2)));
     }
 
     // ──────── 保留在庫ロットリスト ───────────────────────────────
@@ -195,7 +196,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     /// 保留在庫ロットリストを取得する。
     /// VBソース: pubblnLotHoldList_Sel, MsgVer="04.01"
     /// </summary>
-    public async Task<IReadOnlyList<HoldLotItem>?> GetHoldListAsync(
+    public async Task<MesResult<IReadOnlyList<HoldLotItem>>> GetHoldListAsync(
         string classDivision,
         IEnumerable<string> flowClasses,
         CancellationToken ct = default)
@@ -222,17 +223,18 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "LotHoldList request failed.");
-            return null;
+            return new MesResult<IReadOnlyList<HoldLotItem>>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotHoldList returned non-TRUE. Raw={Raw}", Summarize(raw));
-            return null;
+            return new MesResult<IReadOnlyList<HoldLotItem>>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetMsgAry(Tags.LotList)
+        return new MesResult<IReadOnlyList<HoldLotItem>>(true, msg.GetMsgAry(Tags.LotList)
             .Select(e => new HoldLotItem(
                 CarrierId:    e.GetString(Tags.CarrierId),
                 LotId:        e.GetString(Tags.LotId),
@@ -266,7 +268,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
                 SlotSize:     e.GetString(Tags.SlotSize),
                 SendSbId:     e.GetString(Tags.SendSbId),
                 SbArea:       e.GetString(Tags.SbArea)))
-            .ToList();
+            .ToList());
     }
 
     // ──────── 送品伝票情報取得 ───────────────────────────────────
@@ -275,7 +277,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     /// 送品伝票情報を取得する。
     /// VBソース: pubblnInvGetSendOrderList_Sel, MsgVer="03.01"
     /// </summary>
-    public async Task<IReadOnlyList<SendOrderItem>?> GetSendOrderListAsync(
+    public async Task<MesResult<IReadOnlyList<SendOrderItem>>> GetSendOrderListAsync(
         IEnumerable<string> lotIds,
         CancellationToken ct = default)
     {
@@ -300,17 +302,18 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "InvGetSendOrderList request failed.");
-            return null;
+            return new MesResult<IReadOnlyList<SendOrderItem>>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("InvGetSendOrderList returned non-TRUE. Raw={Raw}", Summarize(raw));
-            return null;
+            return new MesResult<IReadOnlyList<SendOrderItem>>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetMsgAry(Tags.LotList)
+        return new MesResult<IReadOnlyList<SendOrderItem>>(true, msg.GetMsgAry(Tags.LotList)
             .Select(e => new SendOrderItem(
                 SbName:           e.GetString(Tags.SbName),
                 AtlasPoint:       e.GetString(Tags.AtlasPoint),
@@ -328,7 +331,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
                 AtlasOrderNo:     e.GetString(Tags.AtlasOrderNo),
                 InvComments:      e.GetString(Tags.InvComments),
                 SbArea:           e.GetString(Tags.SbArea)))
-            .ToList();
+            .ToList());
     }
 
     // ──────── ロット検定表情報取得 ───────────────────────────────
@@ -337,7 +340,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     /// ロット検定表情報を取得する。
     /// VBソース: pubblnInvGetLotExamInfo_Sel, MsgVer="03.00"
     /// </summary>
-    public async Task<LotExamInfoResult?> GetLotExamInfoAsync(
+    public async Task<MesResult<LotExamInfoResult>> GetLotExamInfoAsync(
         string lotId,
         CancellationToken ct = default)
     {
@@ -354,15 +357,16 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "InvGetLotExamInfo request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<LotExamInfoResult>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("InvGetLotExamInfo returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<LotExamInfoResult>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var wfList = msg.GetMsgAry(Tags.WfList)
@@ -371,7 +375,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
                 ChipQuantity: e.GetString(Tags.ChipQuantity)))
             .ToList();
 
-        return new LotExamInfoResult(
+        return new MesResult<LotExamInfoResult>(true, new LotExamInfoResult(
             LotId:               lotId,
             BoxNo:               msg.GetString(Tags.BoxNo),
             FlowClass:           msg.GetString(Tags.FlowClass),
@@ -392,7 +396,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             GoodChipRatio:       msg.GetString(Tags.GoodChipRatio),
             InvComments:         msg.GetString(Tags.InvComments),
             ExtPartCode:         msg.GetString(Tags.ExtPartCode),
-            WfList:              wfList);
+            WfList:              wfList));
     }
 
     // ──────── 次SB連絡コメント登録 ───────────────────────────────
@@ -401,8 +405,8 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     /// 次SB連絡コメントを登録する。
     /// VBソース: pubblnInvChgComm_Upd, MsgVer="01.00"
     /// </summary>
-    /// <returns>更新後のLotLastUpdate、失敗時null</returns>
-    public async Task<string?> ChgCommAsync(
+    /// <returns>更新後のLotLastUpdate、失敗時エラー情報</returns>
+    public async Task<MesResult<string>> ChgCommAsync(
         string lotId,
         string empId,
         string invComments,
@@ -425,18 +429,19 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "InvChgComm request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<string>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("InvChgComm returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<string>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetString(Tags.LotLastUpdate);
+        return new MesResult<string>(true, msg.GetString(Tags.LotLastUpdate));
     }
 
     // ──────── CF在庫払出処理 ─────────────────────────────────────
@@ -493,7 +498,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     /// CFロット情報を取得する。
     /// VBソース: pubblnInvCFLotInfo_Sel, MsgVer="01.00"
     /// </summary>
-    public async Task<CfLotInfoResult?> GetCfLotInfoAsync(
+    public async Task<MesResult<CfLotInfoResult>> GetCfLotInfoAsync(
         string carrierId,
         CancellationToken ct = default)
     {
@@ -510,25 +515,26 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogError(ex, "InvCfLotInfo request failed. CarrierId={CarrierId}", carrierId);
-            return null;
+            return new MesResult<CfLotInfoResult>(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("InvCfLotInfo returned non-TRUE. CarrierId={CarrierId}, Raw={Raw}",
                 carrierId, Summarize(raw));
-            return null;
+            return new MesResult<CfLotInfoResult>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var thickList = msg.GetMsgAry(Tags.ThicknessList)
             .Select(e => new ThicknessItem(e.GetString(Tags.ThicknessCode)))
             .ToList();
 
-        return new CfLotInfoResult(
+        return new MesResult<CfLotInfoResult>(true, new CfLotInfoResult(
             ReworkCount:       msg.GetString(Tags.ReworkCount),
             RegenerationCount: msg.GetString(Tags.RegenerationCount),
-            ThicknessList:     thickList);
+            ThicknessList:     thickList));
     }
 
     // ──────── CF在庫リワーク登録 ─────────────────────────────────

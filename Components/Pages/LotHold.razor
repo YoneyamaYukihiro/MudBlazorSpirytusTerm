@@ -18,7 +18,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -207,6 +211,7 @@
     private bool   _carrierError = false;
     private bool   _loading     = false;
     private string _errorMessage = "";
+    private string _errorCode    = "";
 
     // 保留
     private string     _holdComment  = "";
@@ -249,6 +254,7 @@
         _lotInfo      = null;
         _holdInfoList = [];
         _errorMessage = "";
+        _errorCode    = "";
         StateHasChanged();
 
         // ClassDivision "14"=保留, "15"=保留解除
@@ -256,7 +262,7 @@
         var r  = await WorkSvc.GetLotCurStateAsync(_carrierId, classDivision: cd);
         _loading = false;
 
-        if (!r.IsSuccess) { _errorMessage = r.ErrorMessage; return; }
+        if (!r.IsSuccess) { _errorMessage = r.ErrorMessage; _errorCode = r.ErrorCode; return; }
 
         _lotInfo = r;
         Snackbar.Add($"ロット {r.LotId} を取得しました。", Severity.Info);
@@ -297,7 +303,7 @@
 
         _loading = false;
 
-        if (!result.IsSuccess) { _errorMessage = result.ErrorMessage; return; }
+        if (!result.IsSuccess) { _errorMessage = result.ErrorMessage; _errorCode = result.ErrorCode; return; }
 
         var label = IsHoldMode ? "保留" : "保留解除";
         Snackbar.Add($"{label}を登録しました。 ロット: {_lotInfo.LotId}", Severity.Success);
@@ -316,5 +322,6 @@
         _releaseComment = "";
         _selectedReason = null;
         _errorMessage   = "";
+        _errorCode      = "";
     }
 }
