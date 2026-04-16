@@ -1,0 +1,416 @@
+@page "/chip-status-change"
+@inject WfChipStatusChangeService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - チップ状態変更登録 (EN0190)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">チップ状態変更登録 (EN0190)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── キャリアID入力 ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="キャリアIDを入力"
+                          MaxLength="6"
+                          Disabled="@_loading"
+                          OnKeyDown="OnCarrierKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)"
+                       OnClick="SearchAsync">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                    <span>検索</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── ロード中 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+@* ────────────────────── ロット情報 ────────────────────── *@
+@if (_lotInfo is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.LotId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.PdId @_lotInfo.PdName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WF枚数</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.WfNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">現在工程</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.OpId / @_lotInfo.StepId</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ── 不良コード選択 ── *@
+    @if (_scrapItems.Count > 0)
+    {
+        <MudPaper Class="pa-2 mb-2" Elevation="0" Style="background:#f5f5f5">
+            <MudGrid Spacing="1" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="4">
+                    <MudSelect T="string" @bind-Value="_selectedScrapId"
+                               Label="不良/払出コード"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Dense="true">
+                        <MudSelectItem Value="@string.Empty">（コードなし）</MudSelectItem>
+                        @foreach (var item in _scrapItems)
+                        {
+                            <MudSelectItem Value="@item.ItemId">@item.ItemId @item.ItemName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        チップ区分: 1=良品 / 2=不良 / 3=払出し
+                        （工程管理端末では良い方向への変更は不可）
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    @* ────────────────────── WF一覧 ────────────────────── *@
+    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">WF一覧（チップ状態を変更してください）</MudText>
+
+    <div class="mb-3">
+        <MudDataGrid T="WfRow"
+                     Items="@_wfRows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true">
+            <Columns>
+                <TemplateColumn T="WfRow" Title="スロット"
+                    HeaderStyle="min-width:60px;max-width:60px;"
+                    CellStyle="min-width:60px;max-width:60px;text-align:right;">
+                    <CellTemplate>@context.Item.SlotPosition</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.WfId"        Title="WF-ID"    HeaderStyle="min-width:100px;" />
+                <PropertyColumn Property="x => x.WfStatusName" Title="WF現状態" HeaderStyle="min-width:100px;" />
+                <TemplateColumn T="WfRow" Title="チップ区分変更"
+                    HeaderStyle="min-width:130px;"
+                    CellStyle="min-width:130px;">
+                    <CellTemplate>
+                        @{
+                            var row = context.Item;
+                        }
+                        <MudSelect T="string"
+                                   Value="@row.NewClass"
+                                   ValueChanged="v => OnClassChanged(row, v)"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Dense="true">
+                            <MudSelectItem Value="@WfChipStatusChangeService.ClassGood">良品</MudSelectItem>
+                            <MudSelectItem Value="@WfChipStatusChangeService.ClassBad">不良</MudSelectItem>
+                            <MudSelectItem Value="@WfChipStatusChangeService.ClassForward">払出し</MudSelectItem>
+                        </MudSelect>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="WfRow" Title="不良ﾁｯﾌﾟ数"
+                    HeaderStyle="min-width:90px;max-width:90px;"
+                    CellStyle="min-width:90px;max-width:90px;">
+                    <CellTemplate>
+                        <MudTextField Value="@context.Item.ChipOutQty"
+                                      ValueChanged="@((string v) => context.Item.ChipOutQty = v)"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="6" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn T="WfRow" Title="払出ﾁｯﾌﾟ数"
+                    HeaderStyle="min-width:90px;max-width:90px;"
+                    CellStyle="min-width:90px;max-width:90px;">
+                    <CellTemplate>
+                        <MudTextField Value="@context.Item.ChipFwdQty"
+                                      ValueChanged="@((string v) => context.Item.ChipFwdQty = v)"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="6" />
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+
+    @* ────────────────────── 確定エリア ────────────────────── *@
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_empId"
+                              Label="作業者ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="作業者IDを入力"
+                              OnKeyDown="OnEmpIdKeyDownAsync" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_responsibleEmpId"
+                              Label="責任者ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="責任者IDを入力（任意）" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Success"
+                           Size="Size.Medium"
+                           Disabled="@(!CanConfirm || _confirming)"
+                           OnClick="ConfirmAsync">
+                    @if (_confirming)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        <span>送信中...</span>
+                    }
+                    else
+                    {
+                        <span>確定</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        キャリアIDを入力して「検索」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 行モデル ────────────────────────────────────────────────────────
+
+    private sealed class WfRow
+    {
+        public string WfId         { get; init; } = "";
+        public string SlotPosition { get; init; } = "";
+        public string WfStatusName { get; init; } = "";
+        public string OrigClass    { get; init; } = "";
+        public string NewClass     { get; set; } = "";
+        public string ChipOutQty   { get; set; } = "0";
+        public string ChipFwdQty   { get; set; } = "0";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────────
+
+    private string _carrierId        = string.Empty;
+    private string _empId            = string.Empty;
+    private string _responsibleEmpId = string.Empty;
+    private string _selectedScrapId  = string.Empty;
+
+    private WfChipStatusChangeService.LotCurStateResult? _lotInfo;
+    private List<WfRow> _wfRows      = [];
+    private List<WfChipStatusChangeService.ScrapItem> _scrapItems = [];
+
+    private bool _loading;
+    private bool _confirming;
+    private string _error = string.Empty;
+
+    private bool CanSearch  => !string.IsNullOrWhiteSpace(_carrierId);
+    private bool CanConfirm => _lotInfo is not null && !string.IsNullOrWhiteSpace(_empId) && _wfRows.Count > 0;
+
+    // ── キーダウン ────────────────────────────────────────────────────
+
+    private async Task OnCarrierKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanSearch && !_loading)
+            await SearchAsync();
+    }
+
+    private async Task OnEmpIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanConfirm && !_confirming)
+            await ConfirmAsync();
+    }
+
+    // ── 区分変更コールバック ──────────────────────────────────────────
+
+    private void OnClassChanged(WfRow row, string newClass)
+    {
+        row.NewClass = newClass;
+        if (newClass != WfChipStatusChangeService.ClassBad &&
+            newClass != WfChipStatusChangeService.ClassForward)
+        {
+            row.ChipOutQty = "0";
+            row.ChipFwdQty = "0";
+        }
+    }
+
+    // ── 検索 ─────────────────────────────────────────────────────────
+    // VBソース: txtCarrier_Validate → pubblnLotCurstate_Sel(CD1T) + pubblnLotWaferList_Sel + pubblnMasScpList_Sel
+
+    private async Task SearchAsync()
+    {
+        var carrierId = _carrierId.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(carrierId)) return;
+
+        _loading  = true;
+        _error    = string.Empty;
+        _lotInfo  = null;
+        _wfRows   = [];
+        _scrapItems = [];
+        StateHasChanged();
+
+        try
+        {
+            // 1. ロット情報取得(CD1T) + WFリスト取得 を並行
+            var curStateTask  = Svc.GetLotInfoAsync(carrierId, isChipMode: true);
+            var waferListTask = Svc.GetWaferListAsync(carrierId);
+            await Task.WhenAll(curStateTask, waferListTask);
+
+            var curState  = curStateTask.Result;
+            var waferList = waferListTask.Result;
+
+            if (!curState.IsSuccess)
+            {
+                _error = curState.ErrorMessage;
+                Snackbar.Add(curState.ErrorMessage, Severity.Error);
+                return;
+            }
+            _lotInfo = curState;
+
+            if (!waferList.IsSuccess)
+            {
+                _error = waferList.ErrorMessage;
+                Snackbar.Add(waferList.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            _wfRows = (waferList.WfList ?? [])
+                .Select(w => new WfRow
+                {
+                    WfId         = w.WfId,
+                    SlotPosition = w.SlotPosition,
+                    WfStatusName = w.WfStatusName,
+                    OrigClass    = w.Class,
+                    NewClass     = w.Class.Length > 0 ? w.Class : WfChipStatusChangeService.ClassGood,
+                }).ToList();
+
+            // 2. チップ用不良コード一覧取得
+            var scpResult = await Svc.GetScpListAsync(curState.LotScrapSetId, isChipMode: true);
+            if (scpResult.IsSuccess)
+                _scrapItems = [.. (scpResult.Items ?? [])];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────────
+    // VBソース: cmdConfirm_Click (frmxxCM0080) → pubblnLotInsprst_Ins(CMstrlot_insprst_Ver, CD1T)
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _confirming = true;
+        _error      = string.Empty;
+
+        try
+        {
+            var wfEntries = _wfRows.Select(r => new WfChipStatusChangeService.WfInputEntry(
+                WfId:               r.WfId,
+                SlotPosition:       r.SlotPosition,
+                Class:              r.NewClass,
+                ClassId:            r.NewClass != WfChipStatusChangeService.ClassGood ? _selectedScrapId : string.Empty,
+                ChipOutQuantity:    r.ChipOutQty,
+                ChipForwardQuantity: r.ChipFwdQty,
+                ChipList:           []
+            )).ToList();
+
+            var result = await Svc.ExecuteInsprstAsync(
+                lotId:            _lotInfo.LotId,
+                isChipMode:       true,
+                wfEntries:        wfEntries,
+                empId:            _empId.Trim(),
+                lotLastUpdate:    _lotInfo.LotLastUpdate,
+                responsibleEmpId: _responsibleEmpId.Trim()
+            );
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add("チップ状態変更を登録しました。", Severity.Success);
+                ClearForm();
+            }
+            else
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── フォームクリア ────────────────────────────────────────────────
+
+    private void ClearForm()
+    {
+        _carrierId        = string.Empty;
+        _empId            = string.Empty;
+        _responsibleEmpId = string.Empty;
+        _selectedScrapId  = string.Empty;
+        _lotInfo          = null;
+        _wfRows           = [];
+        _scrapItems       = [];
+        _error            = string.Empty;
+    }
+}

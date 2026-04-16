@@ -1,0 +1,245 @@
+@page "/guidance"
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ガイダンス (EN01D0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">ガイダンス (EN01D0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 検索条件 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="string" @bind-Value="_classDivision"
+                       Label="取得区分"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Disabled="_loading">
+                <MudSelectItem Value="@("07")">最新 (07)</MudSelectItem>
+                <MudSelectItem Value="@("3G")">期間指定 (3G)</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+
+        @if (_classDivision == "3G")
+        {
+            <MudItem xs="12" sm="4" md="3">
+                <MudTextField @bind-Value="_startDate"
+                              Label="開始日 (YYYYMMDD)"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="8"
+                              Placeholder="例: 20251201"
+                              Disabled="_loading" />
+            </MudItem>
+            <MudItem xs="12" sm="3" md="2">
+                <MudTextField @bind-Value="_startTime"
+                              Label="開始時刻 (HHMMSS)"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="6"
+                              Placeholder="例: 090000"
+                              Disabled="_loading" />
+            </MudItem>
+            <MudItem xs="12" sm="4" md="3">
+                <MudTextField @bind-Value="_endDate"
+                              Label="終了日 (YYYYMMDD)"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="8"
+                              Placeholder="例: 20251231"
+                              Disabled="_loading" />
+            </MudItem>
+            <MudItem xs="12" sm="3" md="2">
+                <MudTextField @bind-Value="_endTime"
+                              Label="終了時刻 (HHMMSS)"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              MaxLength="6"
+                              Placeholder="例: 175959"
+                              Disabled="_loading" />
+            </MudItem>
+        }
+
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField @bind-Value="_mcGroupId"
+                          Label="装置グループID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="20"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField @bind-Value="_wpId"
+                          Label="装置ID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="20"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudTextField @bind-Value="_guideLevelId"
+                          Label="ガイダンスレベルID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="4"
+                          Disabled="_loading" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudSelect T="string" @bind-Value="_sortClass"
+                       Label="ソート区分"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Disabled="_loading">
+                <MudSelectItem Value="@("1")">発生日時 昇順</MudSelectItem>
+                <MudSelectItem Value="@("2")">発生日時 降順</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       OnClick="FetchGuidanceAsync"
+                       Disabled="_loading">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>取得中...</span>
+                }
+                else
+                {
+                    <span>最新取得</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ガイダンス一覧 ────── *@
+@if (_rows.Count > 0)
+{
+    <MudPaper Class="pa-0" Elevation="1">
+        <MudTable T="GuidRow" Items="_rows" Dense="true" Hover="true"
+                  @bind-SelectedItem="_selectedRow" Elevation="0"
+                  RowClassFunc="RowColorClass"
+                  Style="cursor: pointer;">
+            <HeaderContent>
+                <MudTh>No.</MudTh>
+                <MudTh>レベル</MudTh>
+                <MudTh>発生日時</MudTh>
+                <MudTh>装置ID</MudTh>
+                <MudTh>装置名</MudTh>
+                <MudTh>ポートID</MudTh>
+                <MudTh>ロットID</MudTh>
+                <MudTh>キャリアID</MudTh>
+                <MudTh>大工程</MudTh>
+                <MudTh>小工程</MudTh>
+                <MudTh>コード</MudTh>
+                <MudTh>メッセージ</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.No</MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@LevelColor(context.GuideLevelId)" Size="Size.Small">
+                        @context.GuideLevelId
+                    </MudChip>
+                </MudTd>
+                <MudTd>@context.Date</MudTd>
+                <MudTd>@context.WpId</MudTd>
+                <MudTd>@context.WpName</MudTd>
+                <MudTd>@context.PortId</MudTd>
+                <MudTd>@context.LotId</MudTd>
+                <MudTd>@context.CarrierId</MudTd>
+                <MudTd>@context.OpId</MudTd>
+                <MudTd>@context.StepId</MudTd>
+                <MudTd><b>@context.GuideCode</b></MudTd>
+                <MudTd Style="max-width:300px; white-space:pre-wrap; word-break:break-all;">@context.GuideMsg</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+else if (_searched)
+{
+    <MudAlert Severity="Severity.Info" Dense="true">ガイダンス情報はありません。</MudAlert>
+}
+
+@code {
+    private string _classDivision  = "07";
+    private string _startDate      = "";
+    private string _startTime      = "";
+    private string _endDate        = "";
+    private string _endTime        = "";
+    private string _mcGroupId      = "";
+    private string _wpId           = "";
+    private string _guideLevelId   = "";
+    private string _sortClass      = "2";
+    private bool   _loading        = false;
+    private bool   _searched       = false;
+    private string _errorMessage   = "";
+
+    private List<GuidRow> _rows       = [];
+    private GuidRow?      _selectedRow;
+
+    private sealed record GuidRow(
+        int    No,
+        string GuideLevelId,
+        string Date,
+        string WpId,
+        string WpName,
+        string PortId,
+        string LotId,
+        string CarrierId,
+        string OpId,
+        string StepId,
+        string GuideCode,
+        string GuideMsg
+    );
+
+    private Color LevelColor(string level) => level switch
+    {
+        "E" or "ERROR"   => Color.Error,
+        "W" or "WARNING" => Color.Warning,
+        "I" or "INFO"    => Color.Info,
+        _                => Color.Default
+    };
+
+    private string RowColorClass(GuidRow row, int _) => row.GuideLevelId switch
+    {
+        "E" or "ERROR" => "mud-theme-error",
+        _              => ""
+    };
+
+    private async Task FetchGuidanceAsync()
+    {
+        _loading  = true;
+        _searched = false;
+        _rows     = [];
+        _errorMessage = "";
+        StateHasChanged();
+
+        // 実装中 - guidinfo____ MsgVer="02.00" で取得
+        await Task.Delay(500);
+        _loading  = false;
+        _searched = true;
+
+        // サンプルデータ
+        _rows = new List<GuidRow>
+        {
+            new(1, "W", DateTime.Now.AddMinutes(-5).ToString("yyyy/MM/dd HH:mm:ss"),
+                "WP001", "装置A", "P1", "LOT12345", "CARR01", "OP1", "ST1", "GW0001", "ウェーハ枚数確認"),
+            new(2, "I", DateTime.Now.AddMinutes(-2).ToString("yyyy/MM/dd HH:mm:ss"),
+                "WP002", "装置B", "P2", "LOT12346", "CARR02", "OP2", "ST2", "GI0001", "処理完了"),
+        };
+        Snackbar.Add($"ガイダンス {_rows.Count} 件を取得しました。", Severity.Info);
+    }
+}

@@ -1,0 +1,725 @@
+@page "/equipment-mode-change"
+@inject EquipmentService EqSvc
+@inject EquipmentModeService ModeSvc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.EquipmentService
+@using static MudBlazorSpirytusTerm.Services.EquipmentModeService
+
+<PageTitle>SPIRYTUS - 運用モード変更/装置状態変更 (EN00C0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">運用モード変更/装置状態変更 (EN00C0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 装置グループ・装置選択 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="McGroup"
+                       Label="装置グループ"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedGroup"
+                       ValueChanged="OnGroupChangedAsync"
+                       Clearable="true"
+                       ToStringFunc="@(g => g is null ? "" : $"{g.Id} {g.Name}")"
+                       AnchorOrigin="Origin.BottomLeft"
+                       Disabled="@(_groupsLoading || _loading)">
+                @if (_groupsLoading)
+                {
+                    <MudSelectItem T="McGroup" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var g in _groups)
+                    {
+                        <MudSelectItem T="McGroup" Value="g">@g.Id @g.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="Equipment"
+                       Label="装置"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Value="_selectedEquipment"
+                       ValueChanged="OnEquipmentChangedAsync"
+                       Clearable="true"
+                       ToStringFunc="@(e => e is null ? "" : $"{e.WpId} {e.WpName}")"
+                       AnchorOrigin="Origin.BottomLeft"
+                       Disabled="@(_selectedGroup is null || _eqLoading || _loading)">
+                @if (_eqLoading)
+                {
+                    <MudSelectItem T="Equipment" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                }
+                else
+                {
+                    foreach (var eq in _equipments)
+                    {
+                        <MudSelectItem T="Equipment" Value="eq">@eq.WpId @eq.WpName</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       Disabled="@(_selectedEquipment is null || _loading)"
+                       OnClick="LoadEquipmentStateAsync">
+                @if (_loading && _eqState is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>取得中...</span>
+                }
+                else
+                {
+                    <span>装置状態取得</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── 装置現在状態 ────── *@
+@if (_eqState is not null && _selectedEquipment is not null)
+{
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">装置現在状態</MudText>
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">装置ID</MudText>
+                <MudText Typo="Typo.body2">@_selectedEquipment.WpId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">装置名</MudText>
+                <MudText Typo="Typo.body2">@_selectedEquipment.WpName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">運用モード</MudText>
+                <MudText Typo="Typo.body2">@_eqState.MesModeId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">装置状態</MudText>
+                <MudText Typo="Typo.body2">@_eqState.UseName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">稼動状態</MudText>
+                <MudText Typo="Typo.body2">@(_eqState.WpStopFlag == "1" ? "停止中" : "通常")</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3" md="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">処理順</MudText>
+                <MudText Typo="Typo.body2">@_eqState.CollectTypeFlag</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ────── タブ ────── *@
+    <MudTabs Elevation="1" Rounded="true" PanelClass="pa-4" Class="mb-3"
+             @bind-ActivePanelIndex="_activeTab">
+        @* ── タブ1: 運用モード変更 ── *@
+        <MudTabPanel Text="運用モード変更">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudSelect T="string"
+                               Label="変更後運用モード"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               @bind-Value="_newMesMode"
+                               AnchorOrigin="Origin.BottomLeft">
+                        <MudSelectItem T="string" Value="@("M1")">M1 マニュアル１</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("S1")">S1 セミオート１</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("S2")">S2 セミオート２</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("F")">F フルオート</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField @bind-Value="_modeEmpId"
+                                  Label="社員ID"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="社員IDを入力" />
+                </MudItem>
+                <MudItem xs="12" sm="8" md="6">
+                    <MudTextField @bind-Value="_modeComments"
+                                  Label="コメント"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="コメント（任意）" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   Disabled="@(!CanConfirmMode || _confirming)"
+                                   OnClick="ConfirmModeChangeAsync">
+                            @if (_confirming)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                                <span>送信中...</span>
+                            }
+                            else
+                            {
+                                <span>確定</span>
+                            }
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Warning"
+                                   Disabled="@(!CanConfirmMode || _confirming)"
+                                   OnClick="ForceConfirmModeChangeAsync">
+                            強制変更
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   OnClick="ClearModeTab">
+                            クリア
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+                @if (!string.IsNullOrEmpty(_modeGuidanceMsg))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            @_modeGuidanceMsg
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudTabPanel>
+
+        @* ── タブ2: 装置状態変更 ── *@
+        <MudTabPanel Text="装置状態変更">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MudSelect T="WpUseItem"
+                               Label="変更後装置状態"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Value="_selectedUse"
+                               ValueChanged="OnUseChangedAsync"
+                               ToStringFunc="@(u => u is null ? "" : $"{u.UseId} {u.UseName}")"
+                               AnchorOrigin="Origin.BottomLeft"
+                               Disabled="@(_useListLoading)">
+                        @if (_useListLoading)
+                        {
+                            <MudSelectItem T="WpUseItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                        }
+                        else
+                        {
+                            foreach (var u in _useList)
+                            {
+                                <MudSelectItem T="WpUseItem" Value="u">@u.UseId @u.UseName</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudSelect T="WpMessageItem"
+                               Label="メッセージ"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Value="_selectedMessage"
+                               ValueChanged="@((WpMessageItem? m) => _selectedMessage = m)"
+                               ToStringFunc="@(m => m is null ? "" : $"{m.MessageId} {m.MessageText}")"
+                               AnchorOrigin="Origin.BottomLeft"
+                               Disabled="@(_msgListLoading || _messages.Count == 0)">
+                        @if (_msgListLoading)
+                        {
+                            <MudSelectItem T="WpMessageItem" Value="null" Disabled="true">読み込み中...</MudSelectItem>
+                        }
+                        else
+                        {
+                            foreach (var m in _messages)
+                            {
+                                <MudSelectItem T="WpMessageItem" Value="m">@m.MessageId @m.MessageText</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField @bind-Value="_useEmpId"
+                                  Label="社員ID"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="社員IDを入力" />
+                </MudItem>
+                <MudItem xs="12" sm="8" md="6">
+                    <MudTextField @bind-Value="_useComments"
+                                  Label="コメント"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="コメント（任意）" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   Disabled="@(!CanConfirmUse || _confirming)"
+                                   OnClick="ConfirmUseChangeAsync">
+                            @if (_confirming)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                                <span>送信中...</span>
+                            }
+                            else
+                            {
+                                <span>確定</span>
+                            }
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   OnClick="ClearUseTab">
+                            クリア
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        @* ── タブ3: 搬送ポート変更 ── *@
+        <MudTabPanel Text="搬送ポート変更">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">ポート一覧 - 搬送サービス有効・無効変更</MudText>
+                    @if (_portRows.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            ポート情報がありません。装置状態を取得してください。
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudTable T="PortRow"
+                                  Items="_portRows"
+                                  Dense="true"
+                                  Hover="true"
+                                  Bordered="true"
+                                  Elevation="1"
+                                  Class="mb-3">
+                            <HeaderContent>
+                                <MudTh>ポートID</MudTh>
+                                <MudTh>現在状態</MudTh>
+                                <MudTh>搬送サービス</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="ポートID">@context.PortId</MudTd>
+                                <MudTd DataLabel="現在状態">@context.PortStatus</MudTd>
+                                <MudTd DataLabel="搬送サービス">
+                                    <MudSelect T="string"
+                                               Value="@context.TransServiceStatus"
+                                               ValueChanged="@(v => context.TransServiceStatus = v)"
+                                               Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
+                                               Style="min-width:120px;"
+                                               AnchorOrigin="Origin.BottomLeft">
+                                        <MudSelectItem T="string" Value="@("0")">可能</MudSelectItem>
+                                        <MudSelectItem T="string" Value="@("1")">不可能</MudSelectItem>
+                                    </MudSelect>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudTextField @bind-Value="_portEmpId"
+                                  Label="社員ID"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="社員IDを入力" />
+                </MudItem>
+                <MudItem xs="12" sm="8" md="6">
+                    <MudTextField @bind-Value="_portComments"
+                                  Label="コメント"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="コメント（任意）" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   Disabled="@(!CanConfirmPort || _confirming)"
+                                   OnClick="ConfirmPortChangeAsync">
+                            @if (_confirming)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                                <span>送信中...</span>
+                            }
+                            else
+                            {
+                                <span>確定</span>
+                            }
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   OnClick="ClearPortTab">
+                            クリア
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+}
+else if (!_loading && _selectedEquipment is null)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        装置グループと装置を選択して「装置状態取得」を押してください。
+    </MudText>
+}
+
+@code {
+
+    // ── ポートデータ行モデル ────────────────────────────────────────
+    private sealed class PortRow
+    {
+        public string PortId              { get; init; } = "";
+        public string PortStatus          { get; init; } = "";
+        public string TransServiceStatus  { get; set;  } = "0";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────
+    private bool   _loading       = false;
+    private bool   _groupsLoading = true;
+    private bool   _eqLoading     = false;
+    private bool   _useListLoading = false;
+    private bool   _msgListLoading = false;
+    private bool   _confirming    = false;
+    private string _errorMessage  = string.Empty;
+
+    // 装置グループ・装置選択
+    private IReadOnlyList<McGroup>   _groups          = [];
+    private McGroup?                 _selectedGroup;
+    private IReadOnlyList<Equipment> _equipments      = [];
+    private Equipment?               _selectedEquipment;
+    private EquipmentState?          _eqState;
+
+    // タブ
+    private int _activeTab = 0;
+
+    // 装置状態マスタ・メッセージ
+    private IReadOnlyList<WpUseItem>    _useList  = [];
+    private IReadOnlyList<WpMessageItem> _messages = [];
+
+    // タブ1: 運用モード変更
+    private string _newMesMode     = string.Empty;
+    private string _modeEmpId      = string.Empty;
+    private string _modeComments   = string.Empty;
+    private string _modeGuidanceMsg = string.Empty;
+
+    // タブ2: 装置状態変更
+    private WpUseItem?    _selectedUse     = null;
+    private WpMessageItem? _selectedMessage = null;
+    private string        _useEmpId        = string.Empty;
+    private string        _useComments     = string.Empty;
+
+    // タブ3: 搬送ポート変更
+    private List<PortRow> _portRows     = [];
+    private string        _portEmpId    = string.Empty;
+    private string        _portComments = string.Empty;
+
+    // ── CanExecute ────────────────────────────────────────────────
+    private bool CanConfirmMode => _selectedEquipment is not null
+                                   && !string.IsNullOrWhiteSpace(_newMesMode)
+                                   && !string.IsNullOrWhiteSpace(_modeEmpId);
+
+    private bool CanConfirmUse  => _selectedEquipment is not null
+                                   && _selectedUse is not null
+                                   && !string.IsNullOrWhiteSpace(_useEmpId);
+
+    private bool CanConfirmPort => _selectedEquipment is not null
+                                   && _portRows.Count > 0
+                                   && !string.IsNullOrWhiteSpace(_portEmpId);
+
+    // ── 初期化 ────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        _groups = await EqSvc.GetMcGroupListAsync();
+        _groupsLoading = false;
+
+        _useList = await ModeSvc.GetWpUseListAsync();
+        _useListLoading = false;
+    }
+
+    // ── 装置グループ変更 ─────────────────────────────────────────
+    private async Task OnGroupChangedAsync(McGroup? g)
+    {
+        _selectedGroup     = g;
+        _selectedEquipment = null;
+        _equipments        = [];
+        _eqState           = null;
+        _portRows          = [];
+        _errorMessage      = string.Empty;
+
+        if (g is null) return;
+
+        _eqLoading = true;
+        StateHasChanged();
+
+        _equipments = await EqSvc.GetEquipmentListAsync(g.Id);
+        _eqLoading  = false;
+    }
+
+    // ── 装置変更 ─────────────────────────────────────────────────
+    private async Task OnEquipmentChangedAsync(Equipment? eq)
+    {
+        _selectedEquipment = eq;
+        _eqState           = null;
+        _portRows          = [];
+        _errorMessage      = string.Empty;
+
+        if (eq is null) return;
+
+        // メッセージリストを装置変更のたびに更新
+        await LoadMessagesAsync(eq.WpId);
+    }
+
+    // ── 装置状態取得 ─────────────────────────────────────────────
+    // VBソース: prvblnWpID_Sel → eq__.state___ → 画面表示
+    private async Task LoadEquipmentStateAsync()
+    {
+        if (_selectedEquipment is null) return;
+
+        _loading      = true;
+        _errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            _eqState = await EqSvc.GetEquipmentStateAsync(_selectedEquipment.WpId);
+            if (_eqState is null)
+            {
+                _errorMessage = "装置状態の取得に失敗しました。";
+                return;
+            }
+
+            // ポートリストをPortRowに変換
+            _portRows = _eqState.PortList
+                .Select(p => new PortRow
+                {
+                    PortId             = p.PortId,
+                    PortStatus         = p.PortStatus,
+                    TransServiceStatus = "0"
+                }).ToList();
+
+            // 現在の運用モードを初期値にセット
+            _newMesMode = _eqState.MesModeId;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── メッセージリスト取得 ─────────────────────────────────────
+    private async Task LoadMessagesAsync(string wpId)
+    {
+        _msgListLoading = true;
+        StateHasChanged();
+        _messages       = await ModeSvc.GetWpMsgListAsync(wpId);
+        _msgListLoading = false;
+    }
+
+    // ── 装置状態変更時にメッセージリスト更新 ────────────────────
+    // VBソース: cmbUseName_Validate → prvblnWpMsg_Disp
+    private async Task OnUseChangedAsync(WpUseItem? u)
+    {
+        _selectedUse    = u;
+        _selectedMessage = null;
+
+        if (u is not null && _selectedEquipment is not null)
+        {
+            await LoadMessagesAsync(_selectedEquipment.WpId);
+        }
+    }
+
+    // ── 運用モード変更 確定 ────────────────────────────────────
+    // VBソース: cmdRegist_Click → pubblnEqChgMode_Upd
+    private async Task ConfirmModeChangeAsync()
+    {
+        if (_selectedEquipment is null || string.IsNullOrWhiteSpace(_newMesMode)) return;
+        await SendModeChangeAsync(force: false);
+    }
+
+    // ── 運用モード 強制変更 ───────────────────────────────────────
+    // VBソース: cmdRegist_Click（強制） → pubblnEqEmgChgMode_Upd
+    private async Task ForceConfirmModeChangeAsync()
+    {
+        if (_selectedEquipment is null || string.IsNullOrWhiteSpace(_newMesMode)) return;
+        await SendModeChangeAsync(force: true);
+    }
+
+    private async Task SendModeChangeAsync(bool force)
+    {
+        _confirming   = true;
+        _errorMessage = string.Empty;
+        _modeGuidanceMsg = string.Empty;
+
+        try
+        {
+            var request = new EqChgModeRequest(
+                WpId:      _selectedEquipment!.WpId,
+                MesModeId: _newMesMode,
+                EmpId:     _modeEmpId.Trim(),
+                Comments:  _modeComments.Trim()
+            );
+
+            var result = force
+                ? await ModeSvc.ForceChangeOperationModeAsync(request)
+                : await ModeSvc.ChangeOperationModeAsync(request);
+
+            if (result.IsSuccess)
+            {
+                var label = force ? "（強制）" : "";
+                Snackbar.Add($"運用モード変更{label}が完了しました。", Severity.Success);
+                if (!string.IsNullOrEmpty(result.GuidanceMsg))
+                    _modeGuidanceMsg = result.GuidanceMsg;
+                await LoadEquipmentStateAsync();
+                ClearModeTab();
+            }
+            else
+            {
+                _errorMessage = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── 装置状態変更 確定 ─────────────────────────────────────────
+    // VBソース: cmdUseChange_Click → pubblnEqChguse_Ins
+    private async Task ConfirmUseChangeAsync()
+    {
+        if (_selectedEquipment is null || _selectedUse is null) return;
+
+        _confirming   = true;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            var request = new ChangeWpUseRequest(
+                WpId:      _selectedEquipment.WpId,
+                UseId:     _selectedUse.UseId,
+                EmpId:     _useEmpId.Trim(),
+                OldUseId:  _eqState?.UseId ?? string.Empty,
+                WpStopFlag: _selectedUse.UseStopFlag,
+                MessageId:  _selectedMessage?.MessageId ?? string.Empty,
+                Comments:   _useComments.Trim()
+            );
+
+            var (isSuccess, entryTime, errorMessage) = await ModeSvc.ChangeWpUseAsync(request);
+
+            if (isSuccess)
+            {
+                Snackbar.Add("装置状態変更が完了しました。", Severity.Success);
+                await LoadEquipmentStateAsync();
+                ClearUseTab();
+            }
+            else
+            {
+                _errorMessage = errorMessage;
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── 搬送ポート変更 確定 ───────────────────────────────────────
+    // VBソース: cmdChangeTrnst_Click → pubblnChgtrnstat_Upd
+    private async Task ConfirmPortChangeAsync()
+    {
+        if (_selectedEquipment is null || _portRows.Count == 0) return;
+
+        _confirming   = true;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            var portList = _portRows
+                .Select(p => new TransportPort(p.PortId, p.TransServiceStatus))
+                .ToList();
+
+            var request = new ChangeTrnStatRequest(
+                WpId:     _selectedEquipment.WpId,
+                EmpId:    _portEmpId.Trim(),
+                PortList: portList,
+                Comments: _portComments.Trim()
+            );
+
+            var ok = await ModeSvc.ChangeTransportStatusAsync(request);
+
+            if (ok)
+            {
+                Snackbar.Add("搬送ポート変更が完了しました。", Severity.Success);
+                await LoadEquipmentStateAsync();
+                ClearPortTab();
+            }
+            else
+            {
+                _errorMessage = "搬送ポート変更に失敗しました。";
+                Snackbar.Add(_errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── クリア ────────────────────────────────────────────────────
+
+    private void ClearModeTab()
+    {
+        _newMesMode      = string.Empty;
+        _modeEmpId       = string.Empty;
+        _modeComments    = string.Empty;
+        _modeGuidanceMsg = string.Empty;
+    }
+
+    private void ClearUseTab()
+    {
+        _selectedUse    = null;
+        _selectedMessage = null;
+        _useEmpId       = string.Empty;
+        _useComments    = string.Empty;
+    }
+
+    private void ClearPortTab()
+    {
+        _portEmpId    = string.Empty;
+        _portComments = string.Empty;
+    }
+}

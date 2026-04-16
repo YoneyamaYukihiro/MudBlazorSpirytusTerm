@@ -1,0 +1,519 @@
+@page "/batch-lot-management"
+@inject BatchLotService BatchLotSvc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - バッチ管理 (EN00M0)</PageTitle>
+
+@* ────────────────────── ローディングバー ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">バッチ管理 (EN00M0)</MudText>
+
+@* ────────────────────── エラーアラート ────────────────────── *@
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────────────────────── 装置グループ・最新取得 ────────────────────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="string"
+                       Value="@_selectedMcGroupId"
+                       ValueChanged="OnMcGroupChangedAsync"
+                       Label="装置グループ"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Disabled="@_loading">
+                @foreach (var g in _mcGroups)
+                {
+                    <MudSelectItem Value="@g.McGroupId">@g.McGroupId @g.McGroupName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="FetchLotsAsync"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       Disabled="@(_loading || string.IsNullOrEmpty(_selectedMcGroupId))">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>取得中...</span>
+                }
+                else
+                {
+                    <span>最新取得</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── 在庫ロット一覧 ────────────────────── *@
+@if (_fetched)
+{
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">在庫ロット一覧</MudText>
+
+        <MudTabs Elevation="0" Rounded="false" Border="true" Color="Color.Default" Class="mb-2">
+
+            @* 製品ロット *@
+            <MudTabPanel Text="製品ロット">
+                @if (_productLots.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">製品ロットはありません。</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Bordered="true" Striped="true" Style="overflow-x:auto;">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"></th>
+                                <th>№</th>
+                                <th>キャリアID</th>
+                                <th>ロットID</th>
+                                <th>種</th>
+                                <th>優</th>
+                                <th>WF</th>
+                                <th>レシピ</th>
+                                <th>時間制限</th>
+                                <th>作業条件</th>
+                                <th>大工程</th>
+                                <th>小工程</th>
+                                <th>蒸着バッチID</th>
+                                <th>表面処理バッチID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int no = 1; }
+                            @foreach (var lot in _productLots)
+                            {
+                                var isChecked = _selectedLots.Contains(lot);
+                                <tr style="@(isChecked ? "background-color: var(--mud-palette-primary-lighten);" : "")">
+                                    <td style="text-align:center;">
+                                        <MudCheckBox T="bool" Value="@isChecked"
+                                                     ValueChanged="@((bool v) => ToggleLotSelection(lot, v))"
+                                                     Dense="true" />
+                                    </td>
+                                    <td style="text-align:right;">@(no++)</td>
+                                    <td>@lot.CarrierId</td>
+                                    <td>@lot.LotId</td>
+                                    <td>@lot.FlowClass</td>
+                                    <td style="text-align:center;">@lot.LotPriority</td>
+                                    <td style="text-align:right;">@lot.WfQuantity</td>
+                                    <td>@lot.RecipeId</td>
+                                    <td>@lot.LimitTime</td>
+                                    <td>@lot.OptionText</td>
+                                    <td>@lot.OpId</td>
+                                    <td>@lot.StepId</td>
+                                    <td>@lot.JBatchId</td>
+                                    <td>@lot.HBatchId</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudTabPanel>
+
+            @* モニタロット *@
+            <MudTabPanel Text="モニタロット">
+                @if (_monitorLots.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-2">モニタロットはありません。</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Bordered="true" Striped="true" Style="overflow-x:auto;">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;"></th>
+                                <th>№</th>
+                                <th>キャリアID</th>
+                                <th>ロットID</th>
+                                <th>種</th>
+                                <th>優</th>
+                                <th>WF</th>
+                                <th>レシピ</th>
+                                <th>時間制限</th>
+                                <th>作業条件</th>
+                                <th>大工程</th>
+                                <th>小工程</th>
+                                <th>蒸着バッチID</th>
+                                <th>表面処理バッチID</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int mno = 1; }
+                            @foreach (var lot in _monitorLots)
+                            {
+                                var isChecked = _selectedLots.Contains(lot);
+                                <tr style="@(isChecked ? "background-color: var(--mud-palette-primary-lighten);" : "")">
+                                    <td style="text-align:center;">
+                                        <MudCheckBox T="bool" Value="@isChecked"
+                                                     ValueChanged="@((bool v) => ToggleLotSelection(lot, v))"
+                                                     Dense="true" />
+                                    </td>
+                                    <td style="text-align:right;">@(mno++)</td>
+                                    <td>@lot.CarrierId</td>
+                                    <td>@lot.LotId</td>
+                                    <td>@lot.FlowClass</td>
+                                    <td style="text-align:center;">@lot.LotPriority</td>
+                                    <td style="text-align:right;">@lot.WfQuantity</td>
+                                    <td>@lot.RecipeId</td>
+                                    <td>@lot.LimitTime</td>
+                                    <td>@lot.OptionText</td>
+                                    <td>@lot.OpId</td>
+                                    <td>@lot.StepId</td>
+                                    <td>@lot.JBatchId</td>
+                                    <td>@lot.HBatchId</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudTabPanel>
+        </MudTabs>
+    </MudPaper>
+
+    @* ────────────────────── バッチ操作 ────────────────────── *@
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">バッチ操作</MudText>
+
+        <MudGrid Spacing="2" AlignItems="AlignItems.End" Class="mb-3">
+            @* 装置選択 *@
+            <MudItem xs="12" sm="4" md="3">
+                <MudSelect T="string"
+                           @bind-Value="_selectedWpId"
+                           Label="装置"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Disabled="@(_loading || _wpList.Count == 0)">
+                    @foreach (var wp in _wpList)
+                    {
+                        <MudSelectItem Value="@wp.WpId">@wp.WpName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* レシピID *@
+            <MudItem xs="12" sm="3" md="2">
+                <MudTextField @bind-Value="_recipeId"
+                              Label="レシピID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Disabled="_loading"
+                              MaxLength="32" />
+            </MudItem>
+
+            @* バッチID (変更・削除時) *@
+            <MudItem xs="12" sm="3" md="2">
+                <MudTextField @bind-Value="_batchId"
+                              Label="バッチID（変更・削除時）"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Disabled="_loading"
+                              MaxLength="32" />
+            </MudItem>
+        </MudGrid>
+
+        @* 選択ロット一覧 *@
+        @if (_selectedLots.Count > 0)
+        {
+            <MudText Typo="Typo.caption" Class="mb-1 mud-text-secondary">選択ロット (@_selectedLots.Count 件)</MudText>
+            <MudSimpleTable Dense="true" Bordered="true" Style="width:auto; margin-bottom:12px;">
+                <thead>
+                    <tr>
+                        <th>順</th>
+                        <th>キャリアID</th>
+                        <th>ロットID</th>
+                        <th>種</th>
+                        <th>WF</th>
+                        <th>レシピ</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ int selNo = 1; }
+                    @foreach (var lot in _selectedLots)
+                    {
+                        var capturedLot = lot;
+                        <tr>
+                            <td style="text-align:right;">@(selNo++)</td>
+                            <td>@lot.CarrierId</td>
+                            <td>@lot.LotId</td>
+                            <td>@lot.FlowClass</td>
+                            <td style="text-align:right;">@lot.WfQuantity</td>
+                            <td>@lot.RecipeId</td>
+                            <td>
+                                <MudIconButton Icon="@Icons.Material.Filled.Remove"
+                                               Size="Size.Small"
+                                               OnClick="@(() => _selectedLots.Remove(capturedLot))"
+                                               Disabled="_loading" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">上のロット一覧でチェックボックスを選択してください。</MudText>
+        }
+
+        @* 操作ボタン *@
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => BatchChangeConfirmAsync(""))"
+                       Disabled="@(_loading || _selectedLots.Count == 0 || string.IsNullOrEmpty(_selectedWpId))">
+                新規登録
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Warning"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Edit"
+                       OnClick="@(() => BatchChangeConfirmAsync("06"))"
+                       Disabled="@(_loading || _selectedLots.Count == 0 || string.IsNullOrEmpty(_selectedWpId) || string.IsNullOrEmpty(_batchId))">
+                変 更
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Error"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@(() => BatchChangeConfirmAsync("05"))"
+                       Disabled="@(_loading || string.IsNullOrEmpty(_batchId))">
+                削 除
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Default"
+                       Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Clear"
+                       OnClick="ClearOperation"
+                       Disabled="_loading">
+                クリア
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+
+    // ── 画面状態 ──────────────────────────────────────────────────
+
+    private bool   _loading          = false;
+    private bool   _fetched          = false;
+    private string _errorMessage     = "";
+
+    private string _selectedMcGroupId = "";
+    private string _selectedWpId      = "";
+    private string _recipeId          = "";
+    private string _batchId           = "";
+
+    private IReadOnlyList<BatchLotService.McGroupEntry> _mcGroups  = [];
+    private IReadOnlyList<BatchLotService.WpEntry>      _wpList    = [];
+    private IReadOnlyList<BatchLotService.LotEntry>     _productLots = [];
+    private IReadOnlyList<BatchLotService.LotEntry>     _monitorLots = [];
+    private List<BatchLotService.LotEntry>              _selectedLots = [];
+
+    // ── 初期化 ─────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _mcGroups = await BatchLotSvc.GetMcGroupListAsync();
+
+        if (_mcGroups.Count == 1)
+        {
+            _selectedMcGroupId = _mcGroups[0].McGroupId;
+            await LoadWpListAsync(_selectedMcGroupId);
+        }
+
+        _loading = false;
+    }
+
+    // ── 装置グループ変更 ──────────────────────────────────────────
+
+    private async Task OnMcGroupChangedAsync(string groupId)
+    {
+        _selectedMcGroupId = groupId;
+        _selectedWpId      = "";
+        _wpList            = [];
+        ClearAll();
+
+        if (!string.IsNullOrEmpty(groupId))
+            await LoadWpListAsync(groupId);
+    }
+
+    private async Task LoadWpListAsync(string mcGroupId)
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _wpList = await BatchLotSvc.GetWpListAsync(mcGroupId);
+
+        if (_wpList.Count == 1)
+            _selectedWpId = _wpList[0].WpId;
+
+        _loading = false;
+    }
+
+    // ── 最新取得 ─────────────────────────────────────────────────
+
+    private async Task FetchLotsAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedMcGroupId))
+            return;
+
+        _loading      = true;
+        _errorMessage = "";
+        _selectedLots = [];
+        _fetched      = false;
+        StateHasChanged();
+
+        var productTask = BatchLotSvc.GetLotListAsync(_selectedMcGroupId, "2T");
+        var monitorTask = BatchLotSvc.GetLotListAsync(_selectedMcGroupId, "2Z");
+        await Task.WhenAll(productTask, monitorTask);
+
+        _loading = false;
+
+        var productResult = productTask.Result;
+        var monitorResult = monitorTask.Result;
+
+        if (!productResult.IsSuccess && !monitorResult.IsSuccess)
+        {
+            _errorMessage = productResult.ErrorMessage.Length > 0
+                ? productResult.ErrorMessage
+                : monitorResult.ErrorMessage;
+            return;
+        }
+
+        _productLots = productResult.Lots ?? [];
+        _monitorLots = monitorResult.Lots ?? [];
+        _fetched     = true;
+
+        Snackbar.Add(
+            $"取得完了: 製品ロット {_productLots.Count} 件 / モニタロット {_monitorLots.Count} 件",
+            Severity.Success);
+    }
+
+    // ── バッチ操作 ───────────────────────────────────────────────
+
+    private async Task BatchChangeConfirmAsync(string classDiv)
+    {
+        // 削除はロット選択不要、ただしバッチIDが必要
+        if (classDiv == "05")
+        {
+            if (string.IsNullOrEmpty(_batchId))
+                return;
+        }
+        else
+        {
+            if (_selectedLots.Count == 0 || string.IsNullOrEmpty(_selectedWpId))
+                return;
+        }
+
+        _loading      = true;
+        _errorMessage = "";
+        StateHasChanged();
+
+        // 選択ロットから送信用リストを構築
+        var lotItems = _selectedLots.Select((lot, idx) =>
+        {
+            var wf = lot.WfList.Count > 0 ? lot.WfList[0] : null;
+            return new BatchLotService.BatchLotItem(
+                SeqNum:           (idx + 1).ToString(),
+                CarrierId:        lot.CarrierId,
+                JigId:            wf?.JigId ?? "",
+                LotId:            lot.LotId,
+                LotLastUpdate:    lot.LotLastUpdate,
+                UnloaderCarrierId: lot.UnloaderCarrierId,
+                WfId:             wf?.WfId ?? "",
+                PanelKind:        lot.CfFlag,
+                VaConditionId:    ""
+            );
+        }).ToList();
+
+        // 装置タイプ取得
+        var wp = _wpList.FirstOrDefault(w => w.WpId == _selectedWpId);
+        var eqType = wp?.EqType ?? "";
+
+        var result = await BatchLotSvc.BatchChangeAsync(
+            classDiv:  classDiv,
+            batchId:   _batchId,
+            wpId:      _selectedWpId,
+            eqType:    eqType,
+            recipeId:  _recipeId,
+            empId:     "",
+            lots:      lotItems);
+
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = string.IsNullOrEmpty(result.ErrorMessage)
+                ? "バッチ操作に失敗しました。"
+                : result.ErrorMessage;
+            if (!string.IsNullOrEmpty(result.MsgCode))
+                _errorMessage = $"[{result.MsgCode}] {_errorMessage}";
+            return;
+        }
+
+        var opLabel = classDiv switch
+        {
+            ""   => "新規登録",
+            "06" => "変更",
+            "05" => "削除",
+            _    => "操作"
+        };
+        var resultBatchId = !string.IsNullOrEmpty(result.BatchId) ? result.BatchId : _batchId;
+        Snackbar.Add($"バッチ{opLabel}が完了しました。バッチID: {resultBatchId}", Severity.Success);
+
+        // 登録後は最新情報を再取得
+        await FetchLotsAsync();
+    }
+
+    // ── ロット選択トグル ──────────────────────────────────────────
+
+    private void ToggleLotSelection(BatchLotService.LotEntry lot, bool selected)
+    {
+        if (selected)
+        {
+            if (!_selectedLots.Contains(lot))
+                _selectedLots.Add(lot);
+        }
+        else
+        {
+            _selectedLots.Remove(lot);
+        }
+    }
+
+    // ── クリア ──────────────────────────────────────────────────
+
+    private void ClearOperation()
+    {
+        _selectedLots = [];
+        _recipeId     = "";
+        _batchId      = "";
+    }
+
+    private void ClearAll()
+    {
+        _productLots  = [];
+        _monitorLots  = [];
+        _fetched      = false;
+        ClearOperation();
+    }
+}

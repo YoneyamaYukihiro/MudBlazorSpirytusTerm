@@ -435,4 +435,18 @@ public static class Tags
     public const string LotStopOn          = "LOT_STOP_ON";         // ロット保留(0:手動, 1:自動)
     public const string LotStopOff         = "LOT_STOP_OFF";        // ロット保留解除(0:手動, 1:自動)
     public const string WaitLotNum         = "WAIT_LOT_NUM";        // 時間制限 在庫数/作業待数
+
+    // ──────── EN0180/EN0190 WF/チップ状態変更 ────────
+    public const string ClassId             = "CLASS_ID";            // 項目ID (区分ID)
+    public const string WfStatusName        = "WF_STATUS_NAME";     // WFステータス名称
+    public const string ScrapList           = "SCRAP_LIST";          // 不良入力項目リスト
+    public const string ScrapItemId         = "SCRAP_ITEM_ID";       // 不良入力項目ID
+    public const string ScrapItemName       = "SCRAP_ITEM_NAME";     // 不良入力項目名
+    public const string ChipForwardQuantity = "CHIP_FORWARD_QUANTITY"; // CHIP総払出品数
+    public const string ChipList            = "CHIP_LIST";           // CHIPリスト
+    public const string ChipId              = "CHIP_ID";             // チップID
+    public const string ResponsibleEmpId    = "RESPONSIBLE_EMP_ID"; // 責任者ID
+    public const string LotScrapSetId       = "LOT_SCRAP_SET_ID";   // 不良項目セットID
+    public const string RelatedLotStatus    = "RELATED_LOT_STATUS"; // 搭載ロット状態
+    public const string Num                 = "NUM";                 // 数 (汎用)
 }

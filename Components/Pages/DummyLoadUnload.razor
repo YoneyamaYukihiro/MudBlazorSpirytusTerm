@@ -1,0 +1,267 @@
+@page "/dummy-load-unload"
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ダミー Load/Unload/再投入 (EN00R0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">ダミー Load/Unload/再投入 (EN00R0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── 操作モード選択 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="string" @bind-Value="_operationMode"
+                       Label="操作区分"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Disabled="_loading">
+                <MudSelectItem Value="@("LOAD")">ロード</MudSelectItem>
+                <MudSelectItem Value="@("UNLOAD")">アンロード</MudSelectItem>
+                <MudSelectItem Value="@("RETRY")">再投入</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="Enterキーで照合"
+                          Error="@_carrierError"
+                          OnKeyUp="OnCarrierKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))">
+                @if (_loading && !_fetched)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>照合中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-1" Size="Size.Small" />
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ダミー情報 + 装置選択 ────── *@
+@if (_fetched)
+{
+    <MudGrid Spacing="2" Class="mb-3">
+
+        @* ── ダミー状態情報 ── *@
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ダミー情報</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">キャリアID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body1"><b>@_carrierId</b></MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロットID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_lotId</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">キャリア状態</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_carrierStateName</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── 装置・工程設定 ── *@
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">装置・工程設定</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_opId"
+                                      Label="大工程ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="10"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_stepId"
+                                      Label="小工程ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="10"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_wpId"
+                                      Label="装置ID (WP_ID)"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="20"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_portId"
+                                      Label="ポートID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="10"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_empId"
+                                      Label="作業者ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="10"
+                                      Disabled="_loading" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_comments"
+                                      Label="作業メモ"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="128"
+                                      Disabled="_loading" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ────── ボタン ────── *@
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled"
+                   Color="@OperationColor"
+                   Size="Size.Large"
+                   StartIcon="@OperationIcon"
+                   OnClick="ConfirmAsync"
+                   Disabled="@(_loading)">
+            @if (_loading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                <span>処理中...</span>
+            }
+            else
+            {
+                <span>@OperationLabel 確定</span>
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_loading">
+            クリア
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private string _operationMode  = "LOAD";
+    private string _carrierId      = "";
+    private string _lotId          = "";
+    private string _carrierStateName = "";
+    private string _opId           = "";
+    private string _stepId         = "";
+    private string _wpId           = "";
+    private string _portId         = "";
+    private string _empId          = "";
+    private string _comments       = "";
+    private bool   _carrierError   = false;
+    private bool   _loading        = false;
+    private bool   _fetched        = false;
+    private string _errorMessage   = "";
+
+    private Color  OperationColor => _operationMode switch
+    {
+        "LOAD"   => Color.Primary,
+        "UNLOAD" => Color.Warning,
+        "RETRY"  => Color.Success,
+        _        => Color.Default
+    };
+
+    private string OperationIcon => _operationMode switch
+    {
+        "LOAD"   => Icons.Material.Filled.ArrowDownward,
+        "UNLOAD" => Icons.Material.Filled.ArrowUpward,
+        "RETRY"  => Icons.Material.Filled.Replay,
+        _        => Icons.Material.Filled.Done
+    };
+
+    private string OperationLabel => _operationMode switch
+    {
+        "LOAD"   => "ロード",
+        "UNLOAD" => "アンロード",
+        "RETRY"  => "再投入",
+        _        => "実行"
+    };
+
+    private async Task OnCarrierKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FetchAsync();
+    }
+
+    private async Task FetchAsync()
+    {
+        _carrierError = false;
+        if (string.IsNullOrWhiteSpace(_carrierId)) return;
+        if (_carrierId.Length != 6) { _carrierError = true; return; }
+
+        _loading      = true;
+        _fetched      = false;
+        _errorMessage = "";
+        StateHasChanged();
+
+        // 実装中 - carr.curstate で照合 (dumy.chgcarrier MsgVer="01.01")
+        await Task.Delay(300);
+        _loading          = false;
+        _fetched          = true;
+        _lotId            = "LOTDUMMY01";
+        _carrierStateName = "ダミー在庫";
+        Snackbar.Add($"キャリア {_carrierId} を確認しました。", Severity.Info);
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        // 実装中 - dumy.chgcarrier または dumy.carstate 送信
+        await Task.Delay(500);
+        _loading = false;
+        Snackbar.Add($"{OperationLabel} を登録しました。 キャリア: {_carrierId}", Severity.Success);
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId        = "";
+        _carrierError     = false;
+        _fetched          = false;
+        _lotId            = "";
+        _carrierStateName = "";
+        _opId             = "";
+        _stepId           = "";
+        _wpId             = "";
+        _portId           = "";
+        _empId            = "";
+        _comments         = "";
+        _errorMessage     = "";
+    }
+}

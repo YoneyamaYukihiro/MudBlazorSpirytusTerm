@@ -1,0 +1,300 @@
+@page "/lot-out"
+@inject LotOutService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ロット終了(ロットアウト) (EN0170)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">ロット終了(ロットアウト) (EN0170)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── キャリアID入力 ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="キャリアIDを入力"
+                          MaxLength="6"
+                          Disabled="@_loading"
+                          OnKeyDown="OnCarrierKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)"
+                       OnClick="SearchAsync">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                    <span>検索</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── ロード中 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+@* ────────────────────── ロット情報 ────────────────────── *@
+@if (_lotInfo is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.LotId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.PdId @_lotInfo.PdName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WF枚数</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.WfNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロット担当</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">現在工程</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.OpId / @_lotInfo.StepId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">流動区分</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.FlowClass</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ────────────────────── 終了区分選択 ────────────────────── *@
+    @* VBソース: optScrapHoldTake0=不良(Class=2), optScrapHoldTake1=保留(Class=4), optScrapHoldTake2=払出(Class=3) *@
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">終了区分</MudText>
+        <MudRadioGroup @bind-Value="_endClass" T="string">
+            <MudRadio Value="@("2")" Color="Color.Primary">不良 (Scrap)</MudRadio>
+            <MudRadio Value="@("4")" Color="Color.Warning">保留 (Hold)</MudRadio>
+            <MudRadio Value="@("3")" Color="Color.Secondary">払出 (Take)</MudRadio>
+        </MudRadioGroup>
+    </MudPaper>
+
+    @* ────────────────────── 確定エリア ────────────────────── *@
+    @* VBソース: txtEmpID=終了責任者ID, mstrTaihiEndCode=理由コードID, txtWorkMemo=作業メモ *@
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_reasonCode"
+                              Label="終了理由コード"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="理由コードID" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_responsibleEmpId"
+                              Label="終了責任者ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="責任者IDを入力"
+                              OnKeyDown="OnResponsibleEmpIdKeyDownAsync" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_comments"
+                              Label="作業メモ"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="作業メモ（任意）"
+                              Lines="2" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Error"
+                           Size="Size.Medium"
+                           Disabled="@(!CanConfirm || _confirming)"
+                           OnClick="ConfirmAsync">
+                    @if (_confirming)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        <span>送信中...</span>
+                    }
+                    else
+                    {
+                        <span>確定</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        キャリアIDを入力して「検索」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 状態 ──────────────────────────────────────────────────────
+
+    private string _carrierId         = string.Empty;
+    private string _endClass          = "2";   // デフォルト: 不良
+    private string _reasonCode        = string.Empty;
+    private string _responsibleEmpId  = string.Empty;
+    private string _comments          = string.Empty;
+
+    private LotOutService.LotCurStateResult? _lotInfo;
+
+    private bool   _loading;
+    private bool   _confirming;
+    private string _error = string.Empty;
+
+    private bool CanSearch  => !string.IsNullOrWhiteSpace(_carrierId) && _carrierId.Trim().Length >= 1;
+    private bool CanConfirm => _lotInfo is not null
+                            && !string.IsNullOrWhiteSpace(_endClass)
+                            && !string.IsNullOrWhiteSpace(_responsibleEmpId);
+
+    // ── キャリアID Enter キー ──────────────────────────────────────
+
+    private async Task OnCarrierKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanSearch && !_loading)
+            await SearchAsync();
+    }
+
+    // ── 終了責任者ID Enter キー ───────────────────────────────────
+
+    private async Task OnResponsibleEmpIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanConfirm && !_confirming)
+            await ConfirmAsync();
+    }
+
+    // ── 検索 ─────────────────────────────────────────────────────
+    // VBソース: txtCarrier_Validate → pubblnLotCurstate_Sel(CLASS_DIVISION="1E")
+
+    private async Task SearchAsync()
+    {
+        var carrierId = _carrierId.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(carrierId)) return;
+
+        _loading  = true;
+        _error    = string.Empty;
+        _lotInfo  = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Svc.GetLotInfoAsync(carrierId);
+
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            _lotInfo = result;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────
+    // VBソース: cmdRegist_Click → pubblnLotTerminate_Upd(CLASS_DIVISION="1E")
+    // 送信: LOT_ID, CLASS_DIVISION="1E", CLASS=終了区分, REASON_CODE, RESPONSIBLE_EMP_ID,
+    //       EMP_ID (=作業者ID), COMMENTS, LOT_LAST_UPDATE
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null || string.IsNullOrWhiteSpace(_responsibleEmpId)) return;
+
+        _confirming = true;
+        _error      = string.Empty;
+
+        try
+        {
+            var result = await Svc.ExecuteTerminateAsync(
+                lotId:             _lotInfo.LotId,
+                endClass:          _endClass,
+                reasonCode:        _reasonCode.Trim(),
+                responsibleEmpId:  _responsibleEmpId.Trim(),
+                empId:             _responsibleEmpId.Trim(), // VBソース: pstrUserID（作業者ID）
+                lotLastUpdate:     _lotInfo.LotLastUpdate,
+                comments:          _comments.Trim());
+
+            if (result.IsSuccess)
+            {
+                var endLabel = _endClass switch
+                {
+                    "2" => "不良",
+                    "3" => "払出",
+                    "4" => "保留",
+                    _   => _endClass
+                };
+                Snackbar.Add($"ロット終了しました。（{endLabel}） ロット[{_lotInfo.LotId}] キャリア[{_carrierId.Trim().ToUpperInvariant()}]",
+                    Severity.Success);
+                ClearForm();
+            }
+            else
+            {
+                var errorMsg = string.IsNullOrEmpty(result.MsgCode)
+                    ? result.ErrorMessage
+                    : $"{result.MsgCode}\n{result.ErrorMessage}";
+                _error = errorMsg;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── フォームクリア ────────────────────────────────────────────
+    // VBソース: 確定成功後にキャリアIDをクリアして初期状態へ
+
+    private void ClearForm()
+    {
+        _carrierId        = string.Empty;
+        _endClass         = "2";
+        _reasonCode       = string.Empty;
+        _responsibleEmpId = string.Empty;
+        _comments         = string.Empty;
+        _lotInfo          = null;
+        _error            = string.Empty;
+    }
+}

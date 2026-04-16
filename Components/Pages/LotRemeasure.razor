@@ -1,0 +1,276 @@
+@page "/lot-remeasure"
+@inject LotRemeasureService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ロット再測定 (EN01B0)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">ロット再測定 (EN01B0)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── キャリアID入力 ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="キャリアIDを入力"
+                          MaxLength="6"
+                          Disabled="@_loading"
+                          OnKeyDown="OnCarrierKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)"
+                       OnClick="SearchAsync">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                    <span>検索</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── ロード中 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+@* ────────────────────── ロット情報 ────────────────────── *@
+@if (_lotInfo is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.LotId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.PdId @_lotInfo.PdName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WF枚数</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.WfNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロット管理者</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">現在工程</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.OpId / @_lotInfo.StepId</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ── ガイダンスメッセージ ── *@
+    @if (!string.IsNullOrEmpty(_guidMsg))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+            @if (!string.IsNullOrEmpty(_guidMsgCode))
+            {
+                <strong>【警告】ガイダンスコード[@_guidMsgCode]</strong><br />
+            }
+            @_guidMsg
+        </MudAlert>
+    }
+
+    @* ────────────────────── 確定エリア ────────────────────── *@
+    <MudPaper Class="pa-3 mt-2" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_empId"
+                              Label="作業者ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="作業者IDを入力"
+                              OnKeyDown="OnEmpIdKeyDownAsync" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Success"
+                           Size="Size.Medium"
+                           Disabled="@(!CanConfirm || _confirming)"
+                           OnClick="ConfirmAsync">
+                    @if (_confirming)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        <span>送信中...</span>
+                    }
+                    else
+                    {
+                        <span>確定</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+            ※ロット再測定を登録します。登録後、ロット状態が再測定状態に変更されます。
+        </MudText>
+    </MudPaper>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        キャリアIDを入力して「検索」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 状態 ──────────────────────────────────────────────────────────
+
+    private string _carrierId = string.Empty;
+    private string _empId     = string.Empty;
+
+    private LotRemeasureService.LotCurStateResult? _lotInfo;
+
+    private bool _loading;
+    private bool _confirming;
+    private string _error      = string.Empty;
+    private string _guidMsg    = string.Empty;
+    private string _guidMsgCode = string.Empty;
+
+    private bool CanSearch  => !string.IsNullOrWhiteSpace(_carrierId);
+    private bool CanConfirm => _lotInfo is not null && !string.IsNullOrWhiteSpace(_empId);
+
+    // ── キーダウン ────────────────────────────────────────────────────
+
+    private async Task OnCarrierKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanSearch && !_loading)
+            await SearchAsync();
+    }
+
+    private async Task OnEmpIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanConfirm && !_confirming)
+            await ConfirmAsync();
+    }
+
+    // ── 検索 ─────────────────────────────────────────────────────────
+    // VBソース: txtCarrier_Validate → pubblnLotCurstate_Sel(CMstrlot_curstateVer, CPstrCD1R, txtCarrier.Text, ltypLotprestate)
+
+    private async Task SearchAsync()
+    {
+        var carrierId = _carrierId.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(carrierId)) return;
+
+        _loading  = true;
+        _error    = string.Empty;
+        _guidMsg  = string.Empty;
+        _guidMsgCode = string.Empty;
+        _lotInfo  = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Svc.GetLotInfoAsync(carrierId);
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+            _lotInfo = result;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────────
+    // VBソース: cmdKakutei_Click → pubblnLotStepRestart_Upd(CMstrlot_steprestartVer, ltypLotStepRestart, lstrGuidMsg, lstrGuidMsgCode)
+    // 成功時: ガイダンスMsgがあれば表示、キャリアIDクリアして初期化
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _confirming  = true;
+        _error       = string.Empty;
+        _guidMsg     = string.Empty;
+        _guidMsgCode = string.Empty;
+
+        try
+        {
+            var result = await Svc.ExecuteRemeasureAsync(
+                lotId:         _lotInfo.LotId,
+                empId:         _empId.Trim(),
+                lotLastUpdate: _lotInfo.LotLastUpdate
+            );
+
+            if (result.IsSuccess)
+            {
+                // VBソース: ガイダンスMsgコードに値がある場合は警告表示
+                if (!string.IsNullOrEmpty(result.GuidMsgCode))
+                {
+                    _guidMsg     = result.GuidMsg;
+                    _guidMsgCode = result.GuidMsgCode;
+                }
+
+                var msg = string.IsNullOrEmpty(result.GuidMsg)
+                    ? $"ロット再測定を登録しました。キャリア[{_carrierId.Trim()}] ロット[{_lotInfo.LotId}]"
+                    : $"ロット再測定を登録しました。キャリア[{_carrierId.Trim()}] ロット[{_lotInfo.LotId}]\n{result.GuidMsg}";
+
+                Snackbar.Add(msg, result.GuidMsg.Length > 0 ? Severity.Warning : Severity.Success);
+                ClearForm();
+            }
+            else
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── フォームクリア ────────────────────────────────────────────────
+    // VBソース: 成功後 txtCarrier.Text = vbNullString + prvfrmxxEN01B0_Init() + prvfrmxxEN01B0_CmbInit(False)
+
+    private void ClearForm()
+    {
+        _carrierId   = string.Empty;
+        _empId       = string.Empty;
+        _lotInfo     = null;
+        _guidMsg     = string.Empty;
+        _guidMsgCode = string.Empty;
+        _error       = string.Empty;
+    }
+}

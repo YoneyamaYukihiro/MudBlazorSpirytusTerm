@@ -1,0 +1,526 @@
+@page "/lot-step-back"
+@inject LotStepBackService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 工程戻し (EN02A0)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">工程戻し (EN02A0)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── キャリアID入力 ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="キャリアIDを入力"
+                          MaxLength="6"
+                          Disabled="@_loading"
+                          OnKeyDown="OnCarrierKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)"
+                       OnClick="SearchAsync">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                    <span>検索</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── ロード中 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+@* ────────────────────── ロット情報 ────────────────────── *@
+@if (_lotInfo is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.LotId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.PdId @_lotInfo.PdName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WF枚数</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.WfNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロット担当</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">現在工程</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.OpId / @_lotInfo.StepId</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ────────────────────── 戻し工程選択 ────────────────────── *@
+    @* VBソース: cmbRollBackOpID (戻り大工程), cmbRollBackStepID (戻り小工程) *@
+    @if (_opList is { Count: > 0 })
+    {
+        <MudPaper Class="pa-3 mb-2" Elevation="1">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">戻し工程選択</MudText>
+            <MudGrid Spacing="2" AlignItems="AlignItems.End">
+                <MudItem xs="12" sm="4">
+                    <MudSelect Value="@_selectedOpId"
+                               T="string"
+                               Label="戻り大工程"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               ValueChanged="OnOpIdChangedAsync">
+                        @foreach (var op in _opList)
+                        {
+                            <MudSelectItem Value="@op.OpId">@op.OpId</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudSelect @bind-Value="_selectedStepId"
+                               Label="戻り小工程"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Disabled="@(_stepList is not { Count: > 0 })">
+                        @if (_stepList is not null)
+                        {
+                            @foreach (var step in _stepList)
+                            {
+                                <MudSelectItem Value="@step.StepId">@step.StepId</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               Size="Size.Medium"
+                               Disabled="@(!CanLoadHistory || _loadingHistory)"
+                               OnClick="LoadEventHistAsync">
+                        @if (_loadingHistory)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            <span>取得中...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Small" Class="mr-1" />
+                            <span>履歴取得</span>
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+    else if (_opList is { Count: 0 })
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+            削除可能な履歴が存在しません。ロット[@_lotInfo.LotId]
+        </MudAlert>
+    }
+
+    @* ────────────────────── イベント履歴一覧 ────────────────────── *@
+    @* VBソース: vsfEventHistoryList (列: No,大工程,小工程,ロットイベントID,作業,日時,作業者名,作業メモ,削除可否) *@
+    @if (_eventRows is { Count: > 0 })
+    {
+        @if (_hasDeleteProhibited)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                削除不可の履歴が含まれています。工程戻しを実行できません。
+            </MudAlert>
+        }
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">イベント履歴一覧（削除対象）</MudText>
+        <div class="mb-3">
+            <MudDataGrid T="EventRow"
+                         Items="@_eventRows"
+                         Dense="true"
+                         Striped="false"
+                         Hover="true"
+                         Bordered="true"
+                         FixedHeader="true">
+                <Columns>
+                    <TemplateColumn T="EventRow" Title="No"
+                        HeaderStyle="min-width:40px;max-width:40px;"
+                        CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                        <CellTemplate>@context.Item.No</CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.OpId"         Title="大工程"   HeaderStyle="min-width:120px;" />
+                    <PropertyColumn Property="x => x.StepId"       Title="小工程"   HeaderStyle="min-width:120px;" />
+                    <PropertyColumn Property="x => x.LotEventName" Title="作業"     HeaderStyle="min-width:150px;" />
+                    <PropertyColumn Property="x => x.EntryTime"    Title="日時"     HeaderStyle="min-width:160px;" />
+                    <PropertyColumn Property="x => x.EmpName"      Title="作業者"   HeaderStyle="min-width:100px;" />
+                    <TemplateColumn T="EventRow" Title="削除可否"
+                        HeaderStyle="min-width:70px;max-width:70px;"
+                        CellStyle="min-width:70px;max-width:70px;text-align:center;">
+                        <CellTemplate>
+                            @if (context.Item.DeleteProhibited == "1")
+                            {
+                                <MudText Color="Color.Error" Typo="Typo.body2">不可</MudText>
+                            }
+                            else
+                            {
+                                <MudText Color="Color.Success" Typo="Typo.body2">可</MudText>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Color="Color.Secondary">データがありません</MudText>
+                </NoRecordsContent>
+            </MudDataGrid>
+        </div>
+    }
+
+    @* ────────────────────── 確定エリア ────────────────────── *@
+    @* VBソース: txtWorkMemo=作業メモ, cmdRegist → pubblnMntDelHist__Upd *@
+    @if (_eventRows is { Count: > 0 })
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_empId"
+                                  Label="社員ID"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="社員IDを入力"
+                                  OnKeyDown="OnEmpIdKeyDownAsync" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_comments"
+                                  Label="作業メモ"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="作業メモ（任意）"
+                                  Lines="2" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Warning"
+                               Size="Size.Medium"
+                               Disabled="@(!CanConfirm || _confirming)"
+                               OnClick="ConfirmAsync">
+                        @if (_confirming)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            <span>送信中...</span>
+                        }
+                        else
+                        {
+                            <span>確定</span>
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        キャリアIDを入力して「検索」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 行モデル（イベント履歴一覧）────────────────────────────────
+
+    private sealed class EventRow
+    {
+        public int    No               { get; init; }
+        public string OpId             { get; init; } = "";
+        public string StepId           { get; init; } = "";
+        public string LotEventName     { get; init; } = "";
+        public string EntryTime        { get; init; } = "";
+        public string EmpName          { get; init; } = "";
+        public string DeleteProhibited { get; init; } = "";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────
+
+    private string _carrierId       = string.Empty;
+    private string _selectedOpId    = string.Empty;
+    private string _selectedStepId  = string.Empty;
+    private string _empId           = string.Empty;
+    private string _comments        = string.Empty;
+
+    private LotStepBackService.LotCurStateResult?                    _lotInfo;
+    private List<LotStepBackService.OpEntry>?                        _opList;
+    private List<LotStepBackService.StepEntry>?                      _stepList;
+    private List<EventRow>                                           _eventRows = [];
+    private string                                                   _histLotLastUpdate = string.Empty;
+    private bool                                                     _hasDeleteProhibited;
+
+    private bool   _loading;
+    private bool   _loadingHistory;
+    private bool   _confirming;
+    private string _error = string.Empty;
+
+    private bool CanSearch      => !string.IsNullOrWhiteSpace(_carrierId) && _carrierId.Trim().Length >= 1;
+    private bool CanLoadHistory => !string.IsNullOrWhiteSpace(_selectedOpId) && !string.IsNullOrWhiteSpace(_selectedStepId);
+    private bool CanConfirm     => _lotInfo is not null
+                                && _eventRows.Count > 0
+                                && !_hasDeleteProhibited
+                                && !string.IsNullOrWhiteSpace(_empId);
+
+    // ── キャリアID Enter キー ──────────────────────────────────────
+
+    private async Task OnCarrierKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanSearch && !_loading)
+            await SearchAsync();
+    }
+
+    // ── 社員ID Enter キー ─────────────────────────────────────────
+
+    private async Task OnEmpIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanConfirm && !_confirming)
+            await ConfirmAsync();
+    }
+
+    // ── 検索 ─────────────────────────────────────────────────────
+    // VBソース: txtCarrier_Validate →
+    //   1. pubblnLotCurstate_Sel(CLASS_DIVISION="08")
+    //   2. pubblnMntOpStepList_Sel(lstrmnt_opsteplistVer)
+    //   3. 大工程1件の場合は自動選択 → 小工程も1件なら履歴取得まで自動
+
+    private async Task SearchAsync()
+    {
+        var carrierId = _carrierId.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(carrierId)) return;
+
+        _loading          = true;
+        _error            = string.Empty;
+        _lotInfo          = null;
+        _opList           = null;
+        _stepList         = null;
+        _selectedOpId     = string.Empty;
+        _selectedStepId   = string.Empty;
+        _eventRows        = [];
+        _hasDeleteProhibited = false;
+        _histLotLastUpdate   = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // 1. ロット現在状態取得
+            var curState = await Svc.GetLotInfoAsync(carrierId);
+            if (!curState.IsSuccess)
+            {
+                _error = curState.ErrorMessage;
+                Snackbar.Add(curState.ErrorMessage, Severity.Error);
+                return;
+            }
+            _lotInfo = curState;
+
+            // 2. 流動済工程情報取得（戻し可能な大工程/小工程一覧）
+            var opStepResult = await Svc.GetOpStepListAsync(curState.LotId);
+            if (!opStepResult.IsSuccess)
+            {
+                _error = opStepResult.ErrorMessage;
+                Snackbar.Add(opStepResult.ErrorMessage, Severity.Warning);
+                return;
+            }
+
+            _opList = (opStepResult.OpList ?? []).ToList();
+
+            // 3. 大工程が1件なら自動選択
+            if (_opList.Count == 1)
+            {
+                _selectedOpId = _opList[0].OpId;
+                _stepList     = _opList[0].StepList.ToList();
+
+                // 4. 小工程が1件なら自動選択してイベント履歴まで取得
+                if (_stepList.Count == 1)
+                {
+                    _selectedStepId = _stepList[0].StepId;
+                    await LoadEventHistAsync();
+                }
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 大工程変更時：小工程リスト更新 ──────────────────────────────
+    // VBソース: cmbRollBackOpID_Validate → prvCmbRollBackStepID_Disp
+
+    private Task OnOpIdChangedAsync(string value)
+    {
+        _selectedOpId   = value;
+        _selectedStepId = string.Empty;
+        _eventRows      = [];
+        _hasDeleteProhibited = false;
+
+        var op = _opList?.FirstOrDefault(o => o.OpId == value);
+        _stepList = op?.StepList.ToList();
+
+        // 小工程が1件なら自動選択
+        if (_stepList is { Count: 1 })
+        {
+            _selectedStepId = _stepList[0].StepId;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // ── イベント履歴取得 ──────────────────────────────────────────
+    // VBソース: cmbRollBackStepID_Validate → pubblnMntEventHist_Sel
+
+    private async Task LoadEventHistAsync()
+    {
+        if (_lotInfo is null
+            || string.IsNullOrEmpty(_selectedOpId)
+            || string.IsNullOrEmpty(_selectedStepId)) return;
+
+        _loadingHistory = true;
+        _error          = string.Empty;
+        _eventRows      = [];
+        _hasDeleteProhibited = false;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Svc.GetEventHistAsync(
+                _lotInfo.LotId, _selectedOpId, _selectedStepId);
+
+            if (!result.IsSuccess)
+            {
+                _error = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Warning);
+                return;
+            }
+
+            _histLotLastUpdate = result.LotLastUpdate;
+            _eventRows = (result.EventList ?? [])
+                .Select((e, i) => new EventRow
+                {
+                    No               = i + 1,
+                    OpId             = e.OpId,
+                    StepId           = e.StepId,
+                    LotEventName     = e.LotEventName,
+                    EntryTime        = e.EntryTime,
+                    EmpName          = e.EmpName,
+                    DeleteProhibited = e.DeleteProhibited
+                }).ToList();
+
+            // VBソース: 削除不可フラグが"1"の行が含まれていたら確定不可
+            _hasDeleteProhibited = _eventRows.Any(r => r.DeleteProhibited == "1");
+        }
+        finally
+        {
+            _loadingHistory = false;
+        }
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────
+    // VBソース: cmdRegist_Click → pubblnMntDelHist__Upd
+    // 送信: MSG_VER, SB_ID, LOT_ID, OP_ID, STEP_ID, EMP_ID, COMMENTS, LOT_LAST_UPDATE
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null || string.IsNullOrWhiteSpace(_empId)) return;
+        if (_hasDeleteProhibited)
+        {
+            _error = $"削除不可の履歴が含まれているため工程戻しを実行できません。ロット[{_lotInfo.LotId}]";
+            return;
+        }
+
+        _confirming = true;
+        _error      = string.Empty;
+
+        try
+        {
+            // VBソース: LOT_LAST_UPDATE は mtypAnsEventInfo.strLotLastUpdate（イベント履歴取得応答から）
+            var result = await Svc.ExecuteStepBackAsync(
+                lotId:         _lotInfo.LotId,
+                opId:          _selectedOpId,
+                stepId:        _selectedStepId,
+                empId:         _empId.Trim(),
+                lotLastUpdate: _histLotLastUpdate,
+                comments:      _comments.Trim());
+
+            if (result.IsSuccess)
+            {
+                Snackbar.Add(
+                    $"工程戻しを行ないました。キャリア[{_carrierId.Trim().ToUpperInvariant()}] ロット[{_lotInfo.LotId}]",
+                    Severity.Success);
+                ClearForm();
+            }
+            else
+            {
+                var errorMsg = string.IsNullOrEmpty(result.MsgCode)
+                    ? result.ErrorMessage
+                    : $"{result.MsgCode}\n{result.ErrorMessage}";
+                _error = errorMsg;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── フォームクリア ────────────────────────────────────────────
+    // VBソース: 確定成功後にキャリアIDをクリアして初期状態へ
+
+    private void ClearForm()
+    {
+        _carrierId           = string.Empty;
+        _empId               = string.Empty;
+        _comments            = string.Empty;
+        _lotInfo             = null;
+        _opList              = null;
+        _stepList            = null;
+        _selectedOpId        = string.Empty;
+        _selectedStepId      = string.Empty;
+        _eventRows           = [];
+        _hasDeleteProhibited = false;
+        _histLotLastUpdate   = string.Empty;
+        _error               = string.Empty;
+    }
+}
