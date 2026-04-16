@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@inject IConfiguration Configuration
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
@@ -7,7 +8,7 @@
 <MudLayout>
     <MudAppBar Elevation="1">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">SPIRYTUS</MudText>
+        <MudText Typo="Typo.h5" Class="ml-3">SPIRYTUS @_sbName</MudText>
         <MudSpacer />
         <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
         <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
@@ -28,13 +29,24 @@
 </div>
 
 @code {
+    private static readonly Dictionary<string, string> SbIdNames = new()
+    {
+        ["1A0"] = "基板",
+        ["2A0"] = "組立",
+        ["3A0"] = "防湿ALD",
+    };
+
     private bool _drawerOpen = true;
     private bool _isDarkMode = false;
     private MudTheme? _theme = null;
+    private string _sbName = string.Empty;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        var sbId = Configuration["Spirytus:DefaultSbId"] ?? string.Empty;
+        SbIdNames.TryGetValue(sbId, out _sbName!);
 
         _theme = new()
         {
