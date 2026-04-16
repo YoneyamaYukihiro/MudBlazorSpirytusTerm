@@ -26,8 +26,10 @@
                           @bind-Value="_carrierId"
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
+                          MaxLength="6"
                           Disabled="_loading"
-                          Immediate="false" />
+                          Immediate="false"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
         </MudItem>
 
         @* 作業者ID *@
@@ -159,9 +161,10 @@
                             <MudTextField @bind-Value="_paletteItems[idx].LotId"
                                           Variant="Variant.Text"
                                           Margin="Margin.Dense"
+                                          MaxLength="10"
                                           Disabled="_loading"
                                           Immediate="false"
-                                          Style="font-size:0.8rem;" />
+                                          Style="font-size:0.8rem; font-family: monospace; text-transform: uppercase;" />
                         </td>
                     </tr>
                 }

@@ -1,0 +1,78 @@
+@page "/ald-work-start"
+@inject AldWorkStartService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 作業開始(防湿ALD) (EN02Q0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">作業開始(防湿ALD) (EN02Q0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_lotId" Label="ロットID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="16" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_carrierId" Label="キャリアID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="6"
+                          Style="font-family:monospace;text-transform:uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@_loading" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_result is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">処理ユニット</MudText><MudText Typo="Typo.body2">@_result.ProcessUnit</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">処理名</MudText><MudText Typo="Typo.body2">@_result.ProcessName</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">バッチフロー</MudText><MudText Typo="Typo.body2">@_result.BatchFlowClass</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="AldWorkStartService.WorkLotItem" Items="@(_result.Items ?? [])" Dense="true" Hover="true" ReadOnly="true" Striped="true">
+            <Columns>
+                <PropertyColumn Property="x => x.LotId"      Title="ロットID" />
+                <PropertyColumn Property="x => x.CarrierId"  Title="キャリア" />
+                <PropertyColumn Property="x => x.PdId"       Title="品種"     />
+                <PropertyColumn Property="x => x.FlowClass"  Title="フロー"   />
+                <PropertyColumn Property="x => x.WfNum"      Title="枚数"     />
+                <PropertyColumn Property="x => x.NowSt"      Title="状態"     />
+                <PropertyColumn Property="x => x.Comments"   Title="コメント" />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _lotId     = "";
+    private string _carrierId = "";
+    private string _error     = "";
+    private bool   _loading;
+    private AldWorkStartService.WorkLotListResult? _result;
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _result = null; StateHasChanged();
+        try {
+            var r = await Svc.GetWorkLotListAsync(_lotId.Trim(), _carrierId.Trim().ToUpper());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _result = r;
+        } finally { _loading = false; }
+    }
+}

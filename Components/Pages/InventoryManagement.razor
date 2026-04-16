@@ -1,0 +1,572 @@
+@page "/inventory-management"
+@inject InventoryService Svc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.InventoryService
+
+<PageTitle>SPIRYTUS - 在庫管理 (EN00F0)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">在庫管理 (EN00F0)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
+        @_errorMessage
+    </MudAlert>
+}
+
+<MudTabs Elevation="1" Rounded="false" ApplyEffectsToContainer="true" PanelClass="pa-3">
+
+    @* ═══════════════════════════════════════════════════════════════
+       Tab 1: 保留在庫一覧
+       ═══════════════════════════════════════════════════════════════ *@
+    <MudTabPanel Text="保留在庫一覧">
+
+        @* ────── 検索条件 ────── *@
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.End">
+                <MudItem xs="12" sm="4" md="3">
+                    <MudTextField @bind-Value="_classDivision"
+                                  Label="クラス区分"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="4"
+                                  Placeholder="例: 18"
+                                  Disabled="_loading" />
+                </MudItem>
+                <MudItem xs="12" sm="4" md="3">
+                    <MudTextField @bind-Value="_flowClassesInput"
+                                  Label="流動区分（カンマ区切り、空白=全件）"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="例: WL,CF"
+                                  Disabled="_loading" />
+                </MudItem>
+                <MudItem xs="12" sm="4" md="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="LoadListAsync"
+                               Disabled="_loading"
+                               FullWidth="true">
+                        @if (_loading && _lotList is null)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            <span>検索中...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                            <span>検索</span>
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* ────── 一覧グリッド ────── *@
+        @if (_lotList is not null)
+        {
+            <div class="grid-wrapper mb-3" style="height:340px;">
+                <MudDataGrid T="HoldLotItem"
+                             Items="@_lotList"
+                             SelectedItem="@_selectedLot"
+                             SelectedItemChanged="OnLotSelected"
+                             Dense="true"
+                             Striped="true"
+                             Hover="true"
+                             Bordered="true"
+                             FixedHeader="true"
+                             Height="100%">
+                    <Columns>
+                        <PropertyColumn Property="x => x.CarrierId"    Title="キャリアID"  HeaderStyle="min-width:90px;" />
+                        <PropertyColumn Property="x => x.LotId"        Title="ロットID"    HeaderStyle="min-width:110px;" />
+                        <PropertyColumn Property="x => x.FlowClass"    Title="流動区分"    HeaderStyle="min-width:70px;" />
+                        <PropertyColumn Property="x => x.PdId"         Title="機種ID"      HeaderStyle="min-width:100px;" />
+                        <PropertyColumn Property="x => x.WfQuantity"   Title="WF枚数"      HeaderStyle="min-width:70px;" />
+                        <PropertyColumn Property="x => x.ChipQuantity" Title="チップ数"    HeaderStyle="min-width:80px;" />
+                        <PropertyColumn Property="x => x.WpName"       Title="装置"        HeaderStyle="min-width:120px;" />
+                        <PropertyColumn Property="x => x.NowSt"        Title="状態"        HeaderStyle="min-width:60px;" />
+                        <PropertyColumn Property="x => x.StayTime"     Title="滞留時間"    HeaderStyle="min-width:90px;" />
+                        <PropertyColumn Property="x => x.Comments"     Title="次SBコメント" HeaderStyle="min-width:160px;" />
+                        <PropertyColumn Property="x => x.SendSbId"     Title="送品先SB"    HeaderStyle="min-width:80px;" />
+                    </Columns>
+                    <NoRecordsContent>
+                        <MudText Color="Color.Secondary">データがありません</MudText>
+                    </NoRecordsContent>
+                </MudDataGrid>
+            </div>
+
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">
+                @_lotList.Count 件
+            </MudText>
+        }
+
+        @* ────── 選択ロット操作 ────── *@
+        @if (_selectedLot is not null)
+        {
+            <MudPaper Class="pa-3 mt-2" Elevation="2">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">
+                    選択ロット操作：<b>@_selectedLot.LotId</b>（キャリア：@_selectedLot.CarrierId）
+                </MudText>
+
+                @if (!string.IsNullOrEmpty(_actionError))
+                {
+                    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2"
+                              ShowCloseIcon="true" CloseIconClicked="() => _actionError = string.Empty">
+                        @_actionError
+                    </MudAlert>
+                }
+
+                <MudTabs Elevation="0" Rounded="false">
+
+                    @* ── 次SBコメント編集 ── *@
+                    <MudTabPanel Text="次SBコメント編集">
+                        <MudGrid Spacing="2" AlignItems="AlignItems.End" Class="mt-1">
+                            <MudItem xs="12" sm="4" md="3">
+                                <MudTextField @bind-Value="_empId"
+                                              Label="社員ID *"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="_actioning" />
+                            </MudItem>
+                            <MudItem xs="12" sm="8">
+                                <MudTextField @bind-Value="_invComments"
+                                              Label="次SBコメント"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Lines="2"
+                                              MaxLength="256"
+                                              Disabled="_actioning" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3" md="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                           OnClick="ExecuteChgCommAsync"
+                                           Disabled="@(_actioning || string.IsNullOrWhiteSpace(_empId))"
+                                           FullWidth="true">
+                                    @if (_actioning) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+                                    <span>コメント登録</span>
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudTabPanel>
+
+                    @* ── 送品 ── *@
+                    <MudTabPanel Text="送品">
+                        <MudGrid Spacing="2" AlignItems="AlignItems.End" Class="mt-1">
+                            <MudItem xs="12" sm="3" md="2">
+                                <MudTextField @bind-Value="_sendSbId"
+                                              Label="送品先SB_ID *"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              MaxLength="10"
+                                              Disabled="_actioning" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3" md="2">
+                                <MudTextField @bind-Value="_boxNo"
+                                              Label="箱番号 *"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              MaxLength="10"
+                                              Disabled="_actioning" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3" md="2">
+                                <MudTextField @bind-Value="_empId"
+                                              Label="社員ID *"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="_actioning" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3" md="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                                           OnClick="ExecuteSendAsync"
+                                           Disabled="@(_actioning || string.IsNullOrWhiteSpace(_empId)
+                                                       || string.IsNullOrWhiteSpace(_sendSbId)
+                                                       || string.IsNullOrWhiteSpace(_boxNo))"
+                                           FullWidth="true">
+                                    @if (_actioning) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+                                    <span>送品実行</span>
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudTabPanel>
+
+                    @* ── 送品取消 ── *@
+                    <MudTabPanel Text="送品取消">
+                        <MudGrid Spacing="2" AlignItems="AlignItems.End" Class="mt-1">
+                            <MudItem xs="12" sm="4" md="3">
+                                <MudTextField @bind-Value="_empId"
+                                              Label="社員ID *"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              Disabled="_actioning" />
+                            </MudItem>
+                            <MudItem xs="12" sm="3" md="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Error"
+                                           OnClick="ExecuteCancelSendAsync"
+                                           Disabled="@(_actioning || string.IsNullOrWhiteSpace(_empId))"
+                                           FullWidth="true">
+                                    @if (_actioning) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /> }
+                                    <span>送品取消</span>
+                                </MudButton>
+                            </MudItem>
+                        </MudGrid>
+                    </MudTabPanel>
+
+                </MudTabs>
+            </MudPaper>
+        }
+
+    </MudTabPanel>
+
+    @* ═══════════════════════════════════════════════════════════════
+       Tab 2: ロット検定表
+       ═══════════════════════════════════════════════════════════════ *@
+    <MudTabPanel Text="ロット検定表">
+
+        @* ────── 検索 ────── *@
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.End">
+                <MudItem xs="12" sm="4" md="3">
+                    <MudTextField @bind-Value="_examLotId"
+                                  Label="ロットID *"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="10"
+                                  Immediate="true"
+                                  Placeholder="ロットIDを入力"
+                                  Style="font-family: monospace; text-transform: uppercase;"
+                                  Disabled="_loadingExam"
+                                  OnKeyDown="OnExamKeyDownAsync" />
+                </MudItem>
+                <MudItem xs="12" sm="3" md="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               OnClick="LoadExamInfoAsync"
+                               Disabled="@(_loadingExam || string.IsNullOrWhiteSpace(_examLotId))"
+                               FullWidth="true">
+                        @if (_loadingExam)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                            <span>取得中...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                            <span>取得</span>
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* ────── 検定表情報 ────── *@
+        @if (_examResult is not null)
+        {
+            <MudGrid Spacing="2">
+                @* 基本情報 *@
+                <MudItem xs="12" md="5">
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">基本情報</MudText>
+                        <MudSimpleTable Dense="true" Hover="false" Elevation="0">
+                            <tbody>
+                                <tr><td class="mud-text-secondary">ロットID</td><td><b>@_examResult.LotId</b></td></tr>
+                                <tr><td class="mud-text-secondary">箱番号</td><td>@_examResult.BoxNo</td></tr>
+                                <tr><td class="mud-text-secondary">流動区分</td><td>@_examResult.FlowClass</td></tr>
+                                <tr><td class="mud-text-secondary">機種ID</td><td>@_examResult.PdId</td></tr>
+                                <tr><td class="mud-text-secondary">ATLASオーダー番号</td><td>@_examResult.AtlasOrderNo</td></tr>
+                                <tr><td class="mud-text-secondary">外部部品コード</td><td>@_examResult.ExtPartCode</td></tr>
+                                <tr><td class="mud-text-secondary">送品日</td><td>@_examResult.SendDate</td></tr>
+                                <tr><td class="mud-text-secondary">送品先SB</td><td>@_examResult.SendSbName</td></tr>
+                                <tr><td class="mud-text-secondary">次SBコメント</td><td>@_examResult.InvComments</td></tr>
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudPaper>
+                </MudItem>
+
+                @* 数量情報 *@
+                <MudItem xs="12" md="4">
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">数量情報</MudText>
+                        <MudSimpleTable Dense="true" Hover="false" Elevation="0">
+                            <tbody>
+                                <tr><td class="mud-text-secondary">WF枚数</td><td>@_examResult.WfQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">チップ数</td><td>@_examResult.ChipQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">WF投入日</td><td>@_examResult.WfThrowinDate</td></tr>
+                                <tr><td class="mud-text-secondary">WF投入枚数</td><td>@_examResult.WfThrowinQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">WF完了日</td><td>@_examResult.WfFinishDate</td></tr>
+                                <tr><td class="mud-text-secondary">WF完了枚数</td><td>@_examResult.WfFinishQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">WF払出枚数</td><td>@_examResult.WfOutQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">WF発行枚数</td><td>@_examResult.WfIssueQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">Chip投入数</td><td>@_examResult.ChipThrowinQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">Chip払出数</td><td>@_examResult.ChipOutQuantity</td></tr>
+                                <tr><td class="mud-text-secondary">良品チップ率</td><td>@_examResult.GoodChipRatio</td></tr>
+                            </tbody>
+                        </MudSimpleTable>
+                    </MudPaper>
+                </MudItem>
+
+                @* WFリスト *@
+                @if (_examResult.WfList.Count > 0)
+                {
+                    <MudItem xs="12" md="3">
+                        <MudPaper Class="pa-3" Elevation="1">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">WFリスト</MudText>
+                            <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                                <thead>
+                                    <tr>
+                                        <th>WF-ID</th>
+                                        <th>チップ数</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var wf in _examResult.WfList)
+                                    {
+                                        <tr>
+                                            <td>@wf.WfId</td>
+                                            <td>@wf.ChipQuantity</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else if (!_loadingExam && _examSearched)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true">
+                ロット [@_examLotId] の検定表情報が見つかりませんでした。
+            </MudAlert>
+        }
+
+    </MudTabPanel>
+
+</MudTabs>
+
+@code {
+
+    // ── 保留在庫一覧 ──────────────────────────────────────────────
+
+    private string  _classDivision    = string.Empty;
+    private string  _flowClassesInput = string.Empty;
+    private bool    _loading          = false;
+    private string  _errorMessage     = string.Empty;
+    private string  _errorCode        = string.Empty;
+
+    private IReadOnlyList<HoldLotItem>? _lotList;
+    private HoldLotItem?                _selectedLot;
+
+    // ── 操作共通 ──────────────────────────────────────────────────
+
+    private string _empId      = string.Empty;
+    private string _invComments = string.Empty;
+    private string _sendSbId   = string.Empty;
+    private string _boxNo      = string.Empty;
+    private bool   _actioning  = false;
+    private string _actionError = string.Empty;
+
+    // ── ロット検定表 ──────────────────────────────────────────────
+
+    private string            _examLotId   = string.Empty;
+    private bool              _loadingExam = false;
+    private bool              _examSearched = false;
+    private LotExamInfoResult? _examResult;
+
+    // ── 保留在庫一覧：検索 ────────────────────────────────────────
+
+    private async Task LoadListAsync()
+    {
+        _loading      = true;
+        _errorMessage = string.Empty;
+        _errorCode    = string.Empty;
+        _selectedLot  = null;
+        _lotList      = null;
+        StateHasChanged();
+
+        try
+        {
+            var flowClasses = string.IsNullOrWhiteSpace(_flowClassesInput)
+                ? []
+                : _flowClassesInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                   .ToList();
+
+            var result = await Svc.GetHoldListAsync(_classDivision.Trim(), flowClasses);
+
+            if (!result.IsSuccess)
+            {
+                _errorMessage = result.ErrorMessage;
+                _errorCode    = result.ErrorCode;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            _lotList = result.Data ?? [];
+            if (_lotList.Count == 0)
+                Snackbar.Add("該当データがありませんでした。", Severity.Info);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnLotSelected(HoldLotItem? lot)
+    {
+        _selectedLot  = lot;
+        _actionError  = string.Empty;
+        _invComments  = lot?.Comments ?? string.Empty;
+        _sendSbId     = lot?.SendSbId ?? string.Empty;
+        _boxNo        = string.Empty;
+    }
+
+    // ── 次SBコメント登録 ──────────────────────────────────────────
+
+    private async Task ExecuteChgCommAsync()
+    {
+        if (_selectedLot is null || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _actioning   = true;
+        _actionError = string.Empty;
+
+        try
+        {
+            var result = await Svc.ChgCommAsync(
+                lotId:         _selectedLot.LotId,
+                empId:         _empId.Trim(),
+                invComments:   _invComments,
+                lotLastUpdate: _selectedLot.RecordTime);
+
+            if (!result.IsSuccess)
+            {
+                _actionError = result.ErrorMessage;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            Snackbar.Add($"コメントを登録しました。ロット: {_selectedLot.LotId}", Severity.Success);
+            await LoadListAsync();
+        }
+        finally
+        {
+            _actioning = false;
+        }
+    }
+
+    // ── 送品 ──────────────────────────────────────────────────────
+
+    private async Task ExecuteSendAsync()
+    {
+        if (_selectedLot is null
+            || string.IsNullOrWhiteSpace(_empId)
+            || string.IsNullOrWhiteSpace(_sendSbId)
+            || string.IsNullOrWhiteSpace(_boxNo)) return;
+
+        _actioning   = true;
+        _actionError = string.Empty;
+
+        try
+        {
+            var ok = await Svc.SendAsync(
+                lotId:         _selectedLot.LotId,
+                sendSbId:      _sendSbId.Trim(),
+                boxNo:         _boxNo.Trim(),
+                empId:         _empId.Trim(),
+                lotLastUpdate: _selectedLot.RecordTime);
+
+            if (!ok)
+            {
+                _actionError = "送品処理に失敗しました。";
+                Snackbar.Add("送品処理に失敗しました。", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add($"送品を完了しました。ロット: {_selectedLot.LotId}", Severity.Success);
+            await LoadListAsync();
+        }
+        finally
+        {
+            _actioning = false;
+        }
+    }
+
+    // ── 送品取消 ──────────────────────────────────────────────────
+
+    private async Task ExecuteCancelSendAsync()
+    {
+        if (_selectedLot is null || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _actioning   = true;
+        _actionError = string.Empty;
+
+        try
+        {
+            var ok = await Svc.CancelSendAsync(
+                lotId:         _selectedLot.LotId,
+                empId:         _empId.Trim(),
+                lotLastUpdate: _selectedLot.RecordTime,
+                carrierId:     _selectedLot.CarrierId);
+
+            if (!ok)
+            {
+                _actionError = "送品取消処理に失敗しました。";
+                Snackbar.Add("送品取消処理に失敗しました。", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add($"送品取消を完了しました。ロット: {_selectedLot.LotId}", Severity.Success);
+            await LoadListAsync();
+        }
+        finally
+        {
+            _actioning = false;
+        }
+    }
+
+    // ── ロット検定表 ──────────────────────────────────────────────
+
+    private async Task OnExamKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && !string.IsNullOrWhiteSpace(_examLotId) && !_loadingExam)
+            await LoadExamInfoAsync();
+    }
+
+    private async Task LoadExamInfoAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_examLotId)) return;
+
+        _loadingExam  = true;
+        _examSearched = false;
+        _examResult   = null;
+        _errorMessage = string.Empty;
+        _errorCode    = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var result = await Svc.GetLotExamInfoAsync(_examLotId.Trim().ToUpperInvariant());
+
+            if (!result.IsSuccess)
+            {
+                _errorMessage = result.ErrorMessage;
+                _errorCode    = result.ErrorCode;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            _examResult = result.Data;
+        }
+        finally
+        {
+            _loadingExam  = false;
+            _examSearched = true;
+        }
+    }
+}

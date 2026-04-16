@@ -1,5 +1,6 @@
 @page "/opposite-substrate-register"
 @inject ISnackbar Snackbar
+@inject OppositeSubstrateService Svc
 
 <PageTitle>SPIRYTUS - 対向基板処置登録 (EN00H0)</PageTitle>
 
@@ -171,6 +172,7 @@
     private string _pdId             = "";
     private string _nowSt            = "";
     private string _wfNum            = "";
+    private string _lotLastUpdate    = "";
     private string _dispositionCode  = "";
     private string _empId            = "";
     private string _dispositionWfNum = "";
@@ -196,14 +198,21 @@
         _errorMessage = "";
         StateHasChanged();
 
-        // 実装中 - carr.curstate で照合
-        await Task.Delay(300);
+        var result = await Svc.GetCarrierStateAsync(_carrierId);
         _loading = false;
-        _fetched = true;
-        _lotId   = "OPPLOT01";
-        _pdId    = "PDOPP01";
-        _nowSt   = "在庫";
-        _wfNum   = "25";
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _fetched       = true;
+        _lotId         = result.LotId;
+        _pdId          = result.PdId;
+        _nowSt         = result.NowSt;
+        _wfNum         = result.WfNum;
+        _lotLastUpdate = result.LotLastUpdate;
         Snackbar.Add($"ロット {_lotId} を取得しました。", Severity.Info);
     }
 
@@ -212,9 +221,17 @@
         _loading = true;
         StateHasChanged();
 
-        // 実装中 - 対向基板処置登録メッセージ送信
-        await Task.Delay(500);
+        var result = await Svc.RegisterAsync(
+            _lotId, _carrierId, _substrateType, _dispositionCode,
+            _empId, _dispositionWfNum, _comments, _lotLastUpdate);
         _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         Snackbar.Add($"対向基板処置を登録しました。 ロット: {_lotId}", Severity.Success);
         ClearAll();
     }
@@ -228,6 +245,7 @@
         _pdId             = "";
         _nowSt            = "";
         _wfNum            = "";
+        _lotLastUpdate    = "";
         _dispositionCode  = "";
         _empId            = "";
         _dispositionWfNum = "";

@@ -1,5 +1,6 @@
 @page "/dummy-load-unload"
 @inject ISnackbar Snackbar
+@inject DummyLoadUnloadService Svc
 
 <PageTitle>SPIRYTUS - ダミー Load/Unload/再投入 (EN00R0)</PageTitle>
 
@@ -177,6 +178,7 @@
     private string _carrierId      = "";
     private string _lotId          = "";
     private string _carrierStateName = "";
+    private string _lotLastUpdate  = "";
     private string _opId           = "";
     private string _stepId         = "";
     private string _wpId           = "";
@@ -228,12 +230,19 @@
         _errorMessage = "";
         StateHasChanged();
 
-        // 実装中 - carr.curstate で照合 (dumy.chgcarrier MsgVer="01.01")
-        await Task.Delay(300);
-        _loading          = false;
+        var result = await Svc.GetCarrierStateAsync(_carrierId);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         _fetched          = true;
-        _lotId            = "LOTDUMMY01";
-        _carrierStateName = "ダミー在庫";
+        _lotId            = result.LotId;
+        _carrierStateName = result.CarrierStateName;
+        _lotLastUpdate    = result.LotLastUpdate;
         Snackbar.Add($"キャリア {_carrierId} を確認しました。", Severity.Info);
     }
 
@@ -242,9 +251,16 @@
         _loading = true;
         StateHasChanged();
 
-        // 実装中 - dumy.chgcarrier または dumy.carstate 送信
-        await Task.Delay(500);
+        var result = await Svc.ExecuteAsync(
+            _carrierId, _operationMode, _opId, _stepId, _wpId, _portId, _empId, _comments);
         _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         Snackbar.Add($"{OperationLabel} を登録しました。 キャリア: {_carrierId}", Severity.Success);
         ClearAll();
     }
@@ -256,6 +272,7 @@
         _fetched          = false;
         _lotId            = "";
         _carrierStateName = "";
+        _lotLastUpdate    = "";
         _opId             = "";
         _stepId           = "";
         _wpId             = "";

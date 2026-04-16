@@ -1,0 +1,83 @@
+@page "/a-carrier-management"
+@inject ACarrierManagementService Svc
+
+<PageTitle>SPIRYTUS - Aキャリア管理 (EN02T0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">Aキャリア管理 (EN02T0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_aCarrierId" Label="AキャリアID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" Immediate="true"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_result is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">AキャリアID</MudText><MudText Typo="Typo.body2">@_result.ACarrierId</MudText></MudItem>
+            <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">状態ID</MudText><MudText Typo="Typo.body2">@_result.ACarrierStatId</MudText></MudItem>
+            <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">クラス</MudText><MudText Typo="Typo.body2">@_result.ACarrierClass</MudText></MudItem>
+            <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">空フラグ</MudText><MudText Typo="Typo.body2">@_result.EmptyFlag</MudText></MudItem>
+            <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">洗浄回数</MudText><MudText Typo="Typo.body2">@_result.WashUseNum / @_result.WashUseLimit</MudText></MudItem>
+            <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">使用回数</MudText><MudText Typo="Typo.body2">@_result.UseNum / @_result.UseLimit</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (_result.ATrayList is { Count: > 0 })
+    {
+        <MudPaper Class="pa-2" Elevation="1">
+            <MudDataGrid T="ACarrierManagementService.ATraySlotItem" Items="_result.ATrayList" Dense="true" Hover="true" ReadOnly="true" Striped="true">
+                <Columns>
+                    <PropertyColumn Property="x => x.ATrayId"       Title="AトレーID"  />
+                    <PropertyColumn Property="x => x.ATrayStatusName" Title="状態"      />
+                    <PropertyColumn Property="x => x.ATrayClass"    Title="クラス"     />
+                    <PropertyColumn Property="x => x.SlotPosition"  Title="スロット位置" />
+                    <PropertyColumn Property="x => x.WashUseNum"    Title="洗浄回数"   />
+                    <PropertyColumn Property="x => x.UseNum"        Title="使用回数"   />
+                </Columns>
+            </MudDataGrid>
+        </MudPaper>
+    }
+}
+
+</div>
+
+@code {
+    private string _aCarrierId = "";
+    private string _error      = "";
+    private bool   _loading;
+    private ACarrierManagementService.ACarrierStatusResult? _result;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_aCarrierId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchAsync(); }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _result = null; StateHasChanged();
+        try {
+            var r = await Svc.GetACarrierStatusAsync(_aCarrierId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _result = r;
+        } finally { _loading = false; }
+    }
+}

@@ -1,0 +1,115 @@
+@page "/lot-process-order"
+@inject LotProcessOrderService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ロット工順変更 (EN01X0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">ロット工順変更 (EN01X0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_pdId" Label="品種ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_flowClass" Label="フロー区分" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="5" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@_loading" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_items is not null)
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudDataGrid T="LotProcessOrderService.LotItem" Items="_items" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selected"
+                     SelectedItemChanged="OnRowSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.LotId"        Title="ロットID"  />
+                <PropertyColumn Property="x => x.PdId"         Title="品種"      />
+                <PropertyColumn Property="x => x.PdName"       Title="品種名"    />
+                <PropertyColumn Property="x => x.FlowClass"    Title="フロー区分" />
+                <PropertyColumn Property="x => x.CurrentOpId"  Title="OP ID"    />
+                <PropertyColumn Property="x => x.CurrentStepId" Title="StepID"  />
+                <PropertyColumn Property="x => x.WpId"         Title="装置ID"   />
+                <PropertyColumn Property="x => x.Status"       Title="状態"     />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    @if (_selected is not null)
+    {
+        <MudPaper Class="pa-3 mt-2" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_newStatus" Label="新状態" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                               Disabled="@(!CanChange || _changing)" OnClick="ChangeProcStatusAsync">
+                        @if (_changing) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                        else { <span>状態変更</span> }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+
+</div>
+
+@code {
+    private string _pdId      = "";
+    private string _flowClass = "";
+    private string _newStatus = "";
+    private string _empId     = "";
+    private string _error     = "";
+    private bool   _loading, _changing;
+    private IReadOnlyList<LotProcessOrderService.LotItem>? _items;
+    private LotProcessOrderService.LotItem? _selected;
+
+    private bool CanChange => _selected is not null && !string.IsNullOrWhiteSpace(_newStatus) && !string.IsNullOrWhiteSpace(_empId);
+
+    private void OnRowSelected(LotProcessOrderService.LotItem? item) { _selected = item; }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _selected = null; StateHasChanged();
+        try {
+            var r = await Svc.GetLotListAsync(_pdId.Trim(), _flowClass.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _items = null; return; }
+            _items = r.Items;
+        } finally { _loading = false; }
+    }
+
+    private async Task ChangeProcStatusAsync()
+    {
+        if (_selected is null) return;
+        _changing = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.ChangeProcStatusAsync(_selected.LotId, _newStatus.Trim(), _empId.Trim(), _selected.MsgVer);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("状態を変更しました。", Severity.Success);
+            _selected = null; await SearchAsync();
+        } finally { _changing = false; }
+    }
+}

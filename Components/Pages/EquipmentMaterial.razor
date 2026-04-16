@@ -1,0 +1,116 @@
+@page "/equipment-material"
+@inject EquipmentMaterialService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 装置使用部材管理 (EN01V0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">装置使用部材管理 (EN01V0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_wpId" Label="装置ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_materialType" Label="部材種別" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="10" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@_loading" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_items is not null)
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudDataGrid T="EquipmentMaterialService.MaterialItem" Items="_items" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selected"
+                     SelectedItemChanged="OnRowSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.MaterialId"     Title="部材ID"   />
+                <PropertyColumn Property="x => x.MaterialName"   Title="部材名"   />
+                <PropertyColumn Property="x => x.MaterialType"   Title="種別"     />
+                <PropertyColumn Property="x => x.WpId"           Title="装置ID"   />
+                <PropertyColumn Property="x => x.WpName"         Title="装置名"   />
+                <PropertyColumn Property="x => x.StatusName"     Title="状態"     />
+                <PropertyColumn Property="x => x.UseStartDate"   Title="使用開始日"/>
+                <PropertyColumn Property="x => x.UseEndDate"     Title="使用終了日"/>
+                <PropertyColumn Property="x => x.StockNum"       Title="在庫数"   />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    @if (_selected is not null)
+    {
+        <MudPaper Class="pa-3 mt-2" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_newStat" Label="新状態" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                               Disabled="@(!CanChange || _changing)" OnClick="ChangeStatAsync">
+                        @if (_changing) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                        else { <span>状態変更</span> }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+
+</div>
+
+@code {
+    private string _wpId         = "";
+    private string _materialType = "";
+    private string _newStat      = "";
+    private string _empId        = "";
+    private string _error        = "";
+    private bool   _loading, _changing;
+    private IReadOnlyList<EquipmentMaterialService.MaterialItem>? _items;
+    private EquipmentMaterialService.MaterialItem? _selected;
+
+    private bool CanChange => _selected is not null && !string.IsNullOrWhiteSpace(_newStat) && !string.IsNullOrWhiteSpace(_empId);
+
+    private void OnRowSelected(EquipmentMaterialService.MaterialItem? item) { _selected = item; }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _selected = null; StateHasChanged();
+        try {
+            var r = await Svc.GetMaterialListAsync(_wpId.Trim(), _materialType.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _items = null; return; }
+            _items = r.Items;
+        } finally { _loading = false; }
+    }
+
+    private async Task ChangeStatAsync()
+    {
+        if (_selected is null) return;
+        _changing = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.ChangeStatAsync(_selected.MaterialId, _newStat.Trim(), _empId.Trim(), _selected.MsgVer);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("状態を変更しました。", Severity.Success);
+            _selected = null; _newStat = ""; await SearchAsync();
+        } finally { _changing = false; }
+    }
+}

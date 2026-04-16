@@ -1,0 +1,144 @@
+@page "/teos-fb"
+@inject TeosFbService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - TEOS F/B変更/参照 (EN02J0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">TEOS F/B変更/参照 (EN02J0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_wpId" Label="装置ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" Immediate="true"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchCondAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>条件取得</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading || _fbLoading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_condItems is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="TeosFbService.CondItem" Items="_condItems" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selectedCond"
+                     SelectedItemChanged="OnCondSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.WpId"     Title="装置ID"   />
+                <PropertyColumn Property="x => x.RecipeId" Title="レシピID" />
+                <PropertyColumn Property="x => x.CondId"   Title="条件ID"   />
+                <PropertyColumn Property="x => x.CondName" Title="条件名"   />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+@if (_fbItems is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="TeosFbService.FbItem" Items="_fbItems" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selectedFb"
+                     SelectedItemChanged="OnFbSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.No"           Title="No"       />
+                <PropertyColumn Property="x => x.MeasDate"     Title="測定日"   />
+                <PropertyColumn Property="x => x.RecipeId"     Title="レシピID" />
+                <PropertyColumn Property="x => x.ItemName"     Title="項目名"   />
+                <PropertyColumn Property="x => x.CurrentValue" Title="現在値"   />
+                <PropertyColumn Property="x => x.NewValue"     Title="新しい値" />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    @if (_selectedFb is not null)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_newValue" Label="新しい値" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="20" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                               Disabled="@(!CanUpdate || _updating)" OnClick="UpdateAsync">
+                        @if (_updating) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                        else { <span>更新</span> }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+
+</div>
+
+@code {
+    private string _wpId     = "";
+    private string _newValue = "";
+    private string _empId    = "";
+    private string _error    = "";
+    private bool   _loading, _fbLoading, _updating;
+    private IReadOnlyList<TeosFbService.CondItem>? _condItems;
+    private IReadOnlyList<TeosFbService.FbItem>?   _fbItems;
+    private TeosFbService.CondItem? _selectedCond;
+    private TeosFbService.FbItem?   _selectedFb;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_wpId);
+    private bool CanUpdate => _selectedFb is not null && _selectedCond is not null && !string.IsNullOrWhiteSpace(_newValue) && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchCondAsync(); }
+
+    private async Task OnCondSelected(TeosFbService.CondItem? item)
+    {
+        _selectedCond = item; _fbItems = null; _selectedFb = null;
+        if (item is null) return;
+        _fbLoading = true; StateHasChanged();
+        try {
+            var r = await Svc.GetFbListAsync(item.WpId, item.CondId);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _fbItems = r.Items;
+        } finally { _fbLoading = false; }
+    }
+
+    private void OnFbSelected(TeosFbService.FbItem? item) { _selectedFb = item; }
+
+    private async Task SearchCondAsync()
+    {
+        _loading = true; _error = ""; _condItems = null; _fbItems = null; _selectedCond = null; _selectedFb = null; StateHasChanged();
+        try {
+            var r = await Svc.GetCondListAsync(_wpId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _condItems = r.Items;
+        } finally { _loading = false; }
+    }
+
+    private async Task UpdateAsync()
+    {
+        if (_selectedFb is null || _selectedCond is null) return;
+        _updating = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.UpdateAsync(_selectedCond.WpId, _selectedCond.CondId, _selectedFb.ItemName,
+                _newValue.Trim(), _empId.Trim(), _selectedFb.MsgVer);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("更新しました。", Severity.Success);
+            _selectedFb = null; _newValue = ""; await OnCondSelected(_selectedCond);
+        } finally { _updating = false; }
+    }
+}

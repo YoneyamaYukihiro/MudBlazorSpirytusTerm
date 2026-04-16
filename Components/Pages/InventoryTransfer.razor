@@ -1,0 +1,96 @@
+@page "/inventory-transfer"
+@inject InventoryTransferService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 在庫移載 (EN01E0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">在庫移載 (EN01E0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_fromCarrierId" Label="元キャリアID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="6" Immediate="true"
+                          Style="font-family:monospace;text-transform:uppercase;"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_info is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText><MudText Typo="Typo.body2">@_info.LotId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">キャリアID</MudText><MudText Typo="Typo.body2">@_info.CarrierId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText><MudText Typo="Typo.body2">@_info.PdId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText><MudText Typo="Typo.body2">@_info.NowSt</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_toCarrierId" Label="移載先キャリアID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="6"
+                              Style="font-family:monospace;text-transform:uppercase;" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                           Disabled="@(!CanMove || _moving)" OnClick="MoveAsync">
+                    @if (_moving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                    else { <span>移載</span> }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _fromCarrierId = "";
+    private string _toCarrierId   = "";
+    private string _error         = "";
+    private bool   _loading, _moving;
+    private InventoryTransferService.MoveInfoResult? _info;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_fromCarrierId);
+    private bool CanMove   => _info is not null && !string.IsNullOrWhiteSpace(_toCarrierId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchAsync(); }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.GetMoveInfoAsync(_fromCarrierId.Trim().ToUpper());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _info = r;
+        } finally { _loading = false; }
+    }
+
+    private async Task MoveAsync()
+    {
+        _moving = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.MoveAsync(_fromCarrierId.Trim().ToUpper(), _toCarrierId.Trim().ToUpper(), "", _info!.LotLastUpdate);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("移載しました。", Severity.Success);
+            _info = null; _fromCarrierId = ""; _toCarrierId = "";
+        } finally { _moving = false; }
+    }
+}

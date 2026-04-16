@@ -29,7 +29,10 @@
                               Label="ロットID（10桁未満はワイルドカード検索）"
                               Variant="Variant.Outlined"
                               Margin="Margin.Dense"
+                              MaxLength="10"
+                              Immediate="true"
                               Placeholder="ロットIDを入力"
+                              Style="font-family: monospace; text-transform: uppercase;"
                               OnKeyDown="OnLotIdKeyDownAsync" />
             </MudItem>
         }

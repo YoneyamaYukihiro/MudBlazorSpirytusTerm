@@ -1,5 +1,6 @@
 @page "/recipe-setting-change"
 @inject ISnackbar Snackbar
+@inject RecipeSettingChangeService Svc
 
 <PageTitle>SPIRYTUS - レシピ設定変更 (EN00S0)</PageTitle>
 
@@ -171,19 +172,20 @@
 }
 
 @code {
-    private string _carrierId      = "";
-    private string _lotId          = "";
-    private string _pdId           = "";
-    private string _opId           = "";
-    private string _stepId         = "";
+    private string _carrierId       = "";
+    private string _lotId           = "";
+    private string _pdId            = "";
+    private string _opId            = "";
+    private string _stepId          = "";
     private string _currentRecipeId = "";
-    private string _newRecipeId    = "";
-    private string _empId          = "";
-    private string _changeReason   = "";
-    private bool   _carrierError   = false;
-    private bool   _loading        = false;
-    private bool   _fetched        = false;
-    private string _errorMessage   = "";
+    private string _newRecipeId     = "";
+    private string _lotLastUpdate   = "";
+    private string _empId           = "";
+    private string _changeReason    = "";
+    private bool   _carrierError    = false;
+    private bool   _loading         = false;
+    private bool   _fetched         = false;
+    private string _errorMessage    = "";
 
     private List<RecipeRow> _recipeRows   = [];
     private RecipeRow?      _selectedRecipe;
@@ -212,21 +214,32 @@
         _errorMessage = "";
         StateHasChanged();
 
-        // 実装中 - lot_.curstate で照合 → lot_.userecp_ でレシピ一覧取得
-        await Task.Delay(400);
-        _loading          = false;
-        _fetched          = true;
-        _lotId            = "LOT56789";
-        _pdId             = "PDXXX01";
-        _opId             = "OP200";
-        _stepId           = "ST300";
-        _currentRecipeId  = "RECIPE_A";
-        _recipeRows = new List<RecipeRow>
+        var lotResult = await Svc.GetLotInfoAsync(_carrierId);
+        if (!lotResult.IsSuccess)
         {
-            new("RECIPE_A", "標準レシピA", true, "通常処理"),
-            new("RECIPE_B", "レシピB",     false, "高品質処理"),
-            new("RECIPE_C", "レシピC",     false, "短縮処理"),
-        };
+            _loading      = false;
+            _errorMessage = lotResult.ErrorMessage;
+            return;
+        }
+
+        _lotId          = lotResult.LotId;
+        _pdId           = lotResult.PdId;
+        _opId           = lotResult.OpId;
+        _stepId         = lotResult.StepId;
+        _currentRecipeId = lotResult.CurrentRecipeId;
+        _lotLastUpdate  = lotResult.LotLastUpdate;
+
+        var recipeResult = await Svc.GetUsableRecipesAsync(_lotId, _opId, _stepId);
+        _loading = false;
+        _fetched = true;
+
+        if (recipeResult.IsSuccess && recipeResult.Items is { } items)
+        {
+            _recipeRows = items
+                .Select(i => new RecipeRow(i.RecipeId, i.RecipeName, i.IsDefault, i.Comments))
+                .ToList();
+        }
+
         Snackbar.Add($"ロット {_lotId} のレシピ情報を取得しました。", Severity.Info);
     }
 
@@ -235,9 +248,16 @@
         _loading = true;
         StateHasChanged();
 
-        // 実装中 - レシピ変更メッセージ送信
-        await Task.Delay(500);
+        var result = await Svc.ChangeRecipeAsync(
+            _lotId, _opId, _stepId, _newRecipeId, _empId, _changeReason, _lotLastUpdate);
         _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         Snackbar.Add($"レシピを {_currentRecipeId} → {_newRecipeId} に変更しました。 ロット: {_lotId}", Severity.Success);
         ClearAll();
     }
@@ -253,6 +273,7 @@
         _stepId          = "";
         _currentRecipeId = "";
         _newRecipeId     = "";
+        _lotLastUpdate   = "";
         _empId           = "";
         _changeReason    = "";
         _recipeRows      = [];

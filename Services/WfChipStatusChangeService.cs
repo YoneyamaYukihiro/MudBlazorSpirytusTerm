@@ -251,7 +251,7 @@ public sealed class WfChipStatusChangeService(ITfMessageClient mq, IConfiguratio
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "MasScpList failed.", ex);
+            logger.LogWarning(ex, "MasScpList failed.");
             return new ScpListResult(false, $"通信エラー: {ex.Message}");
         }
 

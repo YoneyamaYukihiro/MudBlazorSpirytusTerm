@@ -1,0 +1,76 @@
+@page "/parts-history"
+@inject PartsHistoryService Svc
+
+<PageTitle>SPIRYTUS - 部材履歴 (EN01I0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">部材履歴 (EN01I0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_partId" Label="部材ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_fromDate" Label="開始日" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="8" Placeholder="YYYYMMDD" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_toDate" Label="終了日" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="8" Placeholder="YYYYMMDD" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@_loading" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_items is not null)
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudDataGrid T="PartsHistoryService.HistoryItem" Items="_items" Dense="true" Hover="true" ReadOnly="true" Striped="true">
+            <Columns>
+                <PropertyColumn Property="x => x.No"          Title="No"        />
+                <PropertyColumn Property="x => x.DateTime"    Title="日時"      />
+                <PropertyColumn Property="x => x.StockLotId"  Title="在庫ロットID" />
+                <PropertyColumn Property="x => x.ProdLotId"   Title="生産ロットID" />
+                <PropertyColumn Property="x => x.EventClass"  Title="イベント区分" />
+                <PropertyColumn Property="x => x.EventName"   Title="イベント名" />
+                <PropertyColumn Property="x => x.PartName"    Title="部材名"    />
+                <PropertyColumn Property="x => x.VendClass"   Title="ベンダー区分" />
+                <PropertyColumn Property="x => x.WpId"        Title="装置ID"   />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _partId   = "";
+    private string _fromDate = "";
+    private string _toDate   = "";
+    private string _error    = "";
+    private bool   _loading;
+    private IReadOnlyList<PartsHistoryService.HistoryItem>? _items;
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.GetHistoryAsync(_fromDate.Trim(), _toDate.Trim(), _partId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _items = null; return; }
+            _items = r.Items;
+        } finally { _loading = false; }
+    }
+}

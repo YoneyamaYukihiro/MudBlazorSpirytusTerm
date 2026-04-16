@@ -1,0 +1,74 @@
+@page "/a-tray-management"
+@inject ATrayManagementService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - Aトレー管理 (EN02S0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">Aトレー管理 (EN02S0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_atrayId" Label="AトレーID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" Immediate="true"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@_loading" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_items is not null)
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudDataGrid T="ATrayManagementService.ATrayItem" Items="_items" Dense="true" Hover="true" ReadOnly="true" Striped="true">
+            <Columns>
+                <PropertyColumn Property="x => x.ATrayId"     Title="AトレーID"    />
+                <PropertyColumn Property="x => x.ATrayStatus" Title="状態"         />
+                <PropertyColumn Property="x => x.ATrayClass"  Title="クラス"       />
+                <PropertyColumn Property="x => x.TapeStickGroup" Title="テープ貼りグループ" />
+                <PropertyColumn Property="x => x.WashUseNum"  Title="洗浄使用回数" />
+                <PropertyColumn Property="x => x.WashUseLimit" Title="洗浄上限"    />
+                <PropertyColumn Property="x => x.UseNum"      Title="使用回数"     />
+                <PropertyColumn Property="x => x.UseLimit"    Title="使用上限"     />
+                <PropertyColumn Property="x => x.ACarrierId"  Title="Aキャリア"   />
+                <PropertyColumn Property="x => x.SlotPosition" Title="スロット位置" />
+                <PropertyColumn Property="x => x.EmpName"     Title="担当者"      />
+                <PropertyColumn Property="x => x.EditTime"    Title="更新日時"     />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _atrayId = "";
+    private string _error   = "";
+    private bool   _loading;
+    private IReadOnlyList<ATrayManagementService.ATrayItem>? _items;
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && !_loading) await SearchAsync(); }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.GetATrayListAsync(_atrayId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _items = null; return; }
+            _items = r.Items;
+        } finally { _loading = false; }
+    }
+}

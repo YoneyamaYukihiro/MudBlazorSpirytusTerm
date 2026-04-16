@@ -1,0 +1,80 @@
+@page "/fr-usage-history"
+@inject FrUsageHistoryService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - CONTエッチャーFR使用履歴 (EN02K0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">CONTエッチャーFR使用履歴 (EN02K0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_wpId" Label="装置ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_processingId" Label="処理ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_result is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">基準値時刻</MudText><MudText Typo="Typo.body2">@_result.RfRefValueTime</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">警告時刻</MudText><MudText Typo="Typo.body2">@_result.WarMsgTime</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">エラー時刻</MudText><MudText Typo="Typo.body2">@_result.ErrMsgTime</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="FrUsageHistoryService.HistItem" Items="@(_result.Items ?? [])" Dense="true" Hover="true" ReadOnly="true" Striped="true">
+            <Columns>
+                <PropertyColumn Property="x => x.FrId"          Title="FR ID"       />
+                <PropertyColumn Property="x => x.LotId"         Title="ロットID"     />
+                <PropertyColumn Property="x => x.RecipeId"      Title="レシピID"    />
+                <PropertyColumn Property="x => x.AcceleFactor"  Title="加速係数"    />
+                <PropertyColumn Property="x => x.CumProcTime"   Title="累積処理時間" />
+                <PropertyColumn Property="x => x.ProcTime"      Title="処理時間"    />
+                <PropertyColumn Property="x => x.EntryTime"     Title="登録時刻"    />
+                <PropertyColumn Property="x => x.EmpName"       Title="担当者"      />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _wpId         = "";
+    private string _processingId = "";
+    private string _error        = "";
+    private bool   _loading;
+    private FrUsageHistoryService.HistListResult? _result;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_wpId);
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _result = null; StateHasChanged();
+        try {
+            var r = await Svc.GetHistListAsync(_wpId.Trim(), _processingId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _result = r;
+        } finally { _loading = false; }
+    }
+}

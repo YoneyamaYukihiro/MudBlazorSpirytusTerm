@@ -1,0 +1,114 @@
+@page "/throwin-transfer-list"
+@inject ThrowInTransferListService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 投入移載一覧 (EN01H0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">投入移載一覧 (EN01H0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_sbId" Label="SB-ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" Immediate="true"
+                          Style="font-family:monospace;"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_items is not null)
+{
+    <MudPaper Class="pa-2" Elevation="1">
+        <MudDataGrid T="ThrowInTransferListService.TransferItem" Items="_items" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selected"
+                     SelectedItemChanged="OnRowSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.No"          Title="No"      />
+                <PropertyColumn Property="x => x.ThrowinDate" Title="投入日"   />
+                <PropertyColumn Property="x => x.PdId"        Title="品種"     />
+                <PropertyColumn Property="x => x.PdName"      Title="品種名"   />
+                <PropertyColumn Property="x => x.LotId"       Title="ロットID" />
+                <PropertyColumn Property="x => x.CarrierId"   Title="キャリア" />
+                <PropertyColumn Property="x => x.SbId"        Title="SB-ID"   />
+                <PropertyColumn Property="x => x.WpId"        Title="装置ID"  />
+                <PropertyColumn Property="x => x.WpName"      Title="装置名"  />
+                <PropertyColumn Property="x => x.FlowClass"   Title="フロー"  />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    @if (_selected is not null)
+    {
+        <MudPaper Class="pa-3 mt-2" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Medium"
+                               Disabled="@(!CanMove || _moving)" OnClick="ForcedMoveAsync">
+                        @if (_moving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                        else { <span>強制移載</span> }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+
+</div>
+
+@code {
+    private string _sbId     = "";
+    private string _empId    = "";
+    private string _error    = "";
+    private bool   _loading, _moving;
+    private IReadOnlyList<ThrowInTransferListService.TransferItem>? _items;
+    private ThrowInTransferListService.TransferItem? _selected;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_sbId);
+    private bool CanMove   => _selected is not null && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchAsync(); }
+
+    private void OnRowSelected(ThrowInTransferListService.TransferItem? item)
+    { _selected = item; }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _selected = null; StateHasChanged();
+        try {
+            var r = await Svc.GetListAsync(_sbId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _items = null; return; }
+            _items = r.Items;
+        } finally { _loading = false; }
+    }
+
+    private async Task ForcedMoveAsync()
+    {
+        if (_selected is null) return;
+        _moving = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.ForcedMoveAsync(_sbId.Trim(), _selected.LotId, _empId.Trim(), _selected.WpId, _selected.MsgVer);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("強制移載しました。", Severity.Success);
+            _selected = null; await SearchAsync();
+        } finally { _moving = false; }
+    }
+}

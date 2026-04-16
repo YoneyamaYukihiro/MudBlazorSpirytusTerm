@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <!-- MudBlazor v9 アナライザー警告を抑制 -->
+    <NoWarn>$(NoWarn);MUD0002</NoWarn>
   </PropertyGroup>
 
 

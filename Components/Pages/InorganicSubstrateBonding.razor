@@ -1,0 +1,112 @@
+@page "/inorganic-substrate-bonding"
+@inject InorganicSubstrateBondingService Svc
+
+<PageTitle>SPIRYTUS - 無機対向基板紐付/蒸着バッチ情報 (EN02H0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">無機対向基板紐付/蒸着バッチ情報 (EN02H0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId" Label="キャリアID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="6" Immediate="true"
+                          Style="font-family:monospace;text-transform:uppercase;"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_items is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="InorganicSubstrateBondingService.MkLotItem" Items="_items" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selected"
+                     SelectedItemChanged="OnRowSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.MkLotId"    Title="MKロットID" />
+                <PropertyColumn Property="x => x.CfLotId"    Title="CFロットID" />
+                <PropertyColumn Property="x => x.TpLotId"    Title="TPロットID" />
+                <PropertyColumn Property="x => x.MkCarrierId" Title="MKキャリア" />
+                <PropertyColumn Property="x => x.CfCarrierId" Title="CFキャリア" />
+                <PropertyColumn Property="x => x.BatchId"    Title="バッチID"   />
+                <PropertyColumn Property="x => x.Status"     Title="状態"       />
+                <PropertyColumn Property="x => x.EvapDate"   Title="蒸着日"     />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    @if (_selected is not null && !string.IsNullOrEmpty(_selected.BatchId))
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Info" Size="Size.Small" Class="mb-2"
+                   Disabled="@_batchLoading" OnClick="LoadBatchInfoAsync">
+            バッチ情報取得
+        </MudButton>
+
+        @if (_batchInfo is not null)
+        {
+            <MudPaper Class="pa-2 mb-2" Elevation="1">
+                <MudGrid Spacing="1">
+                    <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">バッチID</MudText><MudText Typo="Typo.body2">@_batchInfo.BatchId</MudText></MudItem>
+                    <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">装置ID</MudText><MudText Typo="Typo.body2">@_batchInfo.WpId</MudText></MudItem>
+                    <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">レシピID</MudText><MudText Typo="Typo.body2">@_batchInfo.RecipeId</MudText></MudItem>
+                    <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">開始日時</MudText><MudText Typo="Typo.body2">@_batchInfo.StartDate</MudText></MudItem>
+                    <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">終了日時</MudText><MudText Typo="Typo.body2">@_batchInfo.EndDate</MudText></MudItem>
+                    <MudItem xs="6" sm="2"><MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText><MudText Typo="Typo.body2">@_batchInfo.Status</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        }
+    }
+}
+
+</div>
+
+@code {
+    private string _carrierId  = "";
+    private string _error      = "";
+    private bool   _loading, _batchLoading;
+    private IReadOnlyList<InorganicSubstrateBondingService.MkLotItem>? _items;
+    private InorganicSubstrateBondingService.MkLotItem? _selected;
+    private InorganicSubstrateBondingService.BatchInfoResult? _batchInfo;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_carrierId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchAsync(); }
+
+    private void OnRowSelected(InorganicSubstrateBondingService.MkLotItem? item)
+    { _selected = item; _batchInfo = null; }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _selected = null; _batchInfo = null; StateHasChanged();
+        try {
+            var r = await Svc.GetMkLotListAsync(_carrierId.Trim().ToUpper());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _items = null; return; }
+            _items = r.Items;
+        } finally { _loading = false; }
+    }
+
+    private async Task LoadBatchInfoAsync()
+    {
+        if (_selected is null) return;
+        _batchLoading = true; _error = ""; _batchInfo = null; StateHasChanged();
+        try {
+            var r = await Svc.GetBatchInfoAsync(_selected.BatchId);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _batchInfo = r;
+        } finally { _batchLoading = false; }
+    }
+}

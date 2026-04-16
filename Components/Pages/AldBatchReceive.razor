@@ -1,0 +1,111 @@
+@page "/ald-batch-receive"
+@inject AldBatchReceiveService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - バッチ受入在庫(ALD) (EN02P0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">バッチ受入在庫(ALD) (EN02P0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_pdId" Label="品種ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" Immediate="true"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="GetRecipeAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>レシピ取得</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_recipe is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText><MudText Typo="Typo.body2">@_recipe.PdId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">テープ貼りレシピ</MudText><MudText Typo="Typo.body2">@_recipe.TapeStickRecipe</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">オーブンレシピ</MudText><MudText Typo="Typo.body2">@_recipe.OvenRecipe</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">ALDレシピ</MudText><MudText Typo="Typo.body2">@_recipe.AldRecipe</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_batchId" Label="バッチID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="20" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudTextField @bind-Value="_classDiv" Label="クラス区分" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="5" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudTextField @bind-Value="_planDate" Label="投入予定日" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="8" Placeholder="YYYYMMDD" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="10" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                           Disabled="@(!CanRegist || _registing)" OnClick="RegistAsync">
+                    @if (_registing) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                    else { <span>登録</span> }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _pdId     = "";
+    private string _batchId  = "";
+    private string _classDiv = "";
+    private string _planDate = "";
+    private string _empId    = "";
+    private string _error    = "";
+    private bool   _loading, _registing;
+    private AldBatchReceiveService.BatchRecipeResult? _recipe;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_pdId);
+    private bool CanRegist => _recipe is not null && !string.IsNullOrWhiteSpace(_batchId) && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await GetRecipeAsync(); }
+
+    private async Task GetRecipeAsync()
+    {
+        _loading = true; _error = ""; _recipe = null; StateHasChanged();
+        try {
+            var r = await Svc.GetBatchRecipeAsync(_pdId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _recipe = r;
+        } finally { _loading = false; }
+    }
+
+    private async Task RegistAsync()
+    {
+        _registing = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.RegistBatchAsync(_batchId.Trim(), _classDiv.Trim(), _planDate.Trim(),
+                "", "", _empId.Trim(), [], "01.00");
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("バッチを登録しました。", Severity.Success);
+            _batchId = ""; _planDate = "";
+        } finally { _registing = false; }
+    }
+}

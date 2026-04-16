@@ -1,0 +1,89 @@
+@page "/odf-reservation"
+@inject OdfReservationService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ODF予約&amp;表面処理予約 (EN02U0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">ODF予約&amp;表面処理予約 (EN02U0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+               Disabled="@_loading" OnClick="LoadTftCfListAsync">
+        @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>読込中...</span> }
+        else { <MudIcon Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Class="mr-1" /><span>品種リスト取得</span> }
+    </MudButton>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_tftCfItems is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="OdfReservationService.TftCfItem" Items="_tftCfItems" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selectedTft"
+                     SelectedItemChanged="OnTftSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.PdId"       Title="TFT品種ID"  />
+                <PropertyColumn Property="x => x.PdVersion"  Title="TFTバージョン" />
+                <PropertyColumn Property="x => x.LcDirection" Title="液晶方向"   />
+                <PropertyColumn Property="x => x.CfPdId"     Title="CF品種ID"   />
+                <PropertyColumn Property="x => x.CfPdVersion" Title="CFバージョン" />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+@if (_reserveLoading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_reserveItems is not null)
+{
+    <MudText Typo="Typo.subtitle2" Class="mt-1 mb-1">ODF予約リスト</MudText>
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="OdfReservationService.OdfReserveItem" Items="_reserveItems" Dense="true" Hover="true" ReadOnly="true" Striped="true">
+            <Columns>
+                <PropertyColumn Property="x => x.LotId"           Title="ロットID"     />
+                <PropertyColumn Property="x => x.WfId"            Title="WF ID"        />
+                <PropertyColumn Property="x => x.SlotPosition"    Title="スロット位置"  />
+                <PropertyColumn Property="x => x.ReserveFlag"     Title="予約フラグ"   />
+                <PropertyColumn Property="x => x.CarrierId"       Title="キャリア"     />
+                <PropertyColumn Property="x => x.CurrentStatusName" Title="状態"       />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _error     = "";
+    private bool   _loading, _reserveLoading;
+    private IReadOnlyList<OdfReservationService.TftCfItem>? _tftCfItems;
+    private IReadOnlyList<OdfReservationService.OdfReserveItem>? _reserveItems;
+    private OdfReservationService.TftCfItem? _selectedTft;
+
+    private async Task OnTftSelected(OdfReservationService.TftCfItem? item)
+    {
+        _selectedTft = item; _reserveItems = null;
+        if (item is null) return;
+        _reserveLoading = true; StateHasChanged();
+        try {
+            var r = await Svc.GetOdfReserveListAsync(item.PdId, item.CfPdId);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _reserveItems = r.Items;
+        } finally { _reserveLoading = false; }
+    }
+
+    private async Task LoadTftCfListAsync()
+    {
+        _loading = true; _error = ""; _tftCfItems = null; _reserveItems = null; _selectedTft = null; StateHasChanged();
+        try {
+            var r = await Svc.GetTftCfListAsync();
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _tftCfItems = r.Items;
+        } finally { _loading = false; }
+    }
+}

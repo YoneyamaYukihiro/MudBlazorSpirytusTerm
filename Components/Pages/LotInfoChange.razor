@@ -1,0 +1,70 @@
+@page "/lot-info-change"
+@inject LotInfoChangeService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - ロット情報変更 (EN0290)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">ロット情報変更 (EN0290)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_lotId" Label="ロットID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="16" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_attributeName" Label="属性名" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="40" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_newValue" Label="新しい値" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="100" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="10" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_lotLastUpdate" Label="最終更新" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                       Disabled="@(!CanChange || _changing)" OnClick="ChangeAsync">
+                @if (_changing) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                else { <span>変更</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+
+</div>
+
+@code {
+    private string _lotId         = "";
+    private string _attributeName = "";
+    private string _newValue      = "";
+    private string _empId         = "";
+    private string _lotLastUpdate = "";
+    private string _error         = "";
+    private bool   _changing;
+
+    private bool CanChange => !string.IsNullOrWhiteSpace(_lotId) && !string.IsNullOrWhiteSpace(_attributeName) && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task ChangeAsync()
+    {
+        _changing = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.ChangeAttributeAsync(_lotId.Trim(), _attributeName.Trim(), _newValue.Trim(),
+                _empId.Trim(), _lotLastUpdate.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("変更しました。", Severity.Success);
+            _attributeName = ""; _newValue = "";
+        } finally { _changing = false; }
+    }
+}

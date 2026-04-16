@@ -1,5 +1,6 @@
 @page "/special-flow"
 @inject ISnackbar Snackbar
+@inject SpecialFlowService Svc
 
 <PageTitle>SPIRYTUS - 特殊流動(リワーク・追加・先行) (EN00Y0)</PageTitle>
 
@@ -188,25 +189,25 @@
 }
 
 @code {
-    private string _classDivision  = "RW";
-    private string _carrierId      = "";
-    private string _lotId          = "";
-    private string _pdId           = "";
-    private string _nowSt          = "";
-    private string _wfNum          = "";
-    private string _toOpId         = "";
-    private string _toStepId       = "";
-    private string _empId          = "";
-    private string _comments       = "";
-    private string _reworkReason   = "";
+    private string _classDivision   = "RW";
+    private string _carrierId       = "";
+    private string _lotId           = "";
+    private string _pdId            = "";
+    private string _nowSt           = "";
+    private string _wfNum           = "";
+    private string _lotLastUpdate   = "";
+    private string _toOpId          = "";
+    private string _toStepId        = "";
+    private string _empId           = "";
+    private string _comments        = "";
+    private string _reworkReason    = "";
     private string _reworkSubReason = "";
-    private string _lotLastUpdate  = "";
-    private bool   _carrierError   = false;
-    private bool   _loading        = false;
-    private bool   _fetched        = false;
-    private string _errorMessage   = "";
-    private string _guidMsg        = "";
-    private string _guidMsgCode    = "";
+    private bool   _carrierError    = false;
+    private bool   _loading         = false;
+    private bool   _fetched         = false;
+    private string _errorMessage    = "";
+    private string _guidMsg         = "";
+    private string _guidMsgCode     = "";
 
     private async Task OnCarrierKeyUp(KeyboardEventArgs e)
     {
@@ -224,15 +225,21 @@
         _errorMessage = "";
         StateHasChanged();
 
-        // 実装中 - carr.curstate で照合
-        await Task.Delay(300);
-        _loading        = false;
-        _fetched        = true;
-        _lotId          = "LOT12345";
-        _pdId           = "PDXXXX";
-        _nowSt          = "在庫";
-        _wfNum          = "25";
-        _lotLastUpdate  = DateTime.Now.ToString("yyyyMMddHHmmss");
+        var result = await Svc.GetCarrierStateAsync(_carrierId);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _fetched       = true;
+        _lotId         = result.LotId;
+        _pdId          = result.PdId;
+        _nowSt         = result.NowSt;
+        _wfNum         = result.WfNum;
+        _lotLastUpdate = result.LotLastUpdate;
         Snackbar.Add($"ロット {_lotId} を取得しました。", Severity.Info);
     }
 
@@ -242,11 +249,19 @@
         _guidMsg = "";
         StateHasChanged();
 
-        // 実装中 - lot_.reworkset_ MsgVer に応じて送信
-        await Task.Delay(500);
-        _loading     = false;
-        _guidMsg     = "特殊流動を登録しました。";
-        _guidMsgCode = "";
+        var result = await Svc.RegisterAsync(
+            _lotId, _classDivision, _toOpId, _toStepId, _empId, _lotLastUpdate,
+            _reworkReason, _reworkSubReason, _comments);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _guidMsg     = result.GuidanceMsg;
+        _guidMsgCode = result.GuidanceMsgCode;
         Snackbar.Add($"特殊流動({_classDivision})を登録しました。 ロット: {_lotId}", Severity.Success);
         ClearAll();
     }
@@ -260,6 +275,7 @@
         _pdId            = "";
         _nowSt           = "";
         _wfNum           = "";
+        _lotLastUpdate   = "";
         _toOpId          = "";
         _toStepId        = "";
         _empId           = "";

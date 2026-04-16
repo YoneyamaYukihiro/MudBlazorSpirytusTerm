@@ -449,4 +449,14 @@ public static class Tags
     public const string LotScrapSetId       = "LOT_SCRAP_SET_ID";   // 不良項目セットID
     public const string RelatedLotStatus    = "RELATED_LOT_STATUS"; // 搭載ロット状態
     public const string Num                 = "NUM";                 // 数 (汎用)
+
+    // ──────── EN00B0 CFロット編成 (mas_.screenlist / lot_.cfthrowin) ────────
+    public const string ScreenSizeList      = "SCREEN_SIZE_LIST";   // 画面サイズ一覧
+    public const string ChipCount           = "CHIP_COUNT";         // 基板取個数/詰数
+
+    // ──────── EN00V0 工程異常/不適合品処理票 (excp.reportlist) ────────
+    public const string ExcpReportList      = "REPORT_LIST";        // 処理票一覧
+
+    // ──────── EN00T0 装置データ (lot_.collectparams) ────────
+    public const string CollectionList      = "COLLECTION_LIST";    // 収集項目リスト
 }

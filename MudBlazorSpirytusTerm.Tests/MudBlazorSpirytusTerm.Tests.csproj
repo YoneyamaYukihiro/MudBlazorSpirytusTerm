@@ -23,18 +23,65 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.1" />
   </ItemGroup>
 
+  <!--
+    Blazor プロジェクト (Microsoft.NET.Sdk.Web) を参照する場合、
+    テストプロジェクトは DLL/PDB のみ必要。
+    staticwebassets / runtimeconfig / deps / exe 等はコピー不要なので
+    ProjectReference の Private=false + 必要な DLL のみ手動追加で対応する。
+  -->
   <ItemGroup>
-    <ProjectReference Include="..\MudBlazorSpirytusTerm.csproj" />
+    <ProjectReference Include="..\MudBlazorSpirytusTerm.csproj">
+      <Private>false</Private>
+      <ExcludeAssets>contentFiles</ExcludeAssets>
+    </ProjectReference>
   </ItemGroup>
 
   <!--
-    Blazor プロジェクト (Microsoft.NET.Sdk.Web) を参照すると、
-    staticwebassets.endpoints.json の伝播・コピーが発生しビルドエラーになる。
-    テストプロジェクトは静的 Web アセットを必要としないため、
-    参照プロジェクトからの伝播ターゲットをすべて無効化する。
+    静的 Web アセット伝播ターゲットをすべて無効化する。
   -->
   <Target Name="ResolveStaticWebAssetsFromReferencedProjects" />
   <Target Name="_ResolveStaticWebAssetsManifest" />
   <Target Name="CopyStaticWebAssetsToOutputDirectory" />
+  <!-- テストプロジェクト自身の静的 Web アセットマニフェスト生成も無効化 -->
+  <Target Name="AddStaticWebAssetsManifest" />
+  <Target Name="AddStaticWebAssetEndpointsBuildManifest" />
+
+  <!--
+    参照先 Blazor プロジェクトから収集された staticwebassets ファイルを
+    コピー対象から除去する（VS ビルドでも dotnet build でも動作）。
+    _CopyOutOfDateSourceItemsToOutputDirectory が実行される直前に
+    _SourceItemsToCopyToOutputDirectory から "staticwebassets" を含む
+    TargetPath のアイテムを削除する。
+  -->
+  <Target Name="RemoveStaticWebAssetsFromCopyItems"
+          BeforeTargets="_CopyOutOfDateSourceItemsToOutputDirectory;
+                         _CopyOutOfDateSourceItemsToOutputDirectoryAlways;
+                         _CopyOutOfDateSourceItemsToOutputDirectoryIfDifferent">
+    <ItemGroup>
+      <_SourceItemsToCopyToOutputDirectory Remove="@(_SourceItemsToCopyToOutputDirectory)"
+        Condition="$([System.String]::Copy('%(TargetPath)').Contains('staticwebassets'))" />
+      <_SourceItemsToCopyToOutputDirectoryAlways Remove="@(_SourceItemsToCopyToOutputDirectoryAlways)"
+        Condition="$([System.String]::Copy('%(TargetPath)').Contains('staticwebassets'))" />
+      <_SourceItemsToCopyToOutputDirectoryIfDifferent Remove="@(_SourceItemsToCopyToOutputDirectoryIfDifferent)"
+        Condition="$([System.String]::Copy('%(TargetPath)').Contains('staticwebassets'))" />
+    </ItemGroup>
+  </Target>
+
+  <!--
+    Private=false だと参照先 DLL が出力にコピーされないため、
+    テスト実行に必要なアセンブリを明示的にコピーする。
+  -->
+  <Target Name="CopyReferencedProjectDllsToOutput"
+          AfterTargets="Build">
+    <ItemGroup>
+      <_ReferencedDlls Include="$(MSBuildThisFileDirectory)..\bin\$(Configuration)\$(TargetFramework)\MudBlazorSpirytusTerm.dll" />
+      <_ReferencedDlls Include="$(MSBuildThisFileDirectory)..\bin\$(Configuration)\$(TargetFramework)\MudBlazorSpirytusTerm.pdb"
+                       Condition="Exists('$(MSBuildThisFileDirectory)..\bin\$(Configuration)\$(TargetFramework)\MudBlazorSpirytusTerm.pdb')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ReferencedDlls)"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('%(Identity)')" />
+  </Target>
 
 </Project>

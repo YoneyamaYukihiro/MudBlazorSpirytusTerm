@@ -1,5 +1,6 @@
 @page "/tpal-bonding"
 @inject ISnackbar Snackbar
+@inject TpalBondingService Svc
 
 <PageTitle>SPIRYTUS - TPAL貼り合わせ登録 (EN01A0)</PageTitle>
 
@@ -196,17 +197,18 @@
 }
 
 @code {
-    private string _tftCarrierId  = "";
-    private string _tpalCarrierId = "";
-    private string _tftLotId     = "";
-    private string _tftPdId      = "";
-    private string _tftNowSt     = "";
-    private string _tftWfNum     = "";
-    private string _empId        = "";
+    private string _tftCarrierId   = "";
+    private string _tpalCarrierId  = "";
+    private string _tftLotId      = "";
+    private string _tftPdId       = "";
+    private string _tftNowSt      = "";
+    private string _tftWfNum      = "";
+    private string _tftLastUpdate = "";
+    private string _empId         = "";
     private bool   _tftCarrierError = false;
-    private bool   _loading      = false;
-    private bool   _tftFetched   = false;
-    private string _errorMessage = "";
+    private bool   _loading       = false;
+    private bool   _tftFetched    = false;
+    private string _errorMessage  = "";
 
     private List<TpalRow> _tpalRows = [];
 
@@ -243,16 +245,39 @@
         _errorMessage = "";
         StateHasChanged();
 
-        // 実装中 - lot_.curstate MsgVer="04.00" で照合
-        await Task.Delay(300);
+        var lotResult = await Svc.GetTftLotAsync(_tftCarrierId);
+        if (!lotResult.IsSuccess)
+        {
+            _loading      = false;
+            _errorMessage = lotResult.ErrorMessage;
+            return;
+        }
+
+        _tftLotId     = lotResult.LotId;
+        _tftPdId      = lotResult.PdId;
+        _tftNowSt     = lotResult.NowSt;
+        _tftWfNum     = lotResult.WfNum;
+        _tftLastUpdate = lotResult.LotLastUpdate;
+
+        // TPAL使用実績取得
+        var usageResult = await Svc.GetTpalUsageAsync(_tftLotId);
         _loading    = false;
         _tftFetched = true;
-        _tftLotId   = "TFLLOT001";
-        _tftPdId    = "PDTFT01";
-        _tftNowSt   = "処理中";
-        _tftWfNum   = "25";
 
-        // TPAL実績取得 - lot_.tpalcombresult MsgVer="02.00"
+        if (usageResult.IsSuccess && usageResult.Items is { } items)
+        {
+            _tpalRows = items.Select((e, i) => new TpalRow
+            {
+                No        = i + 1,
+                CarrierId = e.CarrierId,
+                TpalLotId = e.TpalLotId,
+                CoverNum  = e.CoverNum,
+                OutNum    = e.OutNum,
+                RestNum   = e.RestNum,
+                LimitTime = e.LimitTime,
+            }).ToList();
+        }
+
         Snackbar.Add($"TFTロット {_tftLotId} を取得しました。", Severity.Info);
     }
 
@@ -262,18 +287,24 @@
         _loading = true;
         StateHasChanged();
 
-        // 実装中 - inv_.combabletpal MsgVer="01.00" でTPAL情報取得
-        await Task.Delay(200);
+        var result = await Svc.GetCombableTpalAsync(_tpalCarrierId, _tftLotId);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         _tpalRows.Add(new TpalRow
         {
             No        = _tpalRows.Count + 1,
             CarrierId = _tpalCarrierId,
-            TpalLotId = $"TPAL{_tpalRows.Count + 1:D3}",
-            RestNum   = "100",
-            LimitTime = DateTime.Now.AddDays(30).ToString("yyyyMMdd"),
+            TpalLotId = result.TpalLotId,
+            RestNum   = result.RestNum,
+            LimitTime = result.LimitTime,
         });
         _tpalCarrierId = "";
-        _loading       = false;
     }
 
     private async Task ConfirmAsync()
@@ -281,9 +312,18 @@
         _loading = true;
         StateHasChanged();
 
-        // 実装中 - lot_.tpalcombstart MsgVer="03.00" で登録
-        await Task.Delay(500);
+        var rows = _tpalRows.Select(r => new TpalBondingService.TpalCombRow(
+            r.CarrierId, r.TpalLotId, r.CoverNum, r.OutNum)).ToList();
+
+        var result = await Svc.RegisterBondingAsync(_tftLotId, _empId, _tftLastUpdate, rows);
         _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         Snackbar.Add($"TPAL貼り合わせを登録しました。 ロット: {_tftLotId}", Severity.Success);
         ClearAll();
     }
@@ -298,6 +338,7 @@
         _tftPdId         = "";
         _tftNowSt        = "";
         _tftWfNum        = "";
+        _tftLastUpdate   = "";
         _empId           = "";
         _tpalRows        = [];
         _errorMessage    = "";

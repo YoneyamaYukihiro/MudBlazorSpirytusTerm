@@ -1,0 +1,113 @@
+@page "/jig-management"
+@inject JigManagementService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 蒸着治具管理 (EN02D0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">蒸着治具管理 (EN02D0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_wpId" Label="装置ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" Immediate="true"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_jycItems is not null)
+{
+    <MudText Typo="Typo.subtitle2" Class="mt-1 mb-1">JYCリスト</MudText>
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="JigManagementService.JycItem" Items="_jycItems" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selectedJyc"
+                     SelectedItemChanged="OnJycSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.JycId"       Title="JYC ID"   />
+                <PropertyColumn Property="x => x.JycName"     Title="JYC名"    />
+                <PropertyColumn Property="x => x.StatusName"  Title="状態"     />
+                <PropertyColumn Property="x => x.UseCount"    Title="使用回数" />
+                <PropertyColumn Property="x => x.MaxUseCount" Title="最大使用回数" />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    @if (_selectedJyc is not null)
+    {
+        <MudPaper Class="pa-3 mb-2" Elevation="1">
+            <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_newStatus" Label="新状態" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                               Disabled="@(!CanChange || _changing)" OnClick="ChangeJycAsync">
+                        @if (_changing) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                        else { <span>状態変更</span> }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+}
+
+</div>
+
+@code {
+    private string _wpId      = "";
+    private string _newStatus = "";
+    private string _empId     = "";
+    private string _error     = "";
+    private bool   _loading, _changing;
+    private IReadOnlyList<JigManagementService.JycItem>? _jycItems;
+    private JigManagementService.JycItem? _selectedJyc;
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_wpId);
+    private bool CanChange => _selectedJyc is not null && !string.IsNullOrWhiteSpace(_newStatus) && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchAsync(); }
+
+    private void OnJycSelected(JigManagementService.JycItem? item) { _selectedJyc = item; _newStatus = ""; }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _selectedJyc = null; StateHasChanged();
+        try {
+            var r = await Svc.GetJycListAsync(_wpId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; _jycItems = null; return; }
+            _jycItems = r.Items;
+        } finally { _loading = false; }
+    }
+
+    private async Task ChangeJycAsync()
+    {
+        if (_selectedJyc is null) return;
+        _changing = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.ChangeJycAsync(_selectedJyc.JycId, _newStatus.Trim(), _empId.Trim(), _selectedJyc.MsgVer);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("状態を変更しました。", Severity.Success);
+            _selectedJyc = null; _newStatus = ""; await SearchAsync();
+        } finally { _changing = false; }
+    }
+}

@@ -1,5 +1,6 @@
 @page "/cfki-work-end"
 @inject ISnackbar Snackbar
+@inject CfkiWorkEndService Svc
 
 <PageTitle>SPIRYTUS - CFKI作業終了 (EN00E0)</PageTitle>
 
@@ -146,19 +147,20 @@
 }
 
 @code {
-    private string _carrierId   = "";
-    private string _lotId       = "";
-    private string _pdId        = "";
-    private string _nowSt       = "";
-    private string _opId        = "";
-    private string _stepId      = "";
-    private string _cfkiClass   = "";
-    private string _empId       = "";
-    private string _resultWfNum = "";
-    private string _comments    = "";
+    private string _carrierId    = "";
+    private string _lotId        = "";
+    private string _pdId         = "";
+    private string _nowSt        = "";
+    private string _opId         = "";
+    private string _stepId       = "";
+    private string _cfkiClass    = "";
+    private string _lotLastUpdate = "";
+    private string _empId        = "";
+    private string _resultWfNum  = "";
+    private string _comments     = "";
     private bool   _carrierError = false;
-    private bool   _loading     = false;
-    private bool   _fetched     = false;
+    private bool   _loading      = false;
+    private bool   _fetched      = false;
     private string _errorMessage = "";
 
     private async Task OnCarrierKeyUp(KeyboardEventArgs e)
@@ -177,16 +179,23 @@
         _errorMessage = "";
         StateHasChanged();
 
-        // 実装中 - lot_.curstate で照合
-        await Task.Delay(300);
-        _loading    = false;
-        _fetched    = true;
-        _lotId      = "CFKILOT01";
-        _pdId       = "PDCFKI01";
-        _nowSt      = "処理中";
-        _opId       = "OP100";
-        _stepId     = "ST200";
-        _cfkiClass  = "CF";
+        var result = await Svc.GetLotInfoAsync(_carrierId);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _fetched       = true;
+        _lotId         = result.LotId;
+        _pdId          = result.PdId;
+        _nowSt         = result.NowSt;
+        _opId          = result.OpId;
+        _stepId        = result.StepId;
+        _cfkiClass     = result.CfkiClass;
+        _lotLastUpdate = result.LotLastUpdate;
         Snackbar.Add($"ロット {_lotId} を取得しました。", Severity.Info);
     }
 
@@ -195,27 +204,37 @@
         _loading = true;
         StateHasChanged();
 
-        // 実装中 - CFKI作業終了メッセージ送信
-        await Task.Delay(500);
+        var result = await Svc.WorkEndAsync(
+            _lotId, _opId, _stepId, _empId, _lotLastUpdate, _resultWfNum, _comments);
         _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
         Snackbar.Add($"CFKI作業終了を登録しました。 ロット: {_lotId}", Severity.Success);
+        if (!string.IsNullOrEmpty(result.GuidanceMsg))
+            Snackbar.Add($"[{result.GuidanceMsgCode}] {result.GuidanceMsg}", Severity.Info);
         ClearAll();
     }
 
     private void ClearAll()
     {
-        _carrierId    = "";
-        _carrierError = false;
-        _fetched      = false;
-        _lotId        = "";
-        _pdId         = "";
-        _nowSt        = "";
-        _opId         = "";
-        _stepId       = "";
-        _cfkiClass    = "";
-        _empId        = "";
-        _resultWfNum  = "";
-        _comments     = "";
-        _errorMessage = "";
+        _carrierId     = "";
+        _carrierError  = false;
+        _fetched       = false;
+        _lotId         = "";
+        _pdId          = "";
+        _nowSt         = "";
+        _opId          = "";
+        _stepId        = "";
+        _cfkiClass     = "";
+        _lotLastUpdate = "";
+        _empId         = "";
+        _resultWfNum   = "";
+        _comments      = "";
+        _errorMessage  = "";
     }
 }

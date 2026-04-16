@@ -1,0 +1,77 @@
+@page "/parts-receipt"
+@inject PartsReceiptService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 部材受入 (EN0210)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">部材受入 (EN0210)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_partId" Label="部材ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_vendClass" Label="ベンダー区分" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="10" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_lotNo" Label="ロット番号" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="30" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_acceptNum" Label="受入数" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="10" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="10" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                       Disabled="@(!CanAccept || _accepting)" OnClick="AcceptAsync">
+                @if (_accepting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                else { <span>受入</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (!string.IsNullOrEmpty(_stockLotId))
+{
+    <MudAlert Severity="Severity.Success" Dense="true" Class="mb-2">
+        受入完了。在庫ロットID: <strong>@_stockLotId</strong>
+    </MudAlert>
+}
+
+</div>
+
+@code {
+    private string _partId    = "";
+    private string _vendClass = "";
+    private string _lotNo     = "";
+    private string _acceptNum = "";
+    private string _empId     = "";
+    private string _error     = "";
+    private string _stockLotId = "";
+    private bool   _accepting;
+
+    private bool CanAccept => !string.IsNullOrWhiteSpace(_partId) && !string.IsNullOrWhiteSpace(_acceptNum) && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task AcceptAsync()
+    {
+        _accepting = true; _error = ""; _stockLotId = ""; StateHasChanged();
+        try {
+            var r = await Svc.AcceptAsync(_partId.Trim(), _vendClass.Trim(), _lotNo.Trim(), _acceptNum.Trim(), _empId.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            _stockLotId = r.StockLotId;
+            Snackbar.Add("受入しました。", Severity.Success);
+            _partId = ""; _vendClass = ""; _lotNo = ""; _acceptNum = "";
+        } finally { _accepting = false; }
+    }
+}

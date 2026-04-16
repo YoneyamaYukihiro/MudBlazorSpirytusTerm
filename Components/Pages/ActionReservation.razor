@@ -1,0 +1,145 @@
+@page "/action-reservation"
+@inject ActionReservationService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - アクション予約 (EN0270)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">アクション予約 (EN0270)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId" Label="キャリアID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="6" Immediate="true"
+                          Style="font-family:monospace;text-transform:uppercase;"
+                          OnKeyDown="OnKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)" OnClick="SearchAsync">
+                @if (_loading) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>検索中...</span> }
+                else { <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" /><span>検索</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+@if (_loading) { <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" /> }
+
+@if (_info is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText><MudText Typo="Typo.body2">@_info.LotId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">キャリアID</MudText><MudText Typo="Typo.body2">@_info.CarrierId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText><MudText Typo="Typo.body2">@_info.PdId</MudText></MudItem>
+            <MudItem xs="6" sm="3"><MudText Typo="Typo.caption" Color="Color.Secondary">装置ID</MudText><MudText Typo="Typo.body2">@_info.WpId</MudText></MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudDataGrid T="ActionReservationService.ActionItem" Items="@(_info.Actions ?? [])" Dense="true" Hover="true"
+                     ReadOnly="true" Striped="true" SelectedItem="_selected"
+                     SelectedItemChanged="OnRowSelected">
+            <Columns>
+                <PropertyColumn Property="x => x.ActionId"     Title="アクションID" />
+                <PropertyColumn Property="x => x.ActionName"   Title="アクション名" />
+                <PropertyColumn Property="x => x.ActionClass"  Title="区分"        />
+                <PropertyColumn Property="x => x.ScheduleDate" Title="予定日"      />
+            </Columns>
+        </MudDataGrid>
+    </MudPaper>
+
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_actionId" Label="アクションID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="20" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudTextField @bind-Value="_scheduleDate" Label="予定日" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="8" Placeholder="YYYYMMDD" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="10" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium"
+                           Disabled="@(!CanReserve || _reserving)" OnClick="ReserveAsync">
+                    @if (_reserving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                    else { <span>予約</span> }
+                </MudButton>
+            </MudItem>
+            @if (_selected is not null)
+            {
+                <MudItem xs="12" sm="2">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Medium"
+                               Disabled="@(!CanDelete || _reserving)" OnClick="DeleteAsync">
+                        <span>削除</span>
+                    </MudButton>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _carrierId    = "";
+    private string _actionId     = "";
+    private string _scheduleDate = "";
+    private string _empId        = "";
+    private string _error        = "";
+    private bool   _loading, _reserving;
+    private ActionReservationService.ActionInfoResult? _info;
+    private ActionReservationService.ActionItem? _selected;
+
+    private bool CanSearch  => !string.IsNullOrWhiteSpace(_carrierId);
+    private bool CanReserve => _info is not null && !string.IsNullOrWhiteSpace(_actionId) && !string.IsNullOrWhiteSpace(_empId);
+    private bool CanDelete  => _selected is not null && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    { if (e.Key == "Enter" && CanSearch && !_loading) await SearchAsync(); }
+
+    private void OnRowSelected(ActionReservationService.ActionItem? item) { _selected = item; }
+
+    private async Task SearchAsync()
+    {
+        _loading = true; _error = ""; _info = null; _selected = null; StateHasChanged();
+        try {
+            var r = await Svc.GetActionInfoAsync(_carrierId.Trim().ToUpper());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _info = r;
+        } finally { _loading = false; }
+    }
+
+    private async Task ReserveAsync()
+    {
+        if (_info is null) return;
+        _reserving = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.ReserveAsync(_info.LotId, _actionId.Trim(), _scheduleDate.Trim(), _empId.Trim(), _info.LotLastUpdate);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("予約しました。", Severity.Success);
+            _actionId = ""; _scheduleDate = ""; await SearchAsync();
+        } finally { _reserving = false; }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_info is null || _selected is null) return;
+        _reserving = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.DeleteAsync(_info.LotId, _selected.ActionId, _empId.Trim(), _info.LotLastUpdate);
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("削除しました。", Severity.Success);
+            _selected = null; await SearchAsync();
+        } finally { _reserving = false; }
+    }
+}

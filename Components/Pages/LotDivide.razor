@@ -107,8 +107,10 @@
                                       Label="分割先ロットID"
                                       Variant="Variant.Outlined"
                                       Margin="Margin.Dense"
-                                      MaxLength="20"
-                                      Disabled="_loading" />
+                                      MaxLength="10"
+                                      Immediate="true"
+                                      Disabled="_loading"
+                                      Style="font-family: monospace; text-transform: uppercase;" />
                     </MudItem>
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="_divideGrbClass"

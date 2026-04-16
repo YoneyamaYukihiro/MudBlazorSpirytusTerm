@@ -1,0 +1,143 @@
+@page "/vapor-deposition-mask"
+@inject VaporDepositionMaskService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 蒸着マスク組立 (EN02V0)</PageTitle>
+<MudText Typo="Typo.h6" Class="mb-3">蒸着マスク組立 (EN02V0)</MudText>
+<div class="page-wrapper">
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudText Typo="Typo.subtitle2" Class="mb-2">治具使用チェック</MudText>
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_jigId" Label="JIG ID" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="20" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_jigCategory" Label="JIGカテゴリ" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="5" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudTextField @bind-Value="_classDiv" Label="クラス区分" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" MaxLength="5" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Medium"
+                       Disabled="@(!CanCheck || _checking)" OnClick="CheckJigUseAsync">
+                @if (_checking) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>確認中...</span> }
+                else { <span>使用チェック</span> }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+    @if (_checkResult is not null)
+    {
+        <MudAlert Severity="@(_checkResult.IsSuccess ? Severity.Success : Severity.Warning)" Dense="true" Class="mt-2">
+            @_checkResult.GuidMsg
+        </MudAlert>
+    }
+</MudPaper>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">@_error</MudAlert>
+}
+
+@if (_checkResult?.IsSuccess == true)
+{
+    <MudPaper Class="pa-3 mb-2" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">マスクセット</MudText>
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_jigStatus" Label="JIG状態" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="10" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_jigEventId" Label="JIGイベントID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="20" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_empId" Label="社員ID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="10" />
+            </MudItem>
+        </MudGrid>
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center" Class="mt-2">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_guideId" Label="ガイドID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="20" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_maskId" Label="マスクID" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" MaxLength="20" />
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Size="Size.Small" OnClick="AddMask">
+                    マスク追加
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+        @if (_masks.Count > 0)
+        {
+            <MudPaper Class="pa-2 mt-2" Elevation="0" Style="background-color:var(--mud-palette-background-grey)">
+                @foreach (var m in _masks)
+                {
+                    <MudChip T="string" Color="Color.Primary" Size="Size.Small" Class="mr-1 mb-1">@m.GuideId / @m.MaskId</MudChip>
+                }
+            </MudPaper>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Medium" Class="mt-2"
+                       Disabled="@(!CanSet || _setting)" OnClick="SetMaskAsync">
+                @if (_setting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" /><span>処理中...</span> }
+                else { <span>マスクセット</span> }
+            </MudButton>
+        }
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private string _jigId      = "";
+    private string _jigCategory = "";
+    private string _classDiv   = "";
+    private string _jigStatus  = "";
+    private string _jigEventId = "";
+    private string _empId      = "";
+    private string _guideId    = "";
+    private string _maskId     = "";
+    private string _error      = "";
+    private bool   _checking, _setting;
+    private VaporDepositionMaskService.JigUseCheckResult? _checkResult;
+    private List<VaporDepositionMaskService.MaskItem> _masks = [];
+
+    private bool CanCheck => !string.IsNullOrWhiteSpace(_jigId);
+    private bool CanSet   => _masks.Count > 0 && !string.IsNullOrWhiteSpace(_jigStatus) && !string.IsNullOrWhiteSpace(_empId);
+
+    private async Task CheckJigUseAsync()
+    {
+        _checking = true; _error = ""; _checkResult = null; StateHasChanged();
+        try {
+            var r = await Svc.CheckJigUseAsync(_jigId.Trim(), _jigCategory.Trim(), _classDiv.Trim());
+            if (!r.IsSuccess) { _error = r.ErrorMessage; return; }
+            _checkResult = r;
+        } finally { _checking = false; }
+    }
+
+    private void AddMask()
+    {
+        if (!string.IsNullOrWhiteSpace(_guideId) && !string.IsNullOrWhiteSpace(_maskId))
+        {
+            _masks.Add(new VaporDepositionMaskService.MaskItem(_guideId.Trim(), _maskId.Trim()));
+            _guideId = ""; _maskId = "";
+        }
+    }
+
+    private async Task SetMaskAsync()
+    {
+        _setting = true; _error = ""; StateHasChanged();
+        try {
+            var r = await Svc.SetMaskAsync(_empId.Trim(), _jigStatus.Trim(), _jigEventId.Trim(), _masks, "01.00");
+            if (!r.IsSuccess) { _error = r.ErrorMessage; Snackbar.Add(r.ErrorMessage, Severity.Error); return; }
+            Snackbar.Add("マスクをセットしました。", Severity.Success);
+            _masks = []; _checkResult = null; _jigId = "";
+        } finally { _setting = false; }
+    }
+}
