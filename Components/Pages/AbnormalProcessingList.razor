@@ -13,8 +13,7 @@
         @* 検索開始日 *@
         <MudItem xs="12" sm="6" md="2">
             <MudDatePicker Label="開始日"
-                           Date="_startDate"
-                           DateChanged="d => _startDate = d"
+                           @bind-Date="_startDate"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            DateFormat="yyyy/MM/dd"
@@ -24,8 +23,7 @@
         @* 検索終了日 *@
         <MudItem xs="12" sm="6" md="2">
             <MudDatePicker Label="終了日"
-                           Date="_endDate"
-                           DateChanged="d => _endDate = d"
+                           @bind-Date="_endDate"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            DateFormat="yyyy/MM/dd"

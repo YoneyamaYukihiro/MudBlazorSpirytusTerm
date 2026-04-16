@@ -137,7 +137,7 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
                     .ToList();
 
                 var toEmpList = e.GetMsgAry("TO_EMP_LIST")
-                    .Select(t => new ToEmpEntry(t.GetString(Tags.EmpId), t.GetString("EMP_NAME")))
+                    .Select(t => new ToEmpEntry(t.GetString(Tags.EmpId), t.GetString(Tags.EmpName)))
                     .ToList();
 
                 return new AbnormalItem(

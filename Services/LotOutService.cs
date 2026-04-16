@@ -12,10 +12,6 @@ public sealed class LotOutService(ITfMessageClient mq, IConfiguration cfg, ILogg
     // VBソース: CPstrlot_terminate (CtsbasxxCM0010.vb 262行)
     private const string MsgLotTerminate = "lot_.terminate";
 
-    // ──────── タグ定数 ────────────────────────────────────────────
-    // VBソース: CPstrRESPONSIBLE_EMP_ID (CtsbasxxCM0010.vb 1480行)
-    private const string TagResponsibleEmpId = "RESPONSIBLE_EMP_ID";
-
     // ──────── 公開型 ────────────────────────────────────────────
 
     /// <summary>
@@ -129,7 +125,7 @@ public sealed class LotOutService(ITfMessageClient mq, IConfiguration cfg, ILogg
         req.AddString(Tags.Class,           endClass);
         req.AddString(Tags.ReasonCode,      reasonCode);
         req.AddString(Tags.Comments,        comments);
-        req.AddString(TagResponsibleEmpId,  responsibleEmpId);
+        req.AddString(Tags.ResponsibleEmpId, responsibleEmpId);
         req.AddString(Tags.EmpId,           empId);
         req.AddString(Tags.LotLastUpdate,   lotLastUpdate);
         req.AddString(Tags.SbId,            _sbId);

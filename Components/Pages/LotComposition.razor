@@ -1,0 +1,292 @@
+@page "/lot-composition"
+@inject LotCompositionService CompositionSvc
+@inject ISnackbar Snackbar
+@using static MudBlazorSpirytusTerm.Services.LotCompositionService
+
+<PageTitle>SPIRYTUS - ロット編成(保留/払出WF) (EN0120)</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+<MudText Typo="Typo.h6" Class="mb-3">ロット編成(保留/払出WF) (EN0120)</MudText>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
+              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+        @_errorMessage
+    </MudAlert>
+}
+
+@* ────── キャリアID入力 ────── *@
+<MudPaper Class="pa-3 mb-3" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.End">
+        <MudItem xs="12" sm="4" md="3">
+            <MudTextField T="string"
+                          Value="@_carrierId"
+                          ValueChanged="@((string v) => _carrierId = (v ?? "").ToUpperInvariant())"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          MaxLength="6"
+                          Immediate="true"
+                          HelperText="Enterキーで照合"
+                          Error="@_carrierError"
+                          OnKeyUp="OnCarrierKeyUp"
+                          Disabled="_loading"
+                          Style="font-family: monospace; letter-spacing: 0.1em; text-transform: uppercase;" />
+        </MudItem>
+        <MudItem xs="12" sm="3" md="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="FetchCarrierStateAsync"
+                       Disabled="@(_loading || string.IsNullOrWhiteSpace(_carrierId))">
+                @if (_loading && _carrierState is null)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>照合中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-1" Size="Size.Small" />
+                    <span>照合</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────── ロット情報 + 編成設定 ────── *@
+@if (_carrierState is not null)
+{
+    <MudGrid Spacing="2" Class="mb-3">
+
+        @* ── ロット情報カード ── *@
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">ロット情報</MudText>
+                <MudGrid Spacing="1">
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロットID</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body1"><b>@_carrierState.LotId</b></MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">機種</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_carrierState.PdId @(string.IsNullOrEmpty(_carrierState.PdName) ? "" : $"({_carrierState.PdName})")</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット状態</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_carrierState.NowSt</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">ロット担当者</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_carrierState.EngEmpName</MudText></MudItem>
+
+                    <MudItem xs="5"><MudText Typo="Typo.body2" Class="mud-text-secondary">WF枚数</MudText></MudItem>
+                    <MudItem xs="7"><MudText Typo="Typo.body2">@_carrierState.WfNum 枚</MudText></MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        @* ── 編成設定カード ── *@
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">編成設定</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="PriorityItem"
+                                   @bind-Value="_selectedPriority"
+                                   Label="優先度"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   ToStringFunc="@(p => p?.PriorityName ?? "")"
+                                   Disabled="@(_loading || _priorities.Count == 0)">
+                            @foreach (var p in _priorities)
+                            {
+                                <MudSelectItem Value="@p">@p.PriorityName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_empId"
+                                      Label="作業者ID"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="10"
+                                      Disabled="_loading" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ────── スロットマップ（WFマップ）────── *@
+    <MudPaper Class="pa-3 mb-3" Elevation="1">
+        <MudText Typo="Typo.subtitle2" Class="mb-2 mud-text-secondary">
+            スロットマップ — スロットNo / WFID / 状態 / GRB / 元ロットID
+        </MudText>
+        <MudTable T="SlotRow" Items="_slotRows" Dense="true" Hover="true" Elevation="0">
+            <HeaderContent>
+                <MudTh>スロット</MudTh>
+                <MudTh>WFID</MudTh>
+                <MudTh>状態</MudTh>
+                <MudTh>GRB</MudTh>
+                <MudTh>元ロットID</MudTh>
+                <MudTh>選択</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.SlotNo</MudTd>
+                <MudTd>@context.WfId</MudTd>
+                <MudTd>@context.WfStat</MudTd>
+                <MudTd>@context.Grb</MudTd>
+                <MudTd>@context.BeforLotId</MudTd>
+                <MudTd>
+                    <MudCheckBox T="bool" Value="@context.Selected"
+                                 ValueChanged="@((bool v) => context.Selected = v)"
+                                 Size="Size.Small" Disabled="_loading" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    @* ── ガイダンスメッセージ ── *@
+    @if (!string.IsNullOrEmpty(_guidMsg))
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            [@_guidMsgCode] @_guidMsg
+        </MudAlert>
+    }
+
+    @* ────── ボタン ────── *@
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.MergeType"
+                   OnClick="ExecuteCompositionAsync"
+                   Disabled="@(_loading || _carrierState is null)">
+            @if (_loading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                <span>処理中...</span>
+            }
+            else
+            {
+                <span>編成確定</span>
+            }
+        </MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Large"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   OnClick="ClearAll" Disabled="_loading">
+            クリア
+        </MudButton>
+    </MudStack>
+}
+
+@code {
+    private string _carrierId    = "";
+    private string _empId        = "";
+    private bool   _carrierError = false;
+    private bool   _loading      = false;
+    private string _errorMessage = "";
+    private string _guidMsg      = "";
+    private string _guidMsgCode  = "";
+
+    private CarrierStateResult?         _carrierState = null;
+    private IReadOnlyList<PriorityItem> _priorities   = [];
+    private PriorityItem?               _selectedPriority;
+    private List<SlotRow>               _slotRows     = [];
+
+    private sealed class SlotRow
+    {
+        public string SlotNo     { get; init; } = "";
+        public string WfId       { get; init; } = "";
+        public string WfStat     { get; init; } = "";
+        public string Grb        { get; init; } = "";
+        public string BeforLotId { get; init; } = "";
+        public bool   Selected   { get; set;  }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _priorities = await CompositionSvc.GetPriorityListAsync();
+        _selectedPriority = _priorities.Count > 0 ? _priorities[0] : null;
+    }
+
+    private async Task OnCarrierKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FetchCarrierStateAsync();
+    }
+
+    private async Task FetchCarrierStateAsync()
+    {
+        _carrierError = false;
+        if (string.IsNullOrWhiteSpace(_carrierId)) return;
+        if (_carrierId.Length != 6) { _carrierError = true; return; }
+
+        _loading      = true;
+        _carrierState = null;
+        _slotRows     = [];
+        _guidMsg      = "";
+        _guidMsgCode  = "";
+        _errorMessage = "";
+        StateHasChanged();
+
+        var result = await CompositionSvc.GetCarrierStateAsync(_carrierId);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _carrierState = result;
+        // スロットマップをダミーで初期化（実際はinv_.waferlistで取得）
+        if (int.TryParse(result.WfNum, out var wfNum) && wfNum > 0)
+        {
+            _slotRows = Enumerable.Range(1, Math.Min(wfNum, 25))
+                .Select(i => new SlotRow { SlotNo = i.ToString("D2"), WfId = $"WF{i:D3}" })
+                .ToList();
+        }
+        Snackbar.Add($"ロット {result.LotId} を取得しました。", Severity.Info);
+    }
+
+    private async Task ExecuteCompositionAsync()
+    {
+        if (_carrierState is null) return;
+        _loading = true;
+        _guidMsg = "";
+        StateHasChanged();
+
+        var req = new CompositionRequest(
+            LotId:       _carrierState.LotId,
+            CarrierId:   _carrierId,
+            EmpId:       _empId,
+            LotPriority: _selectedPriority?.PriorityId ?? "1");
+
+        var result = await CompositionSvc.ExecuteAsync(req);
+        _loading = false;
+
+        if (!result.IsSuccess)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _guidMsg     = result.GuidMsg;
+        _guidMsgCode = result.GuidMsgCode;
+        Snackbar.Add($"ロット編成を完了しました。 ロット: {_carrierState.LotId}", Severity.Success);
+        ClearAll();
+    }
+
+    private void ClearAll()
+    {
+        _carrierId    = "";
+        _carrierError = false;
+        _carrierState = null;
+        _slotRows     = [];
+        _empId        = "";
+        _errorMessage = "";
+        _guidMsg      = "";
+        _guidMsgCode  = "";
+        _selectedPriority = _priorities.Count > 0 ? _priorities[0] : null;
+    }
+}

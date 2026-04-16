@@ -137,6 +137,14 @@ public static class MsgIds
     public const string LotChkSkipStep = "lot_.chkskipstep";
     public const string LotGetRestrict = "lot_.getrestrict";
 
+    // ──────── EN0180/EN0190 WF/チップ状態変更登録 ────────
+    public const string LotWaferList        = "lot_.waferlist";     // ロットWF情報取得
+    public const string LotInsprst          = "lot_.insprst_";      // 不良/保留/払出/傾向登録
+    public const string MasScpList          = "mas_.scplist_";      // 不良項目入力項目取得
+
+    // ──────── EN01B0 ロット再測定 ────────
+    public const string LotStepRestart      = "lot_.steprestart";   // ロット再測定
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";

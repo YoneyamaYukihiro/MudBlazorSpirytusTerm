@@ -16,10 +16,10 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
 
     // ──────── タグ定数 ────────────────────────────────────────────
     // VBソース: CtsbasxxCM0010.vb 各行参照
-    private const string TagOpList          = "OP_LIST";           // 820行相当 (工程リスト)
-    private const string TagEventList       = "EVENT_LIST";        // 820行: CPstrEVENT_LIST
-    private const string TagLotEventId      = "LOT_EVENT_ID";     // 1082行: CPstrLOT_EVENT_ID
-    private const string TagEventName       = "EVENT_NAME";        // 821行: CPstrEVENT_NAME
+    // Tags.OpList("OP_LIST") は Tags.cs に存在するため Tags.OpList を使用
+    private const string TagEventList        = "EVENT_LIST";        // 820行: CPstrEVENT_LIST
+    private const string TagLotEventId       = "LOT_EVENT_ID";     // 1082行: CPstrLOT_EVENT_ID
+    private const string TagEventName        = "EVENT_NAME";        // 821行: CPstrEVENT_NAME
     private const string TagDeleteProhibited = "DELETE_PROHIBITED"; // 707行: CPstrDELETE_PROHIBITED
 
     // ──────── 公開型 ────────────────────────────────────────────
@@ -192,7 +192,7 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
             return new OpStepListResult(false, string.IsNullOrEmpty(err) ? "流動済工程情報の取得に失敗しました。" : err);
         }
 
-        var opList = aMsg.GetMsgAry(TagOpList)
+        var opList = aMsg.GetMsgAry(Tags.OpList)
             .Select(opMsg => new OpEntry(
                 OpId:     opMsg.GetString(Tags.OpId),
                 StepList: opMsg.GetMsgAry(Tags.StepList)
