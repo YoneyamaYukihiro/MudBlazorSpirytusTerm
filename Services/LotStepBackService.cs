@@ -15,9 +15,12 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
     private const string MsgMntDelHist    = "mnt_.delhist_";   // イベント履歴削除(工程戻し実行)
 
     // ──────── タグ定数 ────────────────────────────────────────────
-    // VBソース: CtsbasxxCM0010.vb OP_LIST / STEP_LIST
-    private const string TagOpList   = "OP_LIST";
-    private const string TagEventList = "EVENT_LIST";
+    // VBソース: CtsbasxxCM0010.vb 各行参照
+    private const string TagOpList          = "OP_LIST";           // 820行相当 (工程リスト)
+    private const string TagEventList       = "EVENT_LIST";        // 820行: CPstrEVENT_LIST
+    private const string TagLotEventId      = "LOT_EVENT_ID";     // 1082行: CPstrLOT_EVENT_ID
+    private const string TagEventName       = "EVENT_NAME";        // 821行: CPstrEVENT_NAME
+    private const string TagDeleteProhibited = "DELETE_PROHIBITED"; // 707行: CPstrDELETE_PROHIBITED
 
     // ──────── 公開型 ────────────────────────────────────────────
 
@@ -244,13 +247,13 @@ public sealed class LotStepBackService(ITfMessageClient mq, IConfiguration cfg, 
             .Select(e => new EventHistEntry(
                 OpId:             e.GetString(Tags.OpId),
                 StepId:           e.GetString(Tags.StepId),
-                LotEventId:       e.GetString(Tags.LotEventId),
-                LotEventName:     e.GetString(Tags.LotEventName),
+                LotEventId:       e.GetString(TagLotEventId),
+                LotEventName:     e.GetString(TagEventName),
                 EntryTime:        e.GetString(Tags.EntryTime),
                 EmpId:            e.GetString(Tags.EmpId),
                 EmpName:          e.GetString(Tags.EmpName),
                 Comments:         e.GetString(Tags.Comments),
-                DeleteProhibited: e.GetString(Tags.DeleteProhibited)
+                DeleteProhibited: e.GetString(TagDeleteProhibited)
             )).ToList();
 
         return new EventHistResult(
