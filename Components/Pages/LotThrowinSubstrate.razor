@@ -228,11 +228,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var prioTask = ThrowinSvc.GetPriorityListAsync();
-        var wpTask   = ThrowinSvc.GetWpListAsync();
-        await Task.WhenAll(prioTask, wpTask);
-        _priorities = prioTask.Result;
-        _wpList     = wpTask.Result;
+        _priorities = await ThrowinSvc.GetPriorityListAsync();
+        _wpList     = await ThrowinSvc.GetWpListAsync();
         _selectedPriority = _priorities.Count > 0 ? _priorities[0] : null;
     }
 

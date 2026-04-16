@@ -334,13 +334,8 @@ else if (!_loading && _selectedEquipment is null)
     // ── 初期化 ────────────────────────────────────────────────────
     protected override async Task OnInitializedAsync()
     {
-        var groupsTask   = EqSvc.GetMcGroupListAsync();
-        var useListTask  = ModeSvc.GetWpUseListAsync();
-
-        await Task.WhenAll(groupsTask, useListTask);
-
-        _groups        = groupsTask.Result;
-        _useList       = useListTask.Result;
+        _groups  = await EqSvc.GetMcGroupListAsync();
+        _useList = await ModeSvc.GetWpUseListAsync();
         _groupsLoading = false;
     }
 

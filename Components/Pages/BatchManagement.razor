@@ -388,15 +388,9 @@
         ClearData();
         StateHasChanged();
 
-        // 3つを並行取得
-        var statusTask = BatchMgmtSvc.GetComposeStatusAsync(_selectedWpId);
-        var recipeTask = BatchMgmtSvc.GetRecipeListAsync(_selectedWpId);
-        var lotTask    = BatchMgmtSvc.GetWaitingLotListAsync(_selectedWpId);
-        await Task.WhenAll(statusTask, recipeTask, lotTask);
-
-        var statusResult = statusTask.Result;
-        var recipeResult = recipeTask.Result;
-        var lotResult    = lotTask.Result;
+        var statusResult = await BatchMgmtSvc.GetComposeStatusAsync(_selectedWpId);
+        var recipeResult = await BatchMgmtSvc.GetRecipeListAsync(_selectedWpId);
+        var lotResult    = await BatchMgmtSvc.GetWaitingLotListAsync(_selectedWpId);
 
         _loading = false;
 

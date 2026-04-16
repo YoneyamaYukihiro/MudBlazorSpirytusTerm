@@ -158,12 +158,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _loading = true;
-        var pdTask  = RsvExtSvc.GetProductListAsync();
-        var fcTask  = RsvExtSvc.GetFlowClassListAsync();
-        await Task.WhenAll(pdTask, fcTask);
-        _products    = pdTask.Result;
-        _flowClasses = fcTask.Result;
+        _loading     = true;
+        _products    = await RsvExtSvc.GetProductListAsync();
+        _flowClasses = await RsvExtSvc.GetFlowClassListAsync();
         _loading     = false;
     }
 

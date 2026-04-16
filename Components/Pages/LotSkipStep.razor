@@ -279,13 +279,8 @@ else if (!_loading)
 
         try
         {
-            // 1. ロット現工程情報取得 + スキップ可否チェック を並行実行
-            var curStateTask  = Svc.GetLotInfoAsync(carrierId);
-            var chkSkipTask   = Svc.CheckSkipAsync(carrierId);
-            await Task.WhenAll(curStateTask, chkSkipTask);
-
-            var curState = curStateTask.Result;
-            var chkSkip  = chkSkipTask.Result;
+            var curState = await Svc.GetLotInfoAsync(carrierId);
+            var chkSkip  = await Svc.CheckSkipAsync(carrierId);
 
             if (!curState.IsSuccess)
             {
