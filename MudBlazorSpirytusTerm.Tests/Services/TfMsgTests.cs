@@ -186,4 +186,85 @@ public class TfMsgTests
         Assert.Equal("LOT001", parsed.GetString(Tags.LotId));
         Assert.Equal("PD-X100", parsed.GetString(Tags.PdId));
     }
+
+    // ──────── TryParseReply / ParseOrEmpty ────────
+
+    [Fact]
+    public void TryParseReply_PureTfFormat_ParsesCorrectly()
+    {
+        var msg = new TfMsg();
+        msg.AddString(Tags.Ret, Tags.False);
+        msg.AddString(Tags.MsgCode, "ML0001");
+        msg.AddString(Tags.Msg, "ロット[BSAJ001S00]は存在しません。");
+        var tf = msg.ToTfString();
+
+        var result = TfMsg.TryParseReply(tf);
+
+        Assert.NotNull(result);
+        Assert.Equal(Tags.False, result!.GetString(Tags.Ret));
+        Assert.Equal("ML0001", result.GetString(Tags.MsgCode));
+        Assert.Equal("ロット[BSAJ001S00]は存在しません。", result.GetString(Tags.Msg));
+    }
+
+    [Fact]
+    public void TryParseReply_ReplyMsgPrefix_ParsesCorrectly()
+    {
+        var msg = new TfMsg();
+        msg.AddString(Tags.Ret, Tags.False);
+        msg.AddString(Tags.MsgCode, "ML0001");
+        msg.AddString(Tags.Msg, "ロット[BSAJ001S00]は存在しません。");
+        var raw = $"REPLY MSG:{msg.ToTfString()}";
+
+        var result = TfMsg.TryParseReply(raw);
+
+        Assert.NotNull(result);
+        Assert.Equal(Tags.False, result!.GetString(Tags.Ret));
+        Assert.Equal("ML0001", result.GetString(Tags.MsgCode));
+        Assert.Equal("ロット[BSAJ001S00]は存在しません。", result.GetString(Tags.Msg));
+    }
+
+    [Fact]
+    public void TryParseReply_NoParenthesis_ReturnsNull()
+    {
+        Assert.Null(TfMsg.TryParseReply("NO_PAREN_STRING"));
+        Assert.Null(TfMsg.TryParseReply(""));
+        Assert.Null(TfMsg.TryParseReply(null));
+    }
+
+    [Fact]
+    public void ParseOrEmpty_ReplyMsgPrefix_ExtractsMsgFields()
+    {
+        var msg = new TfMsg();
+        msg.AddString(Tags.Ret, Tags.False);
+        msg.AddString(Tags.MsgCode, "ML0001");
+        msg.AddString(Tags.Msg, "ロット[BSAJ001S00]は存在しません。");
+        var raw = $"REPLY MSG:{msg.ToTfString()}";
+
+        var result = TfMsg.ParseOrEmpty(raw);
+
+        Assert.Equal(Tags.False, result.GetString(Tags.Ret));
+        Assert.Equal("ML0001", result.GetString(Tags.MsgCode));
+        Assert.Equal("ロット[BSAJ001S00]は存在しません。", result.GetString(Tags.Msg));
+    }
+
+    [Fact]
+    public void ParseOrEmpty_NullOrEmpty_ReturnsFallback()
+    {
+        var result = TfMsg.ParseOrEmpty(null);
+        Assert.Equal(Tags.False, result.GetString(Tags.Ret));
+        Assert.Equal("空の応答", result.GetString(Tags.ErrMsg));
+
+        var result2 = TfMsg.ParseOrEmpty("   ");
+        Assert.Equal(Tags.False, result2.GetString(Tags.Ret));
+        Assert.Equal("空の応答", result2.GetString(Tags.ErrMsg));
+    }
+
+    [Fact]
+    public void ParseOrEmpty_ExceptionText_StoresAsErrMsg()
+    {
+        const string exText = "System.TimeoutException: 接続タイムアウト";
+        var result = TfMsg.ParseOrEmpty(exText);
+        Assert.Equal(Tags.False, result.GetString(Tags.Ret));
+        Assert.Equal(exText, result.GetString(Tags.ErrMsg));
+    }
 }

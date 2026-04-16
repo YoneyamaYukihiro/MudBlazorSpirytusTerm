@@ -178,7 +178,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotAsmDivide returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -225,7 +225,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotHoldList returned non-TRUE. Raw={Raw}", Summarize(raw));
@@ -303,7 +303,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("InvGetSendOrderList returned non-TRUE. Raw={Raw}", Summarize(raw));
@@ -357,7 +357,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("InvGetLotExamInfo returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -428,7 +428,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("InvChgComm returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -476,7 +476,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("InvCfForward returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -513,7 +513,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("InvCfLotInfo returned non-TRUE. CarrierId={CarrierId}, Raw={Raw}",
@@ -571,7 +571,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("InvCfRework returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -615,7 +615,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotCancelSend returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -661,7 +661,7 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotSend returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -673,20 +673,6 @@ public sealed class InventoryService(ITfMessageClient mq, IConfiguration cfg, IL
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

@@ -98,7 +98,7 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
         try
         {
             primaryRaw = await mq.SendMessageAsync(MsgIds.LotList, rMsg.ToTfString(), ct);
-            aMsg = ParseReplyOrError(primaryRaw);
+            aMsg = TfMsg.ParseOrEmpty(primaryRaw);
         }
         catch (Exception ex)
         {
@@ -114,7 +114,7 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
             try
             {
                 var altReplyText = await mq.SendMessageAsync(MsgIds.LotListAld, rMsg.ToTfString(), ct);
-                var altMsg = ParseReplyOrError(altReplyText);
+                var altMsg = TfMsg.ParseOrEmpty(altReplyText);
                 if (altMsg.GetString(Tags.Ret) == Tags.True)
                 {
                     logger.LogInformation("LotList fallback succeeded. Subject={Subject}", MsgIds.LotListAld);
@@ -214,39 +214,6 @@ public sealed class LotListService(ITfMessageClient mq, IConfiguration cfg, ILog
             LotList: lotList
         );
     }
-
-    private static TfMsg ParseReplyOrError(string? replyText)
-    {
-        var text = (replyText ?? string.Empty).Trim();
-        if (text.Length == 0)
-        {
-            var empty = new TfMsg();
-            empty.AddString(Tags.Ret, Tags.False);
-            empty.AddString(Tags.ErrMsg, "空の応答を受信しました。");
-            return empty;
-        }
-
-        if (!text.StartsWith("(", StringComparison.Ordinal))
-        {
-            var nonTf = new TfMsg();
-            nonTf.AddString(Tags.Ret, Tags.False);
-            nonTf.AddString(Tags.ErrMsg, text);
-            return nonTf;
-        }
-
-        try
-        {
-            return TfMsg.FromTfString(text);
-        }
-        catch (Exception ex)
-        {
-            var parseErr = new TfMsg();
-            parseErr.AddString(Tags.Ret, Tags.False);
-            parseErr.AddString(Tags.ErrMsg, $"応答解析エラー: {ex.Message}");
-            return parseErr;
-        }
-    }
-
     private static string SummarizeRaw(string? raw)
     {
         var s = (raw ?? string.Empty).Trim();

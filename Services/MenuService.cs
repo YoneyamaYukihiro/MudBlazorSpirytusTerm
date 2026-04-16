@@ -77,7 +77,7 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
             return new FavoritesResult(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             var errCode = msg.GetString(Tags.ErrCode);
@@ -129,7 +129,7 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
             return new InformationResult(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             var errCode = msg.GetString(Tags.ErrCode);
@@ -145,17 +145,4 @@ public sealed class MenuService(ITfMessageClient mq, IConfiguration cfg, ILogger
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
 }

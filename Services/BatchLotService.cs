@@ -105,7 +105,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True) return [];
 
         return msg.GetMsgAry(Tags.McGroupList)
@@ -141,7 +141,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True) return [];
 
         return msg.GetMsgAry(Tags.WpList)
@@ -182,7 +182,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return new LotListResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             var err = msg.GetString(Tags.ErrMsg);
@@ -289,7 +289,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return new BatchChangeResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             var msgCode = msg.GetString(Tags.MsgCode);
@@ -303,17 +303,4 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

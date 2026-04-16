@@ -44,7 +44,7 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
             return null;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("UtilRefTmInfo returned non-TRUE. HostName={HostName}, Raw={Raw}",
@@ -93,7 +93,7 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("UtilRegTmInfo returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -105,20 +105,6 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

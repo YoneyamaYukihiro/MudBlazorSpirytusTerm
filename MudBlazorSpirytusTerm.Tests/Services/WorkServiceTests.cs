@@ -223,4 +223,18 @@ public class WorkServiceTests
 
         Assert.False(result.IsSuccess);
     }
+
+    [Fact]
+    public async Task GetLotCurStateAsync_ReplyMsgPrefixError_ExtractsMsgCodeAndMsg()
+    {
+        var response = TestHelper.BuildReplyMsgErrorResponse("ML0001", "ロット[BSAJ001S00]は存在しません。");
+        var mock = TestHelper.CreateMock(MsgIds.LotCurState, response);
+        var svc = CreateService(mock);
+
+        var result = await svc.GetLotCurStateAsync("BSAJ001S00");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("ML0001", result.ErrorCode);
+        Assert.Contains("ロット[BSAJ001S00]は存在しません。", result.ErrorMessage);
+    }
 }

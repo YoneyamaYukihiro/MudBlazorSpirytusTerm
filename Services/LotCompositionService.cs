@@ -55,7 +55,7 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
         try
         {
             var raw = await mq.SendMessageAsync(MsgIds.CarrCurState, req.ToTfString(), ct);
-            var msg = ParseOrEmpty(raw);
+            var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True)
             {
                 var err = msg.GetString(Tags.ErrMsg);
@@ -89,7 +89,7 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
         try
         {
             var raw = await mq.SendMessageAsync("mas_.priolist", req.ToTfString(), ct);
-            var msg = ParseOrEmpty(raw);
+            var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True) return [];
             return msg.GetMsgAry("PRIORITY_LIST")
                       .Select(e => new PriorityItem(e.GetString("PRIORITY_ID"), e.GetString("PRIORITY_NAME")))
@@ -131,7 +131,7 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
             return new CompositionResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var resp = ParseOrEmpty(raw);
+        var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
             var err = resp.GetString(Tags.ErrMsg);
@@ -147,17 +147,4 @@ public sealed class LotCompositionService(ITfMessageClient mq, IConfiguration cf
     }
 
     // ──────── ヘルパー ────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

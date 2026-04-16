@@ -62,7 +62,7 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
         try
         {
             var raw = await mq.SendMessageAsync(MsgIds.CarrCurState, req.ToTfString(), ct);
-            var msg = ParseOrEmpty(raw);
+            var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True)
             {
                 var err = msg.GetString(Tags.ErrMsg);
@@ -129,7 +129,7 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
             return new DivideResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var resp = ParseOrEmpty(raw);
+        var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
             var err = resp.GetString(Tags.ErrMsg);
@@ -145,17 +145,4 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
     }
 
     // ──────── ヘルパー ────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

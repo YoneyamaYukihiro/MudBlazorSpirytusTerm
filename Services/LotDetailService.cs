@@ -110,7 +110,7 @@ public sealed class LotDetailService(ITfMessageClient mq, IConfiguration cfg, IL
         try
         {
             raw  = await mq.SendMessageAsync(MsgIds.LotDetail, rMsg.ToTfString(), ct);
-            aMsg = ParseReplyOrError(raw);
+            aMsg = TfMsg.ParseOrEmpty(raw);
         }
         catch (Exception ex)
         {
@@ -192,24 +192,5 @@ public sealed class LotDetailService(ITfMessageClient mq, IConfiguration cfg, IL
     }
 
     // ──────── ヘルパー ────────
-
-    private static TfMsg ParseReplyOrError(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.Length == 0)
-        {
-            var e = new TfMsg(); e.AddString(Tags.Ret, Tags.False); e.AddString(Tags.ErrMsg, "空の応答を受信しました。"); return e;
-        }
-        if (!text.StartsWith("(", StringComparison.Ordinal))
-        {
-            var e = new TfMsg(); e.AddString(Tags.Ret, Tags.False); e.AddString(Tags.ErrMsg, text); return e;
-        }
-        try { return TfMsg.FromTfString(text); }
-        catch (Exception ex)
-        {
-            var e = new TfMsg(); e.AddString(Tags.Ret, Tags.False); e.AddString(Tags.ErrMsg, $"応答解析エラー: {ex.Message}"); return e;
-        }
-    }
-
     private static LotDetailResponse Fail(string message) => new(false, null, message);
 }
