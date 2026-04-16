@@ -19,7 +19,7 @@ public static class TestHelper
         ["Spirytus:DefaultWpId"]    = "1AFP310CTS01",
         ["Spirytus:MenuFlowLoginId"] = "MENUFLOW",
         ["Spirytus:MenuToolLoginId"] = "MENUTOOL",
-        ["Spirytus:MenuKind"]        = "1A0;A"
+        ["Spirytus:MenuKind"]        = "A"
     };
 
     /// <summary>テスト用 IConfiguration を生成する。</summary>
