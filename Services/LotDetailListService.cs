@@ -61,6 +61,14 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
         IReadOnlyList<DetailListItem> DetailList
     );
 
+    /// <summary>GetLotDetailListAsync の呼び出し結果ラッパー</summary>
+    public sealed record LotDetailListResponse(
+        bool IsSuccess,
+        LotDetailListResult? Data = null,
+        string ErrorCode = "",
+        string ErrorMessage = ""
+    );
+
     /// <summary>レシピ本体リストの1要素</summary>
     public sealed record RecipeBodyItem(
         string RecipeValue,
@@ -97,7 +105,7 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
     /// ロット流動票情報を取得する。
     /// VBソース: pubblnLotDetailList_Sel, MsgVer="04.00"
     /// </summary>
-    public async Task<LotDetailListResult?> GetLotDetailListAsync(
+    public async Task<LotDetailListResponse> GetLotDetailListAsync(
         string lotId,
         string carrierId        = "",
         string startSeqNum      = "",
@@ -122,15 +130,17 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
         catch (Exception ex)
         {
             logger.LogError(ex, "LotDetailList request failed. LotId={LotId}", lotId);
-            return null;
+            return new LotDetailListResponse(false, ErrorMessage: ex.Message);
         }
 
         var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            logger.LogWarning("LotDetailList returned non-TRUE. LotId={LotId}, Raw={Raw}",
-                lotId, Summarize(raw));
-            return null;
+            var code    = !string.IsNullOrEmpty(msg.GetString(Tags.MsgCode)) ? msg.GetString(Tags.MsgCode) : msg.GetString(Tags.ErrCode);
+            var message = !string.IsNullOrEmpty(msg.GetString(Tags.Msg))     ? msg.GetString(Tags.Msg)     : msg.GetString(Tags.ErrMsg);
+            logger.LogWarning("LotDetailList returned non-TRUE. LotId={LotId}, Code={Code}, Msg={Msg}",
+                lotId, code, message);
+            return new LotDetailListResponse(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var detailAry = msg.GetMsgAry(Tags.DetailList);
@@ -167,7 +177,7 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
                 WpList:         wpList);
         }).ToList();
 
-        return new LotDetailListResult(
+        return new LotDetailListResponse(true, new LotDetailListResult(
             LotId:          msg.GetString(Tags.LotId),
             CarrierId:      msg.GetString(Tags.CarrierId),
             PdId:           msg.GetString(Tags.PdId),
@@ -183,7 +193,7 @@ public sealed class LotDetailListService(ITfMessageClient mq, IConfiguration cfg
             SendSbId:       msg.GetString(Tags.SendSbId),
             SbArea:         msg.GetString(Tags.SbArea),
             GrbClass:       msg.GetString(Tags.GrbClass),
-            DetailList:     detailList);
+            DetailList:     detailList));
     }
 
     // ──────── 履歴コメント取得 ───────────────────────────────────
