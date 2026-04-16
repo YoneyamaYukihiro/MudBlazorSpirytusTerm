@@ -81,12 +81,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var flowTask = MenuSvc.GetFlowFavoritesAsync(_cts.Token);
-        var toolTask = MenuSvc.GetToolFavoritesAsync(_cts.Token);
-        await Task.WhenAll(flowTask, toolTask);
-
-        var flowResult = flowTask.Result;
-        var toolResult = toolTask.Result;
+        // util.refmenu_ への同時並行リクエストが初回起動時に失敗するため直列で実行する。
+        var flowResult = await MenuSvc.GetFlowFavoritesAsync(_cts.Token);
+        var toolResult = await MenuSvc.GetToolFavoritesAsync(_cts.Token);
 
         if (!flowResult.IsSuccess)
             _flowError = string.IsNullOrEmpty(flowResult.ErrorMessage) ? "取得失敗" : flowResult.ErrorMessage;

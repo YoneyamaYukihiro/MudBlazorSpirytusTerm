@@ -31,6 +31,11 @@ public sealed class ActiveMqMessageClient : ITfMessageClient, IDisposable
                 ? factory.CreateConnection()
                 : factory.CreateConnection(_userName, _password);
             _connection.Start();
+
+            // 接続の内部状態を安定させるためウォームアップセッションを作成して即クローズする。
+            // これにより、初回起動時に複数リクエストが同時に来た場合の競合を防ぐ。
+            using var warmup = _connection.CreateSession(AcknowledgementMode.AutoAcknowledge);
+
             IsAvailable = true;
             _logger.LogInformation("ActiveMQ connected: {BrokerUri}", _brokerUri);
         }
