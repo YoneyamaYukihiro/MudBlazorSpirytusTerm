@@ -1,0 +1,440 @@
+@page "/step-skip"
+@inject LotSkipStepService Svc
+@inject ISnackbar Snackbar
+
+<PageTitle>SPIRYTUS - 工程スキップ (EN0250)</PageTitle>
+
+<MudText Typo="Typo.h6" Class="mb-3">工程スキップ (EN0250)</MudText>
+
+<div class="page-wrapper">
+
+@* ────────────────────── キャリアID入力 ────────────────────── *@
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+    <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_carrierId"
+                          Label="キャリアID"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="キャリアIDを入力"
+                          MaxLength="6"
+                          Disabled="@_loading"
+                          OnKeyDown="OnCarrierKeyDownAsync" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@(!CanSearch || _loading)"
+                       OnClick="SearchAsync">
+                @if (_loading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                    <span>検索中...</span>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Small" Class="mr-1" />
+                    <span>検索</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@* ────────────────────── エラー表示 ────────────────────── *@
+@if (!string.IsNullOrEmpty(_error))
+{
+    <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2" ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+        @_error
+    </MudAlert>
+}
+
+@* ────────────────────── ロード中 ────────────────────── *@
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-1" Style="height:4px;" />
+}
+
+@* ────────────────────── ロット情報 ────────────────────── *@
+@if (_lotInfo is not null)
+{
+    <MudPaper Class="pa-2 mb-2" Elevation="1">
+        <MudGrid Spacing="1">
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロットID</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.LotId</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">品種</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.PdId @_lotInfo.PdName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">状態</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.NowSt</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WF枚数</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.WfNum</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="2">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ロット管理者</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.EngEmpName</MudText>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">現在工程</MudText>
+                <MudText Typo="Typo.body2">@_lotInfo.OpId / @_lotInfo.StepId</MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @* ── スキップ可否チェック警告 ── *@
+    @if (!string.IsNullOrEmpty(_skipCheckWarning))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+            @_skipCheckWarning
+        </MudAlert>
+    }
+
+    @* ── 時間制限警告（確定前チェック結果） ── *@
+    @if (!string.IsNullOrEmpty(_restrictionWarning))
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+            @_restrictionWarning
+            <br />もう一度「確定」を押すと実行します。
+        </MudAlert>
+    }
+
+    @* ────────────────────── 現工程一覧 ────────────────────── *@
+    <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">現工程一覧</MudText>
+    <div class="mb-3">
+        <MudDataGrid T="StepRow"
+                     Items="@_currentRows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true">
+            <Columns>
+                <TemplateColumn T="StepRow" Title="No"
+                    HeaderStyle="min-width:40px;max-width:40px;"
+                    CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                    <CellTemplate>@context.Item.No</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.OpId"   Title="現大工程" HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.StepId" Title="現小工程" HeaderStyle="min-width:120px;" />
+                <TemplateColumn T="StepRow" Title="デフォルト"
+                    HeaderStyle="min-width:70px;max-width:70px;"
+                    CellStyle="min-width:70px;max-width:70px;text-align:center;">
+                    <CellTemplate>@(context.Item.IsDefault ? "○" : "")</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.WpNames" Title="装置名" HeaderStyle="min-width:200px;" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+
+    @* ────────────────────── 次工程一覧 ────────────────────── *@
+    <MudText Typo="Typo.subtitle2" Class="mb-1">次工程一覧</MudText>
+    <div class="mb-3">
+        <MudDataGrid T="StepRow"
+                     Items="@_nextRows"
+                     Dense="true"
+                     Striped="false"
+                     Hover="true"
+                     Bordered="true"
+                     FixedHeader="true">
+            <Columns>
+                <TemplateColumn T="StepRow" Title="No"
+                    HeaderStyle="min-width:40px;max-width:40px;"
+                    CellStyle="min-width:40px;max-width:40px;text-align:right;">
+                    <CellTemplate>@context.Item.No</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.OpId"   Title="次大工程" HeaderStyle="min-width:120px;" />
+                <PropertyColumn Property="x => x.StepId" Title="次小工程" HeaderStyle="min-width:120px;" />
+                <TemplateColumn T="StepRow" Title="デフォルト"
+                    HeaderStyle="min-width:70px;max-width:70px;"
+                    CellStyle="min-width:70px;max-width:70px;text-align:center;">
+                    <CellTemplate>@(context.Item.IsDefault ? "○" : "")</CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.WpNames" Title="装置名" HeaderStyle="min-width:200px;" />
+            </Columns>
+            <NoRecordsContent>
+                <MudText Color="Color.Secondary">データがありません</MudText>
+            </NoRecordsContent>
+        </MudDataGrid>
+    </div>
+
+    @* ────────────────────── 確定エリア ────────────────────── *@
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="3">
+                <MudTextField @bind-Value="_empId"
+                              Label="社員ID"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="社員IDを入力"
+                              OnKeyDown="OnEmpIdKeyDownAsync" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudButton Variant="Variant.Filled"
+                           Color="@(_awaitingRestrictionConfirm ? Color.Warning : Color.Success)"
+                           Size="Size.Medium"
+                           Disabled="@(!CanConfirm || _confirming)"
+                           OnClick="ConfirmAsync">
+                    @if (_confirming)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
+                        <span>送信中...</span>
+                    }
+                    else if (_awaitingRestrictionConfirm)
+                    {
+                        <span>（制限確認）確定</span>
+                    }
+                    else
+                    {
+                        <span>確定</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+else if (!_loading)
+{
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+        キャリアIDを入力して「検索」を押してください。
+    </MudText>
+}
+
+</div>
+
+@code {
+
+    // ── 行モデル（現工程・次工程で共用）────────────────────────────
+
+    private sealed class StepRow
+    {
+        public int    No        { get; init; }
+        public string OpId      { get; init; } = "";
+        public string StepId    { get; init; } = "";
+        public bool   IsDefault { get; init; }
+        public string WpNames   { get; init; } = "";
+    }
+
+    // ── 状態 ──────────────────────────────────────────────────────
+
+    private string _carrierId = string.Empty;
+    private string _empId     = string.Empty;
+
+    private LotSkipStepService.LotCurStateResult? _lotInfo;
+    private List<StepRow> _currentRows = [];
+    private List<StepRow> _nextRows    = [];
+
+    private bool _loading;
+    private bool _confirming;
+    private string _error              = string.Empty;
+    private string _skipCheckWarning   = string.Empty;
+    private string _restrictionWarning = string.Empty;
+    private bool   _awaitingRestrictionConfirm;
+
+    private bool CanSearch  => !string.IsNullOrWhiteSpace(_carrierId) && _carrierId.Trim().Length >= 1;
+    private bool CanConfirm => _lotInfo is not null && !string.IsNullOrWhiteSpace(_empId);
+
+    // ── キャリアID Enter キー ──────────────────────────────────────
+
+    private async Task OnCarrierKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanSearch && !_loading)
+            await SearchAsync();
+    }
+
+    // ── 社員ID Enter キー ─────────────────────────────────────────
+
+    private async Task OnEmpIdKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && CanConfirm && !_confirming)
+            await ConfirmAsync();
+    }
+
+    // ── 検索 ─────────────────────────────────────────────────────
+    // VBソース: txtCarrierID_LostFocus → prvvsfLotPrestateShow + prvvsfNextStepInfoShow
+
+    private async Task SearchAsync()
+    {
+        var carrierId = _carrierId.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(carrierId)) return;
+
+        _loading               = true;
+        _error                 = string.Empty;
+        _skipCheckWarning      = string.Empty;
+        _restrictionWarning    = string.Empty;
+        _awaitingRestrictionConfirm = false;
+        _lotInfo               = null;
+        _currentRows           = [];
+        _nextRows              = [];
+        StateHasChanged();
+
+        try
+        {
+            // 1. ロット現工程情報取得 + スキップ可否チェック を並行実行
+            var curStateTask  = Svc.GetLotInfoAsync(carrierId);
+            var chkSkipTask   = Svc.CheckSkipAsync(carrierId);
+            await Task.WhenAll(curStateTask, chkSkipTask);
+
+            var curState = curStateTask.Result;
+            var chkSkip  = chkSkipTask.Result;
+
+            if (!curState.IsSuccess)
+            {
+                _error = curState.ErrorMessage;
+                Snackbar.Add(curState.ErrorMessage, Severity.Error);
+                return;
+            }
+
+            _lotInfo = curState;
+            _currentRows = (curState.StepList ?? [])
+                .Select((e, i) => new StepRow
+                {
+                    No        = i + 1,
+                    OpId      = e.OpId,
+                    StepId    = e.StepId,
+                    IsDefault = e.StepDivision == "1",
+                    WpNames   = string.Join(", ", e.WpList.Select(w => w.WpName))
+                }).ToList();
+
+            // 2. 次工程一覧取得
+            if (!string.IsNullOrEmpty(curState.LotId))
+            {
+                var nextResult = await Svc.GetNextStepsAsync(
+                    curState.LotId, curState.OpId, curState.StepId);
+
+                if (nextResult.IsSuccess)
+                {
+                    _nextRows = (nextResult.StepList ?? [])
+                        .Select((e, i) => new StepRow
+                        {
+                            No        = i + 1,
+                            OpId      = e.NextOpId,
+                            StepId    = e.NextStepId,
+                            IsDefault = e.StepDivision == "1",
+                            WpNames   = string.Join(", ", e.WpList.Select(w => w.WpName))
+                        }).ToList();
+                }
+                else
+                {
+                    Snackbar.Add(nextResult.ErrorMessage, Severity.Warning);
+                }
+            }
+
+            // 3. スキップ可否チェック結果を警告表示
+            // VBソース: Result 0=OK, 1=時間制限, 2=号機記憶制限, 3=両方
+            if (chkSkip.IsSuccess && chkSkip.Result != "0")
+            {
+                _skipCheckWarning = chkSkip.Result switch
+                {
+                    "1" => "時間制限が設定されています。",
+                    "2" => "号機記憶制限が設定されています。",
+                    "3" => "時間制限・号機記憶制限が設定されています。",
+                    _   => $"スキップ制限が設定されています。（コード: {chkSkip.Result}）"
+                };
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── 確定 ──────────────────────────────────────────────────────
+    // VBソース: cmdProcEnd_Click → lot_.getrestrict → lot_.skipstep
+
+    private async Task ConfirmAsync()
+    {
+        if (_lotInfo is null || string.IsNullOrWhiteSpace(_empId)) return;
+
+        _confirming = true;
+        _error      = string.Empty;
+
+        try
+        {
+            // 1回目クリック: 時間制限チェック（まだ確認待ちでない場合のみ）
+            // VBソース: lot_.getrestrict → 制限あれば確認ダイアログ
+            if (!_awaitingRestrictionConfirm)
+            {
+                var restrictResult = await Svc.GetRestrictAsync(_lotInfo.LotId);
+                if (restrictResult.IsSuccess && !string.IsNullOrEmpty(restrictResult.RestrictTypeId))
+                {
+                    var typeLabel = restrictResult.RestrictTypeId switch
+                    {
+                        "1" => "時間制限",
+                        "2" => "号機記憶制限",
+                        "3" => "時間制限・号機記憶制限",
+                        _   => $"制限(タイプ:{restrictResult.RestrictTypeId})"
+                    };
+                    var route = $"{restrictResult.FromOpId}/{restrictResult.FromStepId}→{restrictResult.ToOpId}/{restrictResult.ToStepId}";
+                    _restrictionWarning = $"{typeLabel}フロー内です。（{route}）";
+                    _awaitingRestrictionConfirm = true;
+                    return;
+                }
+            }
+
+            // 制限なし or 2回目クリック: スキップ実行
+            // VBソース: lot_.skipstep
+            var result = await Svc.ExecuteSkipAsync(
+                lotId:         _lotInfo.LotId,
+                opId:          _lotInfo.OpId,
+                stepId:        _lotInfo.StepId,
+                lotLastUpdate: _lotInfo.LotLastUpdate,
+                empId:         _empId.Trim());
+
+            if (result.IsSuccess)
+            {
+                var msg = result.SendResult switch
+                {
+                    "0" => "工程スキップを完了しました。（中間在庫へ）",
+                    "1" => "工程スキップを完了しました。（最終在庫へ）",
+                    "2" => "工程スキップを完了しました。（組立出庫）",
+                    _   => "工程スキップを完了しました。"
+                };
+                Snackbar.Add(msg, Severity.Success);
+                ClearForm();
+            }
+            else
+            {
+                var errorMsg = string.IsNullOrEmpty(result.MsgCode)
+                    ? result.ErrorMessage
+                    : $"{result.MsgCode}\n{result.ErrorMessage}";
+                _error = errorMsg;
+                Snackbar.Add(result.ErrorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add($"通信エラー: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _confirming = false;
+        }
+    }
+
+    // ── フォームクリア ────────────────────────────────────────────
+    // VBソース: 確定成功後にキャリアIDをクリアして初期状態へ
+
+    private void ClearForm()
+    {
+        _carrierId                  = string.Empty;
+        _empId                      = string.Empty;
+        _lotInfo                    = null;
+        _currentRows                = [];
+        _nextRows                   = [];
+        _skipCheckWarning           = string.Empty;
+        _restrictionWarning         = string.Empty;
+        _awaitingRestrictionConfirm = false;
+        _error                      = string.Empty;
+    }
+}

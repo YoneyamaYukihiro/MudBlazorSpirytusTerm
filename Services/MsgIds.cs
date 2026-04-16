@@ -128,6 +128,11 @@ public static class MsgIds
     public const string TimeRestrictStatus = "time.restrictstatus";
     public const string TimeRestrictRegist = "time.restrictregist";
 
+    // ──────── EN0250 工程スキップ ────────
+    public const string LotSkipStep    = "lot_.skipstep";
+    public const string LotChkSkipStep = "lot_.chkskipstep";
+    public const string LotGetRestrict = "lot_.getrestrict";
+
     // ──────── EN00C0 装置モード変更 ────────
     public const string EqChgMode           = "eq__.chgmode_";
     public const string EqEmgChgMode        = "eq__.emgchgmode";
