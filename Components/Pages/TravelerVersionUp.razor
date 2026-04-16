@@ -11,7 +11,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -228,6 +232,7 @@
     private bool   _pdsLoading        = true;
     private bool   _flowClassesLoading = true;
     private string _errorMessage      = "";
+    private string _errorCode         = string.Empty;
     private string _empId             = "";
     private string _comment           = "";
     private bool   _ignoreSampling    = false;
@@ -254,6 +259,7 @@
     {
         _loading      = true;
         _errorMessage = "";
+        _errorCode    = string.Empty;
         _items        = null;
         _selectedItems = [];
         StateHasChanged();
@@ -261,15 +267,17 @@
         var pdIds      = _selectedPds.Select(p => p.PdId).ToList();
         var flowClasses = _selectedFlowClasses.Select(f => f.FlowClass).ToList();
 
-        var result = await TrvSvc.GetChgTrvListAsync(pdIds, flowClasses);
+        var response = await TrvSvc.GetChgTrvListAsync(pdIds, flowClasses);
         _loading = false;
 
-        if (result is null)
+        if (!response.IsSuccess)
         {
-            _errorMessage = "対象一覧の取得に失敗しました。";
+            _errorCode    = response.ErrorCode;
+            _errorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? "対象一覧の取得に失敗しました。" : response.ErrorMessage;
             return;
         }
 
+        var result = response.Data!;
         _items = result;
         Snackbar.Add($"{_items.Count} 件取得しました。", Severity.Info);
     }
@@ -288,15 +296,17 @@
             SamplingFlag: _ignoreSampling ? "1" : "0"
         ));
 
-        var result = await TrvSvc.ChgTravelerAsync(_empId, lots);
+        var response = await TrvSvc.ChgTravelerAsync(_empId, lots);
         _loading = false;
 
-        if (result is null)
+        if (!response.IsSuccess)
         {
-            _errorMessage = "バージョンアップ処理に失敗しました。";
+            _errorCode    = response.ErrorCode;
+            _errorMessage = string.IsNullOrEmpty(response.ErrorMessage) ? "バージョンアップ処理に失敗しました。" : response.ErrorMessage;
             return;
         }
 
+        var result = response.Data!;
         Snackbar.Add($"バージョンアップ完了: {result.Count} 件", Severity.Success);
         await FetchListAsync();
     }
@@ -306,6 +316,8 @@
         var lot = _selectedItems.FirstOrDefault();
         if (lot is null || string.IsNullOrWhiteSpace(_empId)) return;
 
+        _errorMessage = "";
+        _errorCode    = string.Empty;
         _loading = true;
         StateHasChanged();
 

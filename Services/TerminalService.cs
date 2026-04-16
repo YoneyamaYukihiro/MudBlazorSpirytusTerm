@@ -25,7 +25,7 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
     /// 端末設定情報（デフォルト装置IDなど）を取得する。
     /// VBソース: MsgVer="01.00", CPstrutilreftminfo
     /// </summary>
-    public async Task<TerminalInfo?> GetTerminalInfoAsync(
+    public async Task<MesResult<TerminalInfo>> GetTerminalInfoAsync(
         string hostName, CancellationToken ct = default)
     {
         var req = new TfMsg();
@@ -41,24 +41,25 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
         catch (Exception ex)
         {
             logger.LogError(ex, "UtilRefTmInfo request failed. HostName={HostName}", hostName);
-            return null;
+            return new MesResult<TerminalInfo>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("UtilRefTmInfo returned non-TRUE. HostName={HostName}, Raw={Raw}",
                 hostName, Summarize(raw));
-            return null;
+            return new MesResult<TerminalInfo>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return new TerminalInfo(
+        return new MesResult<TerminalInfo>(true, new TerminalInfo(
             WpId:          msg.GetString(Tags.CurrentWpId),
             McGroupId:     msg.GetString(Tags.McGroupId),
             OpId:          msg.GetString(Tags.OpId),
             StepId:        msg.GetString(Tags.StepId),
             CarrierTypeId: msg.GetString(Tags.CarrierTypeId)
-        );
+        ));
     }
 
     // ──────── 端末設定情報登録 ────────────────────────────────────
@@ -93,7 +94,7 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("UtilRegTmInfo returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -105,20 +106,6 @@ public sealed class TerminalService(ITfMessageClient mq, IConfiguration cfg, ILo
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

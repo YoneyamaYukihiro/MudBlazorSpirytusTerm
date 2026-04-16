@@ -36,8 +36,8 @@ public sealed class LotThrowRsvService(ITfMessageClient mq, IConfiguration cfg, 
     /// ロット投入予約を登録する。
     /// VBソース: pubblnLotThrowrsv_Ins, MsgVer="03.00"
     /// </summary>
-    /// <returns>採番されたロットID、失敗時null</returns>
-    public async Task<string?> ThrowRsvAsync(
+    /// <returns>採番されたロットID、失敗時エラー情報</returns>
+    public async Task<MesResult<string>> ThrowRsvAsync(
         LotThrowRsvRequest request,
         CancellationToken ct = default)
     {
@@ -66,18 +66,19 @@ public sealed class LotThrowRsvService(ITfMessageClient mq, IConfiguration cfg, 
         catch (Exception ex)
         {
             logger.LogError(ex, "LotThrowRsv request failed. PdId={PdId}", request.PdId);
-            return null;
+            return new MesResult<string>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotThrowRsv returned non-TRUE. PdId={PdId}, Raw={Raw}",
                 request.PdId, Summarize(raw));
-            return null;
+            return new MesResult<string>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetString(Tags.LotId);
+        return new MesResult<string>(true, msg.GetString(Tags.LotId));
     }
 
     // ──────── 投入ロット承認 ─────────────────────────────────────
@@ -108,7 +109,7 @@ public sealed class LotThrowRsvService(ITfMessageClient mq, IConfiguration cfg, 
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotApprove returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -120,20 +121,6 @@ public sealed class LotThrowRsvService(ITfMessageClient mq, IConfiguration cfg, 
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

@@ -46,7 +46,7 @@ public sealed class LotCommentService(ITfMessageClient mq, IConfiguration cfg, I
             return new CommentResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             var err = msg.GetString(Tags.ErrMsg);
@@ -56,18 +56,5 @@ public sealed class LotCommentService(ITfMessageClient mq, IConfiguration cfg, I
         }
 
         return new CommentResult(true, LotLastUpdate: msg.GetString(Tags.LotLastUpdate));
-    }
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
     }
 }

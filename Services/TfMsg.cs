@@ -134,6 +134,50 @@ public sealed class TfMsg
         return ParseTfMsg(text.AsSpan(), ref pos);
     }
 
+    /// <summary>
+    /// "REPLY MSG:(...)" のようなプレフィックス付きの生サーバー応答文字列を解析する。
+    /// 最初の '(' を起点として TF 形式部分を取り出してパースする。
+    /// パースできない場合は null を返す。
+    /// </summary>
+    public static TfMsg? TryParseReply(string? raw)
+    {
+        var text = (raw ?? string.Empty).Trim();
+        var idx = text.IndexOf('(');
+        if (idx < 0) return null;
+        try { return FromTfString(text[idx..]); }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// 生サーバー応答文字列を TfMsg に変換する。
+    /// "REPLY MSG:(...)" プレフィックス付き形式と純粋な TF 形式 "(...)" の両方を処理する。
+    /// パースできない場合は RET="1"/ERR_MSG=生文字列 のフォールバック TfMsg を返す。
+    /// </summary>
+    public static TfMsg ParseOrEmpty(string? raw)
+    {
+        var text = (raw ?? string.Empty).Trim();
+        var parsed = TryParseReply(text);
+        if (parsed is not null) return parsed;
+        var empty = new TfMsg();
+        empty.AddString(Tags.Ret, Tags.False);
+        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
+        return empty;
+    }
+
+    /// <summary>
+    /// RET=1 応答から MSG_CODE/MSG を優先して取得し、なければ ERR_CODE/ERR_MSG にフォールバックする。
+    /// 返答は MSG_CODE/MSG を使う場合と ERR_CODE/ERR_MSG を使う場合があるため両方を確認する。
+    /// </summary>
+    public (string Code, string Message) GetErrorInfo()
+    {
+        var msgCode = GetString(Tags.MsgCode);
+        var msgText = GetString(Tags.Msg);
+        return (
+            !string.IsNullOrEmpty(msgCode) ? msgCode : GetString(Tags.ErrCode),
+            !string.IsNullOrEmpty(msgText) ? msgText : GetString(Tags.ErrMsg)
+        );
+    }
+
     private static TfMsg ParseTfMsg(ReadOnlySpan<char> s, ref int pos)
     {
         SkipSpaces(s, ref pos);

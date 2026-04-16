@@ -29,9 +29,9 @@ public class InventoryServiceTests
 
         var result = await svc.AsmDivideAsync("LOT001", "EMP001", "20250415100000", wf1, wf2);
 
-        Assert.NotNull(result);
-        Assert.Equal("LOT001A", result.Value.LotId1);
-        Assert.Equal("LOT001B", result.Value.LotId2);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("LOT001A", result.Data.LotId1);
+        Assert.Equal("LOT001B", result.Data.LotId2);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class InventoryServiceTests
         var result = await svc.AsmDivideAsync("LOT001", "EMP001", "20250415100000",
             Array.Empty<InventoryService.WfMapItem>(), Array.Empty<InventoryService.WfMapItem>());
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class InventoryServiceTests
         var result = await svc.AsmDivideAsync("LOT001", "EMP001", "20250415100000",
             Array.Empty<InventoryService.WfMapItem>(), Array.Empty<InventoryService.WfMapItem>());
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── GetHoldListAsync ────────
@@ -109,10 +109,11 @@ public class InventoryServiceTests
 
         var result = await svc.GetHoldListAsync("1", new[] { "TFT" });
 
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("LOT001", result[0].LotId);
-        Assert.Equal("品質不良", result[0].ReasonName);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Single(result.Data!);
+        Assert.Equal("LOT001", result.Data![0].LotId);
+        Assert.Equal("品質不良", result.Data![0].ReasonName);
     }
 
     [Fact]
@@ -124,7 +125,7 @@ public class InventoryServiceTests
 
         var result = await svc.GetHoldListAsync("1", new[] { "TFT" });
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── GetLotExamInfoAsync ────────
@@ -167,11 +168,12 @@ public class InventoryServiceTests
 
         var result = await svc.GetLotExamInfoAsync("LOT001");
 
-        Assert.NotNull(result);
-        Assert.Equal("LOT001", result.LotId);
-        Assert.Equal("96.0", result.GoodChipRatio);
-        Assert.Single(result.WfList);
-        Assert.Equal("WF01", result.WfList[0].WfId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("LOT001", result.Data!.LotId);
+        Assert.Equal("96.0", result.Data!.GoodChipRatio);
+        Assert.Single(result.Data!.WfList);
+        Assert.Equal("WF01", result.Data!.WfList[0].WfId);
     }
 
     [Fact]
@@ -182,7 +184,7 @@ public class InventoryServiceTests
 
         var result = await svc.GetLotExamInfoAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── ChgCommAsync ────────
@@ -198,7 +200,8 @@ public class InventoryServiceTests
 
         var result = await svc.ChgCommAsync("LOT001", "EMP001", "新コメント", "20250415100000");
 
-        Assert.Equal("20250415130000", result);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("20250415130000", result.Data);
     }
 
     [Fact]
@@ -210,7 +213,7 @@ public class InventoryServiceTests
 
         var result = await svc.ChgCommAsync("LOT001", "EMP001", "コメント", "20250415100000");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── CfForwardAsync ────────

@@ -98,7 +98,7 @@ public sealed class TimeRestrictFlowService(ITfMessageClient mq, IConfiguration 
             return new RestrictStatusResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
             var err = aMsg.GetString(Tags.ErrMsg);
@@ -191,7 +191,7 @@ public sealed class TimeRestrictFlowService(ITfMessageClient mq, IConfiguration 
             return new RegistResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
             var msgCode = aMsg.GetString(Tags.MsgCode);
@@ -205,17 +205,4 @@ public sealed class TimeRestrictFlowService(ITfMessageClient mq, IConfiguration 
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

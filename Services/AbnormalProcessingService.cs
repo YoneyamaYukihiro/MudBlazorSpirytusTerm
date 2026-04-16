@@ -76,6 +76,7 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
     public sealed record ListResult(
         bool IsSuccess,
         string ErrorMessage = "",
+        string ErrorCode = "",
         IReadOnlyList<AbnormalItem>? Items = null
     );
 
@@ -120,13 +121,14 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
             return new ListResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("ExcpReportList(EN00V0) returned FALSE. Err={Err}", err);
-            return new ListResult(false, string.IsNullOrEmpty(err) ? "処理票一覧の取得に失敗しました。" : err);
+            var (code, err) = aMsg.GetErrorInfo();
+            logger.LogWarning("ExcpReportList(EN00V0) returned FALSE. Code={Code} Err={Err}", code, err);
+            return new ListResult(false,
+                ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(err) ? "処理票一覧の取得に失敗しました。" : err);
         }
 
         var items = aMsg.GetMsgAry("REPORT_LIST")
@@ -200,7 +202,7 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
             return new ApplyResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
             var err = aMsg.GetString(Tags.ErrMsg);
@@ -243,7 +245,7 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
             return new ApplyResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
             var err = aMsg.GetString(Tags.ErrMsg);
@@ -286,7 +288,7 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
             return new ApplyResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
             var err = aMsg.GetString(Tags.ErrMsg);
@@ -299,17 +301,4 @@ public sealed class AbnormalProcessingService(ITfMessageClient mq, IConfiguratio
     }
 
     // ──────── 内部ヘルパー ─────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

@@ -15,7 +15,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -179,6 +183,7 @@
     private string _carrierId    = string.Empty;
     private string _lotId        = string.Empty;
     private bool   _loading      = false;
+    private string _errorCode    = string.Empty;
     private string _errorMessage = string.Empty;
     private LotDetailListResult? _result;
 
@@ -199,13 +204,14 @@
 
     private async Task FetchAsync()
     {
+        _errorCode    = string.Empty;
         _errorMessage = string.Empty;
         _loading      = true;
         _result       = null;
         StateHasChanged();
 
         // START_SEQ_NUM 空 = 現在工順を中心に前後 16 件 (VB デフォルトと同じ)
-        var result = await Svc.GetLotDetailListAsync(
+        var response = await Svc.GetLotDetailListAsync(
             lotId:      _lotId.Trim(),
             carrierId:  _carrierId.Trim(),
             beforeNum:  "16",
@@ -213,16 +219,19 @@
 
         _loading = false;
 
-        if (result is null)
+        if (!response.IsSuccess)
         {
-            _errorMessage = "ロット流動票の取得に失敗しました。";
+            _errorCode    = response.ErrorCode;
+            _errorMessage = string.IsNullOrEmpty(response.ErrorMessage)
+                ? "ロット流動票の取得に失敗しました。"
+                : response.ErrorMessage;
         }
         else
         {
-            _result = result;
+            _result = response.Data;
             // 入力欄を取得結果で補完
-            if (string.IsNullOrEmpty(_lotId))     _lotId     = result.LotId;
-            if (string.IsNullOrEmpty(_carrierId))  _carrierId = result.CarrierId;
+            if (string.IsNullOrEmpty(_lotId)     && _result is not null) _lotId     = _result.LotId;
+            if (string.IsNullOrEmpty(_carrierId)  && _result is not null) _carrierId = _result.CarrierId;
         }
     }
 

@@ -44,6 +44,7 @@ public sealed class LotSeqChangeService(ITfMessageClient mq, IConfiguration cfg,
 
     public sealed record WaitingLotListResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         IReadOnlyList<WaitingLotItem>? Items = null,
         string WpTypeFlag = "",
@@ -60,7 +61,7 @@ public sealed class LotSeqChangeService(ITfMessageClient mq, IConfiguration cfg,
         string AvailableRecipeFlag
     );
 
-    public sealed record ChangeResult(bool IsSuccess, string ErrorMessage = "");
+    public sealed record ChangeResult(bool IsSuccess, string ErrorCode = "", string ErrorMessage = "");
 
     // ──────── ロット待ちリスト取得 ────────────────────────────────
 
@@ -90,14 +91,14 @@ public sealed class LotSeqChangeService(ITfMessageClient mq, IConfiguration cfg,
             return new WaitingLotListResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotList(EN0260) returned FALSE. WpId={WpId}, Err={Err}", wpId, err);
-            return new WaitingLotListResult(false,
-                string.IsNullOrEmpty(err) ? "ロット一覧取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            if (string.IsNullOrEmpty(message)) message = aMsg.GetString(Tags.Msg);
+            logger.LogWarning("LotList(EN0260) returned FALSE. WpId={WpId}, Err={Err}", wpId, message);
+            return new WaitingLotListResult(false, ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(message) ? "ロット一覧取得に失敗しました。" : message);
         }
 
         var wpTypeFlag = aMsg.GetString(Tags.WpTypeFlag);
@@ -180,31 +181,18 @@ public sealed class LotSeqChangeService(ITfMessageClient mq, IConfiguration cfg,
             return new ChangeResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotChgSeqNum returned FALSE. WpId={WpId}, Err={Err}", wpId, err);
-            return new ChangeResult(false,
-                string.IsNullOrEmpty(err) ? "処理順変更に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            if (string.IsNullOrEmpty(message)) message = aMsg.GetString(Tags.Msg);
+            logger.LogWarning("LotChgSeqNum returned FALSE. WpId={WpId}, Err={Err}", wpId, message);
+            return new ChangeResult(false, ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(message) ? "処理順変更に失敗しました。" : message);
         }
 
         return new ChangeResult(true);
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

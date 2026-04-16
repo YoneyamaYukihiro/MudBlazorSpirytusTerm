@@ -72,7 +72,7 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
     /// 流動票バージョンアップ対象一覧を取得する。
     /// VBソース: pubblnChgTrvlist_Sel, MsgVer="05.01"
     /// </summary>
-    public async Task<IReadOnlyList<ChgTrvListItem>?> GetChgTrvListAsync(
+    public async Task<MesResult<IReadOnlyList<ChgTrvListItem>>> GetChgTrvListAsync(
         IEnumerable<string> pdIds,
         IEnumerable<string> flowClasses,
         string lotFlowStatusId  = "",
@@ -112,17 +112,18 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "LotChgTrvList request failed.");
-            return null;
+            return new MesResult<IReadOnlyList<ChgTrvListItem>>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotChgTrvList returned non-TRUE. Raw={Raw}", Summarize(raw));
-            return null;
+            return new MesResult<IReadOnlyList<ChgTrvListItem>>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetMsgAry(Tags.LotList)
+        return new MesResult<IReadOnlyList<ChgTrvListItem>>(true, msg.GetMsgAry(Tags.LotList)
             .Select(e => new ChgTrvListItem(
                 LotId:               e.GetString(Tags.LotId),
                 CarrierId:           e.GetString(Tags.CarrierId),
@@ -157,7 +158,7 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
                 SamplingFlag:        e.GetString(Tags.SamplingFlag),
                 SendSbId:            e.GetString(Tags.SendSbId),
                 SbArea:              e.GetString(Tags.SbArea)))
-            .ToList();
+            .ToList());
     }
 
     // ──────── 流動票バージョンアップ ─────────────────────────────
@@ -167,7 +168,7 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
     /// VBソース: pubblnLotChgTraveler_Upd, MsgVer="02.00"
     /// </summary>
     /// <returns>成功した場合、更新結果ロットリスト（空の場合もあり）</returns>
-    public async Task<IReadOnlyList<AnsTravelerItem>?> ChgTravelerAsync(
+    public async Task<MesResult<IReadOnlyList<AnsTravelerItem>>> ChgTravelerAsync(
         string empId,
         IEnumerable<ChgTravelerLotItem> lots,
         CancellationToken ct = default)
@@ -197,22 +198,23 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "LotChgTraveler request failed.");
-            return null;
+            return new MesResult<IReadOnlyList<AnsTravelerItem>>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotChgTraveler returned non-TRUE. Raw={Raw}", Summarize(raw));
-            return null;
+            return new MesResult<IReadOnlyList<AnsTravelerItem>>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetMsgAry(Tags.LotList)
+        return new MesResult<IReadOnlyList<AnsTravelerItem>>(true, msg.GetMsgAry(Tags.LotList)
             .Select(e => new AnsTravelerItem(
                 LotId:  e.GetString(Tags.LotId),
                 OpId:   e.GetString(Tags.OpId),
                 StepId: e.GetString(Tags.StepId)))
-            .ToList();
+            .ToList());
     }
 
     // ──────── 流動票バージョンアップ状態変更 ─────────────────────
@@ -247,7 +249,7 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotChgTrvProhibit returned non-TRUE. LotId={LotId}, Raw={Raw}",
@@ -264,8 +266,8 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
     /// CONTエッチャーAPC(2M-1P)区間かチェックする。
     /// VBソース: prvblnContEtApc_Chk, MsgVer="01.00"
     /// </summary>
-    /// <returns>RESULT値（0:VerUp OK、1:VerUp NG、9:処理失敗）、通信失敗時null</returns>
-    public async Task<string?> ChkContEtApcAsync(
+    /// <returns>RESULT値（0:VerUp OK、1:VerUp NG、9:処理失敗）、通信失敗時エラー情報</returns>
+    public async Task<MesResult<string>> ChkContEtApcAsync(
         string lotId,
         CancellationToken ct = default)
     {
@@ -282,35 +284,22 @@ public sealed class LotTravelerVersionUpService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "LotChkContEtApc request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<string>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotChkContEtApc returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<string>(false, ErrorCode: code, ErrorMessage: message);
         }
 
-        return msg.GetString(Tags.Result);
+        return new MesResult<string>(true, msg.GetString(Tags.Result));
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

@@ -69,34 +69,51 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetLotDetailListAsync("LOT001");
 
-        Assert.NotNull(result);
-        Assert.Equal("LOT001", result.LotId);
-        Assert.Equal("5", result.CurrentSeqNum);
-        Assert.Single(result.DetailList);
-        Assert.Equal("1", result.DetailList[0].SeqNum);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("LOT001", result.Data!.LotId);
+        Assert.Equal("5", result.Data.CurrentSeqNum);
+        Assert.Single(result.Data.DetailList);
+        Assert.Equal("1", result.Data.DetailList[0].SeqNum);
     }
 
     [Fact]
-    public async Task GetLotDetailListAsync_Error_ReturnsNull()
+    public async Task GetLotDetailListAsync_Error_ReturnsFailure()
     {
-        var response = TestHelper.BuildErrorResponse();
+        var response = TestHelper.BuildErrorResponse("テストエラー");
         var mock = TestHelper.CreateMock(MsgIds.LotDetailList, response);
         var svc = CreateService(mock);
 
         var result = await svc.GetLotDetailListAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("テストエラー", result.ErrorMessage);
     }
 
     [Fact]
-    public async Task GetLotDetailListAsync_Exception_ReturnsNull()
+    public async Task GetLotDetailListAsync_Exception_ReturnsFailure()
     {
-        var mock = TestHelper.CreateMockThrows(MsgIds.LotDetailList, new Exception());
+        var mock = TestHelper.CreateMockThrows(MsgIds.LotDetailList, new Exception("接続失敗"));
         var svc = CreateService(mock);
 
         var result = await svc.GetLotDetailListAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
+        Assert.Contains("接続失敗", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task GetLotDetailListAsync_ReplyMsgPrefixError_ExtractsMsgCodeAndMsg()
+    {
+        var response = TestHelper.BuildReplyMsgErrorResponse("MC0500", "キャリア[BSIA00]は存在しません。");
+        var mock = TestHelper.CreateMock(MsgIds.LotDetailList, response);
+        var svc = CreateService(mock);
+
+        var result = await svc.GetLotDetailListAsync("", "BSIA00");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("MC0500", result.ErrorCode);
+        Assert.Contains("キャリア[BSIA00]は存在しません。", result.ErrorMessage);
     }
 
     // ──────── GetEventCommentAsync ────────
@@ -112,7 +129,8 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetEventCommentAsync("LOT001", "5", "20250415100000");
 
-        Assert.Equal("イベントコメント内容", result);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("イベントコメント内容", result.Data);
     }
 
     [Fact]
@@ -124,7 +142,7 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetEventCommentAsync("LOT001", "5", "20250415100000");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── GetUseRecpAsync ────────
@@ -160,8 +178,9 @@ public class LotDetailListServiceTests
 
         var result = await svc.GetUseRecpAsync("OP01", "STEP01", "LOT001");
 
-        Assert.NotNull(result);
-        Assert.Equal("COND01", result.SelectConditionId);
-        Assert.Single(result.WpList);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("COND01", result.Data!.SelectConditionId);
+        Assert.Single(result.Data!.WpList);
     }
 }

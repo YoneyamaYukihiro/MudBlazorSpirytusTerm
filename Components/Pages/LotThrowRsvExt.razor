@@ -15,7 +15,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -149,6 +153,7 @@
     private string        _comments         = "";
     private bool          _loading          = false;
     private string        _errorMessage     = "";
+    private string        _errorCode        = string.Empty;
     private string        _resultLotId      = "";
 
     private IReadOnlyList<ProductItem>   _products    = [];
@@ -167,9 +172,10 @@
     private async Task RegisterAsync()
     {
         if (_selectedProduct is null || string.IsNullOrWhiteSpace(_wfNum)) return;
-        _loading     = true;
-        _resultLotId = "";
+        _loading      = true;
+        _resultLotId  = "";
         _errorMessage = "";
+        _errorCode    = string.Empty;
         StateHasChanged();
 
         var req = new RegisterRequest(
@@ -188,6 +194,7 @@
         if (!result.IsSuccess)
         {
             _errorMessage = result.ErrorMessage;
+            _errorCode    = result.ErrorCode;
             return;
         }
 
@@ -213,5 +220,6 @@
         _classDivision   = "QA";
         _resultLotId     = "";
         _errorMessage    = "";
+        _errorCode       = string.Empty;
     }
 }

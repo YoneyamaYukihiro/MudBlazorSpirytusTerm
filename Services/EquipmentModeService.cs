@@ -41,6 +41,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
         string GuidanceMsg      = "",
         string GuidanceMsgCode  = "",
         string EntryTime        = "",
+        string ErrorCode        = "",
         string ErrorMessage     = ""
     );
 
@@ -178,13 +179,13 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return new EqChgModeResult(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("ChgMode returned non-TRUE. Subject={Subject}, WpId={WpId}, Err={Err}",
-                subject, request.WpId, err);
-            return new EqChgModeResult(false, ErrorMessage: err);
+                subject, request.WpId, message);
+            return new EqChgModeResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new EqChgModeResult(
@@ -231,7 +232,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("EqChgTrnStat returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -279,13 +280,13 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return new EqChgModeResult(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("EqChgProcOrder returned non-TRUE. WpId={WpId}, Err={Err}",
-                request.WpId, err);
-            return new EqChgModeResult(false, ErrorMessage: err);
+                request.WpId, message);
+            return new EqChgModeResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new EqChgModeResult(
@@ -328,7 +329,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("EqCarUnload returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -361,7 +362,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("MasWpUseList returned non-TRUE. Raw={Raw}", Summarize(raw));
@@ -410,7 +411,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return (false, string.Empty, ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             var err = msg.GetString(Tags.ErrMsg);
@@ -446,7 +447,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("EqWpMsgList returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -486,7 +487,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("MasWpProcessingNameList returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -524,7 +525,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("MasChamberUseList returned non-TRUE. Raw={Raw}", Summarize(raw));
@@ -562,7 +563,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("EqWpProcessingUse returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -622,7 +623,7 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("EqChgWpProcessingUse returned non-TRUE. WpId={WpId}, Raw={Raw}",
@@ -634,20 +635,6 @@ public sealed class EquipmentModeService(ITfMessageClient mq, IConfiguration cfg
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

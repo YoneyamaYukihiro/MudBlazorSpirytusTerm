@@ -20,6 +20,7 @@ public sealed class LotOutService(ITfMessageClient mq, IConfiguration cfg, ILogg
     /// </summary>
     public sealed record LotCurStateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string OpId = "",
@@ -39,6 +40,7 @@ public sealed class LotOutService(ITfMessageClient mq, IConfiguration cfg, ILogg
     /// </summary>
     public sealed record LotTerminateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string MsgCode = ""
     );
@@ -71,13 +73,12 @@ public sealed class LotOutService(ITfMessageClient mq, IConfiguration cfg, ILogg
             return new LotCurStateResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotCurState(EN0170) returned FALSE. Err={Err}", err);
-            return new LotCurStateResult(false, string.IsNullOrEmpty(err) ? "ロット情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotCurState(EN0170) returned FALSE. Err={Err}", message);
+            return new LotCurStateResult(false, code, string.IsNullOrEmpty(message) ? "ロット情報の取得に失敗しました。" : message);
         }
 
         return new LotCurStateResult(
@@ -142,31 +143,17 @@ public sealed class LotOutService(ITfMessageClient mq, IConfiguration cfg, ILogg
             return new LotTerminateResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = aMsg.GetErrorInfo();
             var msgCode = aMsg.GetString(Tags.MsgCode);
-            var err     = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotTerminate(EN0170) returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, err);
-            return new LotTerminateResult(false, string.IsNullOrEmpty(err) ? "ロット終了に失敗しました。" : err, msgCode);
+            logger.LogWarning("LotTerminate(EN0170) returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, message);
+            return new LotTerminateResult(false, code, string.IsNullOrEmpty(message) ? "ロット終了に失敗しました。" : message, msgCode);
         }
 
         return new LotTerminateResult(true);
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

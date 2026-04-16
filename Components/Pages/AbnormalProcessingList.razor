@@ -97,7 +97,11 @@
 @if (!string.IsNullOrEmpty(_error))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2"
-              ShowCloseIcon="true" CloseIconClicked="() => _error = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _error = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_error
     </MudAlert>
 }
@@ -187,6 +191,7 @@ else if (!_loading && !_fetched)
     private bool    _loading;
     private bool    _fetched;
     private string  _error       = string.Empty;
+    private string  _errorCode   = string.Empty;
     private DateTime _fetchTime;
     private AbnormalProcessingService.ListResult? _result;
 
@@ -226,9 +231,10 @@ else if (!_loading && !_fetched)
     // ── データ取得 ──────────────────────────────────────────────────
     private async Task LoadAsync()
     {
-        _loading = true;
-        _error   = string.Empty;
-        _fetched = false;
+        _loading   = true;
+        _error     = string.Empty;
+        _errorCode = string.Empty;
+        _fetched   = false;
 
         try
         {
@@ -250,7 +256,8 @@ else if (!_loading && !_fetched)
             }
             else
             {
-                _error = _result.ErrorMessage;
+                _error     = _result.ErrorMessage;
+                _errorCode = _result.ErrorCode;
                 Snackbar.Add(_result.ErrorMessage, Severity.Error);
             }
         }

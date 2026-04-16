@@ -17,7 +17,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -398,6 +402,7 @@ else if (!_loading && _selectedEquipment is null)
     private bool   _msgListLoading = false;
     private bool   _confirming    = false;
     private string _errorMessage  = string.Empty;
+    private string _errorCode     = string.Empty;
 
     // 装置グループ・装置選択
     private IReadOnlyList<McGroup>   _groups          = [];
@@ -462,6 +467,7 @@ else if (!_loading && _selectedEquipment is null)
         _eqState           = null;
         _portRows          = [];
         _errorMessage      = string.Empty;
+        _errorCode         = string.Empty;
 
         if (g is null) return;
 
@@ -479,6 +485,7 @@ else if (!_loading && _selectedEquipment is null)
         _eqState           = null;
         _portRows          = [];
         _errorMessage      = string.Empty;
+        _errorCode         = string.Empty;
 
         if (eq is null) return;
 
@@ -494,19 +501,23 @@ else if (!_loading && _selectedEquipment is null)
 
         _loading      = true;
         _errorMessage = string.Empty;
+        _errorCode    = string.Empty;
         StateHasChanged();
 
         try
         {
-            _eqState = await EqSvc.GetEquipmentStateAsync(_selectedEquipment.WpId);
-            if (_eqState is null)
+            var result = await EqSvc.GetEquipmentStateAsync(_selectedEquipment.WpId);
+            if (!result.IsSuccess)
             {
-                _errorMessage = "装置状態の取得に失敗しました。";
+                _errorMessage = result.ErrorMessage;
+                _errorCode    = result.ErrorCode;
                 return;
             }
 
+            _eqState = result.Data;
+
             // ポートリストをPortRowに変換
-            _portRows = _eqState.PortList
+            _portRows = _eqState!.PortList
                 .Select(p => new PortRow
                 {
                     PortId             = p.PortId,
@@ -563,8 +574,9 @@ else if (!_loading && _selectedEquipment is null)
 
     private async Task SendModeChangeAsync(bool force)
     {
-        _confirming   = true;
-        _errorMessage = string.Empty;
+        _confirming      = true;
+        _errorMessage    = string.Empty;
+        _errorCode       = string.Empty;
         _modeGuidanceMsg = string.Empty;
 
         try
@@ -592,6 +604,7 @@ else if (!_loading && _selectedEquipment is null)
             else
             {
                 _errorMessage = result.ErrorMessage;
+                _errorCode    = result.ErrorCode;
                 Snackbar.Add(result.ErrorMessage, Severity.Error);
             }
         }
@@ -614,6 +627,7 @@ else if (!_loading && _selectedEquipment is null)
 
         _confirming   = true;
         _errorMessage = string.Empty;
+        _errorCode    = string.Empty;
 
         try
         {
@@ -660,6 +674,7 @@ else if (!_loading && _selectedEquipment is null)
 
         _confirming   = true;
         _errorMessage = string.Empty;
+        _errorCode    = string.Empty;
 
         try
         {

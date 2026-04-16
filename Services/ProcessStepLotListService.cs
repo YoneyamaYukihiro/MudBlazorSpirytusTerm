@@ -250,7 +250,7 @@ public sealed class ProcessStepLotListService(ITfMessageClient mq, IConfiguratio
         try
         {
             raw = await mq.SendMessageAsync(MsgIds.LotOpList, rMsg.ToTfString(), ct);
-            aMsg = ParseReplyOrError(raw);
+            aMsg = TfMsg.ParseOrEmpty(raw);
         }
         catch (Exception ex)
         {
@@ -319,24 +319,5 @@ public sealed class ProcessStepLotListService(ITfMessageClient mq, IConfiguratio
         try { return TfMsg.FromTfString(text); }
         catch { return null; }
     }
-
-    private static TfMsg ParseReplyOrError(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.Length == 0)
-        {
-            var e = new TfMsg(); e.AddString(Tags.Ret, Tags.False); e.AddString(Tags.ErrMsg, "空の応答を受信しました。"); return e;
-        }
-        if (!text.StartsWith("(", StringComparison.Ordinal))
-        {
-            var e = new TfMsg(); e.AddString(Tags.Ret, Tags.False); e.AddString(Tags.ErrMsg, text); return e;
-        }
-        try { return TfMsg.FromTfString(text); }
-        catch (Exception ex)
-        {
-            var e = new TfMsg(); e.AddString(Tags.Ret, Tags.False); e.AddString(Tags.ErrMsg, $"応答解析エラー: {ex.Message}"); return e;
-        }
-    }
-
     private static LotListResponse Fail(string message) => new(false, [], message);
 }

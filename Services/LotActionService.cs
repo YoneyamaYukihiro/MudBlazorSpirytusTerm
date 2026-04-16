@@ -30,6 +30,7 @@ public sealed class LotActionService(ITfMessageClient mq, IConfiguration cfg, IL
         bool IsSuccess,
         string GuidanceMsg = "",
         string GuidanceMsgCode = "",
+        string ErrorCode = "",
         string ErrorMessage = ""
     );
 
@@ -64,15 +65,15 @@ public sealed class LotActionService(ITfMessageClient mq, IConfiguration cfg, IL
             return new ChangeControlWpResult(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         var ret = msg.GetString(Tags.Ret);
 
         if (ret != Tags.True)
         {
-            var errMsg = msg.GetString(Tags.ErrMsg);
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotChgCtlwp returned non-TRUE. LotId={LotId}, Err={Err}",
-                request.LotId, errMsg);
-            return new ChangeControlWpResult(false, ErrorMessage: errMsg);
+                request.LotId, message);
+            return new ChangeControlWpResult(false, ErrorCode: code, ErrorMessage: message);
         }
 
         return new ChangeControlWpResult(
@@ -115,7 +116,7 @@ public sealed class LotActionService(ITfMessageClient mq, IConfiguration cfg, IL
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("DumyCarOut returned non-TRUE. CarrierId={CarrierId}, Raw={Raw}",
@@ -127,20 +128,6 @@ public sealed class LotActionService(ITfMessageClient mq, IConfiguration cfg, IL
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

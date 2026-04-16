@@ -32,10 +32,11 @@ public class LotActionReservationServiceTests
 
         var result = await svc.GetStepUsedWpListAsync("WP001");
 
-        Assert.NotNull(result);
-        Assert.Equal("0", result.WfActionFlag);
-        Assert.Single(result.Steps);
-        Assert.Equal("OP01", result.Steps[0].OpId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("0", result.Data!.WfActionFlag);
+        Assert.Single(result.Data.Steps);
+        Assert.Equal("OP01", result.Data.Steps[0].OpId);
     }
 
     [Fact]
@@ -47,7 +48,7 @@ public class LotActionReservationServiceTests
 
         var result = await svc.GetStepUsedWpListAsync("WP001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── GetLotTravelerAsync ────────
@@ -76,9 +77,10 @@ public class LotActionReservationServiceTests
 
         var result = await svc.GetLotTravelerAsync("LOT001");
 
-        Assert.NotNull(result);
-        Assert.Equal("管理者A", result.EngEmpName);
-        Assert.Single(result.Steps);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("管理者A", result.Data!.EngEmpName);
+        Assert.Single(result.Data.Steps);
     }
 
     [Fact]
@@ -89,7 +91,7 @@ public class LotActionReservationServiceTests
 
         var result = await svc.GetLotTravelerAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── SetActionReservationAsync ────────

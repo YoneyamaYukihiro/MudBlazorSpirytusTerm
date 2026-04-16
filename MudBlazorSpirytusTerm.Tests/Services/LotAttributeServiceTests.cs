@@ -32,13 +32,14 @@ public class LotAttributeServiceTests
 
         var result = await svc.GetLotAttributeAsync("LOT001");
 
-        Assert.NotNull(result);
-        Assert.Equal("LOT001", result.LotId);
-        Assert.Equal("PD01", result.PdId);
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(result.Data);
+        Assert.Equal("LOT001", result.Data!.LotId);
+        Assert.Equal("PD01", result.Data!.PdId);
     }
 
     [Fact]
-    public async Task GetLotAttributeAsync_Error_ReturnsNull()
+    public async Task GetLotAttributeAsync_Error_ReturnsFailure()
     {
         var response = TestHelper.BuildErrorResponse();
         var mock = TestHelper.CreateMock(MsgIds.LotAttribute, response);
@@ -46,18 +47,18 @@ public class LotAttributeServiceTests
 
         var result = await svc.GetLotAttributeAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
-    public async Task GetLotAttributeAsync_Exception_ReturnsNull()
+    public async Task GetLotAttributeAsync_Exception_ReturnsFailure()
     {
         var mock = TestHelper.CreateMockThrows(MsgIds.LotAttribute, new Exception());
         var svc = CreateService(mock);
 
         var result = await svc.GetLotAttributeAsync("LOT001");
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     // ──────── ChangeAttributeAsync ────────

@@ -16,7 +16,11 @@
 @if (!string.IsNullOrEmpty(_errorMessage))
 {
     <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3"
-              ShowCloseIcon="true" CloseIconClicked="() => _errorMessage = string.Empty">
+              ShowCloseIcon="true" CloseIconClicked="() => { _errorMessage = string.Empty; _errorCode = string.Empty; }">
+        @if (!string.IsNullOrEmpty(_errorCode))
+        {
+            <b>[@_errorCode]</b><span> </span>
+        }
         @_errorMessage
     </MudAlert>
 }
@@ -314,6 +318,7 @@
     private bool   _loading          = false;
     private bool   _fetched          = false;
     private string _errorMessage     = "";
+    private string _errorCode        = string.Empty;
 
     private string _selectedMcGroupId = "";
     private string _selectedWpId      = "";
@@ -379,6 +384,7 @@
 
         _loading      = true;
         _errorMessage = "";
+        _errorCode    = string.Empty;
         _selectedLots = [];
         _fetched      = false;
         StateHasChanged();
@@ -393,6 +399,9 @@
             _errorMessage = productResult.ErrorMessage.Length > 0
                 ? productResult.ErrorMessage
                 : monitorResult.ErrorMessage;
+            _errorCode = productResult.ErrorMessage.Length > 0
+                ? productResult.ErrorCode
+                : monitorResult.ErrorCode;
             return;
         }
 
@@ -423,6 +432,7 @@
 
         _loading      = true;
         _errorMessage = "";
+        _errorCode    = string.Empty;
         StateHasChanged();
 
         // 選択ロットから送信用リストを構築
@@ -462,8 +472,7 @@
             _errorMessage = string.IsNullOrEmpty(result.ErrorMessage)
                 ? "バッチ操作に失敗しました。"
                 : result.ErrorMessage;
-            if (!string.IsNullOrEmpty(result.MsgCode))
-                _errorMessage = $"[{result.MsgCode}] {_errorMessage}";
+            _errorCode = result.ErrorCode;
             return;
         }
 

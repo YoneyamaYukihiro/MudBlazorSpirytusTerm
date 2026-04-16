@@ -123,7 +123,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
     /// 使用装置のステップ一覧を取得する。
     /// VBソース: pubblnStepUsedWpList_Sel, MsgVer="03.00"
     /// </summary>
-    public async Task<StepUsedWpListResult?> GetStepUsedWpListAsync(
+    public async Task<MesResult<StepUsedWpListResult>> GetStepUsedWpListAsync(
         string wpId,
         CancellationToken ct = default)
     {
@@ -140,15 +140,16 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "MasStepUsedWpList request failed. WpId={WpId}", wpId);
-            return null;
+            return new MesResult<StepUsedWpListResult>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("MasStepUsedWpList returned non-TRUE. WpId={WpId}, Raw={Raw}",
                 wpId, Summarize(raw));
-            return null;
+            return new MesResult<StepUsedWpListResult>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var wfActionFlag = msg.GetString(Tags.WfActionFlag);
@@ -160,7 +161,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
                 ActionFlag: e.GetString(Tags.ActionFlag)))
             .ToList();
 
-        return new StepUsedWpListResult(wfActionFlag, steps);
+        return new MesResult<StepUsedWpListResult>(true, new StepUsedWpListResult(wfActionFlag, steps));
     }
 
     // ──────── ロットトラベラー取得 ───────────────────────────────
@@ -169,7 +170,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
     /// ロットトラベラー情報を取得する。
     /// VBソース: pubblnLotTraveler_Sel, MsgVer="03.02"
     /// </summary>
-    public async Task<LotTravelerResult?> GetLotTravelerAsync(
+    public async Task<MesResult<LotTravelerResult>> GetLotTravelerAsync(
         string lotId,
         CancellationToken ct = default)
     {
@@ -186,15 +187,16 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "LotTraveler request failed. LotId={LotId}", lotId);
-            return null;
+            return new MesResult<LotTravelerResult>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotTraveler returned non-TRUE. LotId={LotId}, Raw={Raw}",
                 lotId, Summarize(raw));
-            return null;
+            return new MesResult<LotTravelerResult>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var stepAry = msg.GetMsgAry(Tags.StepList);
@@ -207,11 +209,11 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
                 ActionFlag:  e.GetString(Tags.ActionFlag)))
             .ToList();
 
-        return new LotTravelerResult(
+        return new MesResult<LotTravelerResult>(true, new LotTravelerResult(
             EngEmpId:   msg.GetString(Tags.EngEmpId),
             EngEmpName: msg.GetString(Tags.EngEmpName),
             FlowClass:  msg.GetString(Tags.FlowClass),
-            Steps:      steps);
+            Steps:      steps));
     }
 
     // ──────── PDトラベラー取得 ───────────────────────────────────
@@ -220,7 +222,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
     /// PDトラベラー情報を取得する。
     /// VBソース: pubblnMasPdtraveler_Sel, MsgVer="04.00"
     /// </summary>
-    public async Task<IReadOnlyList<PdTravelerStep>?> GetPdTravelerAsync(
+    public async Task<MesResult<IReadOnlyList<PdTravelerStep>>> GetPdTravelerAsync(
         string pdId,
         string entryId,
         CancellationToken ct = default)
@@ -239,19 +241,20 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "MasPdTraveler request failed. PdId={PdId}", pdId);
-            return null;
+            return new MesResult<IReadOnlyList<PdTravelerStep>>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("MasPdTraveler returned non-TRUE. PdId={PdId}, Raw={Raw}",
                 pdId, Summarize(raw));
-            return null;
+            return new MesResult<IReadOnlyList<PdTravelerStep>>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var stepAry = msg.GetMsgAry(Tags.StepList);
-        return stepAry
+        IReadOnlyList<PdTravelerStep> steps = stepAry
             .Select(e => new PdTravelerStep(
                 StepNum:        e.GetString(Tags.StepNum),
                 OpId:           e.GetString(Tags.OpId),
@@ -263,6 +266,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
                 SpecialRouteId: e.GetString(Tags.SpecialRouteId),
                 ActionFlag:     e.GetString(Tags.ActionFlag)))
             .ToList();
+        return new MesResult<IReadOnlyList<PdTravelerStep>>(true, steps);
     }
 
     // ──────── アクション情報取得 ─────────────────────────────────
@@ -271,7 +275,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
     /// アクション情報を取得する。
     /// VBソース: pubblnLotActinfo_Sel, MsgVer="04.01"
     /// </summary>
-    public async Task<ActInfoResult?> GetActInfoAsync(
+    public async Task<MesResult<ActInfoResult>> GetActInfoAsync(
         ActInfoRequest request,
         CancellationToken ct = default)
     {
@@ -292,15 +296,16 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
         catch (Exception ex)
         {
             logger.LogError(ex, "LotActInfo request failed. LotActionTypeId={Id}", request.LotActionTypeId);
-            return null;
+            return new MesResult<ActInfoResult>(false, ErrorMessage: ex.Message);
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
+            var (code, message) = msg.GetErrorInfo();
             logger.LogWarning("LotActInfo returned non-TRUE. LotActionTypeId={Id}, Raw={Raw}",
                 request.LotActionTypeId, Summarize(raw));
-            return null;
+            return new MesResult<ActInfoResult>(false, ErrorCode: code, ErrorMessage: message);
         }
 
         var wfAry = msg.GetMsgAry(Tags.WfList);
@@ -310,7 +315,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
                 ExecTime: e.GetString(Tags.ExecTime)))
             .ToList();
 
-        return new ActInfoResult(
+        return new MesResult<ActInfoResult>(true, new ActInfoResult(
             LotActionId:    msg.GetString(Tags.LotActionId),
             Message:        msg.GetString(Tags.MessageText),
             WorkDirectionId:msg.GetString(Tags.WorkDirectionId),
@@ -325,7 +330,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
             HoldPeriod:     msg.GetString(Tags.HoldPeriod),
             HoldEmpId:      msg.GetString(Tags.HoldEmpId),
             HoldEmpName:    msg.GetString(Tags.HoldEmpName),
-            WfList:         wfList);
+            WfList:         wfList));
     }
 
     // ──────── アクション予約更新 ─────────────────────────────────
@@ -380,7 +385,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotActRsv returned non-TRUE. LotActionTypeId={Id}, Raw={Raw}",
@@ -418,7 +423,7 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
             return false;
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
             logger.LogWarning("LotDelAct returned non-TRUE. LotActionId={Id}, Raw={Raw}",
@@ -430,20 +435,6 @@ public sealed class LotActionReservationService(ITfMessageClient mq, IConfigurat
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var empty = new TfMsg();
-        empty.AddString(Tags.Ret, Tags.False);
-        empty.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return empty;
-    }
-
     private static string Summarize(string? raw) =>
         (raw ?? string.Empty) is { Length: > 200 } s ? s[..200] + "..." : raw ?? string.Empty;
 }

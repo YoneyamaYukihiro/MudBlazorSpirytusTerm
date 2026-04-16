@@ -23,6 +23,7 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
 
     public sealed record LotCurStateResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string LotId = "",
         string OpId = "",
@@ -37,6 +38,7 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
 
     public sealed record RemeasureResult(
         bool IsSuccess,
+        string ErrorCode = "",
         string ErrorMessage = "",
         string GuidMsg = "",
         string GuidMsgCode = ""
@@ -70,13 +72,12 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
             return new LotCurStateResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotCurState(EN01B0) returned FALSE. Err={Err}", err);
-            return new LotCurStateResult(false, string.IsNullOrEmpty(err) ? "ロット情報の取得に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotCurState(EN01B0) returned FALSE. Err={Err}", message);
+            return new LotCurStateResult(false, code, string.IsNullOrEmpty(message) ? "ロット情報の取得に失敗しました。" : message);
         }
 
         return new LotCurStateResult(
@@ -126,13 +127,12 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
             return new RemeasureResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var aMsg = ParseOrEmpty(raw);
+        var aMsg = TfMsg.ParseOrEmpty(raw);
         if (aMsg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = aMsg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = aMsg.GetString(Tags.Msg);
-            logger.LogWarning("LotStepRestart returned FALSE. Err={Err}", err);
-            return new RemeasureResult(false, string.IsNullOrEmpty(err) ? "ロット再測定登録に失敗しました。" : err);
+            var (code, message) = aMsg.GetErrorInfo();
+            logger.LogWarning("LotStepRestart returned FALSE. Err={Err}", message);
+            return new RemeasureResult(false, code, string.IsNullOrEmpty(message) ? "ロット再測定登録に失敗しました。" : message);
         }
 
         return new RemeasureResult(
@@ -143,15 +143,4 @@ public sealed class LotRemeasureService(ITfMessageClient mq, IConfiguration cfg,
     }
 
     // ──────── 内部ヘルパー ──────────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-            try { return TfMsg.FromTfString(text); } catch { }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

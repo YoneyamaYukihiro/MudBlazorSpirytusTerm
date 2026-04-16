@@ -34,6 +34,7 @@ public sealed class LotThrowRsvExtService(ITfMessageClient mq, IConfiguration cf
 
     public sealed record RegisterResult(
         bool   IsSuccess,
+        string ErrorCode    = "",
         string ErrorMessage = "",
         string LotId        = ""
     );
@@ -49,7 +50,7 @@ public sealed class LotThrowRsvExtService(ITfMessageClient mq, IConfiguration cf
         try
         {
             var raw = await mq.SendMessageAsync(MsgIds.MasPdList, req.ToTfString(), ct);
-            var msg = ParseOrEmpty(raw);
+            var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True) return [];
             return msg.GetMsgAry(Tags.PdList)
                       .Select(e => new ProductItem(
@@ -76,7 +77,7 @@ public sealed class LotThrowRsvExtService(ITfMessageClient mq, IConfiguration cf
         try
         {
             var raw = await mq.SendMessageAsync(MsgIds.MasFlowList, req.ToTfString(), ct);
-            var msg = ParseOrEmpty(raw);
+            var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True) return [];
             return msg.GetMsgAry(Tags.FlowClassList)
                       .Select(e => new FlowClassItem(
@@ -124,30 +125,17 @@ public sealed class LotThrowRsvExtService(ITfMessageClient mq, IConfiguration cf
             return new RegisterResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var resp = ParseOrEmpty(raw);
+        var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
-            var err = resp.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = resp.GetString(Tags.Msg);
-            logger.LogWarning("LotThrowRsvExt returned FALSE: {Err}", err);
-            return new RegisterResult(false, string.IsNullOrEmpty(err) ? "投入予定登録に失敗しました。" : err);
+            var (code, message) = resp.GetErrorInfo();
+            if (string.IsNullOrEmpty(message)) message = resp.GetString(Tags.Msg);
+            logger.LogWarning("LotThrowRsvExt returned FALSE: {Err}", message);
+            return new RegisterResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(message) ? "投入予定登録に失敗しました。" : message);
         }
 
         return new RegisterResult(true, LotId: resp.GetString(Tags.LotId));
     }
 
     // ──────── ヘルパー ────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

@@ -87,4 +87,17 @@ public static class TestHelper
         msg.AddString(Tags.ErrMsg, errorMessage);
         return msg.ToTfString();
     }
+
+    /// <summary>
+    /// "REPLY MSG:(...)" 形式のエラー応答文字列を構築する。
+    /// 実サーバーが返す MSG_CODE / MSG 付きエラー応答を模倣する。
+    /// </summary>
+    public static string BuildReplyMsgErrorResponse(string msgCode = "ML0001", string msg = "テストエラー")
+    {
+        var inner = new TfMsg();
+        inner.AddString(Tags.Ret, Tags.False);
+        inner.AddString(Tags.MsgCode, msgCode);
+        inner.AddString(Tags.Msg, msg);
+        return $"REPLY MSG:{inner.ToTfString()}";
+    }
 }

@@ -27,11 +27,12 @@ public class LotThrowRsvServiceTests
                 PlanThrowinDate: "20250420", EngEmpId: "ENG01",
                 EmpId: "EMP001", ClassDivision: "1"));
 
-        Assert.Equal("NEWLOT001", result);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("NEWLOT001", result.Data);
     }
 
     [Fact]
-    public async Task ThrowRsvAsync_Error_ReturnsNull()
+    public async Task ThrowRsvAsync_Error_ReturnsFailure()
     {
         var response = TestHelper.BuildErrorResponse("投入予約失敗");
         var mock = TestHelper.CreateMock(MsgIds.LotThrowRsv, response);
@@ -43,11 +44,11 @@ public class LotThrowRsvServiceTests
                 PlanThrowinDate: "20250420", EngEmpId: "ENG01",
                 EmpId: "EMP001", ClassDivision: "1"));
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
-    public async Task ThrowRsvAsync_Exception_ReturnsNull()
+    public async Task ThrowRsvAsync_Exception_ReturnsFailure()
     {
         var mock = TestHelper.CreateMockThrows(MsgIds.LotThrowRsv, new Exception());
         var svc = CreateService(mock);
@@ -58,7 +59,7 @@ public class LotThrowRsvServiceTests
                 PlanThrowinDate: "20250420", EngEmpId: "ENG01",
                 EmpId: "EMP001", ClassDivision: "1"));
 
-        Assert.Null(result);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]

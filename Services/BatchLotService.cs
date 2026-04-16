@@ -57,6 +57,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
     public sealed record LotListResult(
         bool IsSuccess,
         string ErrorMessage = "",
+        string ErrorCode = "",
         IReadOnlyList<LotEntry>? Lots = null
     );
 
@@ -76,7 +77,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
     public sealed record BatchChangeResult(
         bool IsSuccess,
         string ErrorMessage = "",
-        string MsgCode = "",
+        string ErrorCode = "",
         string BatchId = ""
     );
 
@@ -105,7 +106,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True) return [];
 
         return msg.GetMsgAry(Tags.McGroupList)
@@ -141,7 +142,7 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return [];
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True) return [];
 
         return msg.GetMsgAry(Tags.WpList)
@@ -182,13 +183,14 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return new LotListResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var err = msg.GetString(Tags.ErrMsg);
-            if (string.IsNullOrEmpty(err)) err = msg.GetString(Tags.Msg);
-            logger.LogWarning("LotMcGpLotList returned FALSE. Err={Err}", err);
-            return new LotListResult(false, string.IsNullOrEmpty(err) ? "ロット一覧の取得に失敗しました。" : err);
+            var (code, message) = msg.GetErrorInfo();
+            logger.LogWarning("LotMcGpLotList returned FALSE. Code={Code} Err={Err}", code, message);
+            return new LotListResult(false,
+                ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(message) ? "ロット一覧の取得に失敗しました。" : message);
         }
 
         var lots = msg.GetMsgAry(Tags.LotList).Select(e =>
@@ -289,31 +291,18 @@ public sealed class BatchLotService(ITfMessageClient mq, IConfiguration cfg, ILo
             return new BatchChangeResult(false, $"通信エラー: {ex.Message}");
         }
 
-        var msg = ParseOrEmpty(raw);
+        var msg = TfMsg.ParseOrEmpty(raw);
         if (msg.GetString(Tags.Ret) != Tags.True)
         {
-            var msgCode = msg.GetString(Tags.MsgCode);
-            var err     = msg.GetString(Tags.Msg);
-            if (string.IsNullOrEmpty(err)) err = msg.GetString(Tags.ErrMsg);
-            logger.LogWarning("BatChange returned FALSE. MsgCode={MsgCode}, Err={Err}", msgCode, err);
-            return new BatchChangeResult(false, string.IsNullOrEmpty(err) ? "バッチ変更に失敗しました。" : err, msgCode);
+            var (code, err) = msg.GetErrorInfo();
+            logger.LogWarning("BatChange returned FALSE. Code={Code}, Err={Err}", code, err);
+            return new BatchChangeResult(false,
+                ErrorCode: code,
+                ErrorMessage: string.IsNullOrEmpty(err) ? "バッチ変更に失敗しました。" : err);
         }
 
         return new BatchChangeResult(true, BatchId: msg.GetString(Tags.BatchId));
     }
 
     // ──────── 内部ヘルパー ────────────────────────────────────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }

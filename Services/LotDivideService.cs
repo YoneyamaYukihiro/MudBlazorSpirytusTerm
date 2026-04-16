@@ -16,6 +16,7 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
     public sealed record CarrierStateResult(
         bool   IsSuccess,
         string ErrorMessage  = "",
+        string ErrorCode     = "",
         string LotId         = "",
         string PdId          = "",
         string PdName        = "",
@@ -44,6 +45,7 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
 
     public sealed record DivideResult(
         bool   IsSuccess,
+        string ErrorCode    = "",
         string ErrorMessage = "",
         string GuidMsg      = "",
         string GuidMsgCode  = ""
@@ -62,11 +64,13 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
         try
         {
             var raw = await mq.SendMessageAsync(MsgIds.CarrCurState, req.ToTfString(), ct);
-            var msg = ParseOrEmpty(raw);
+            var msg = TfMsg.ParseOrEmpty(raw);
             if (msg.GetString(Tags.Ret) != Tags.True)
             {
-                var err = msg.GetString(Tags.ErrMsg);
-                return new CarrierStateResult(false, string.IsNullOrEmpty(err) ? "照合に失敗しました。" : err);
+                var (code, err) = msg.GetErrorInfo();
+                return new CarrierStateResult(false,
+                    ErrorCode: code,
+                    ErrorMessage: string.IsNullOrEmpty(err) ? "照合に失敗しました。" : err);
             }
             return new CarrierStateResult(
                 IsSuccess:     true,
@@ -126,16 +130,16 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
         catch (Exception ex)
         {
             logger.LogWarning(ex, "LotDivide send failed");
-            return new DivideResult(false, $"通信エラー: {ex.Message}");
+            return new DivideResult(false, ErrorMessage: $"通信エラー: {ex.Message}");
         }
 
-        var resp = ParseOrEmpty(raw);
+        var resp = TfMsg.ParseOrEmpty(raw);
         if (resp.GetString(Tags.Ret) != Tags.True)
         {
-            var err = resp.GetString(Tags.ErrMsg);
+            var (code, err) = resp.GetErrorInfo();
             if (string.IsNullOrEmpty(err)) err = resp.GetString(Tags.Msg);
             logger.LogWarning("LotDivide returned FALSE: {Err}", err);
-            return new DivideResult(false, string.IsNullOrEmpty(err) ? "ロット分割に失敗しました。" : err);
+            return new DivideResult(false, ErrorCode: code, ErrorMessage: string.IsNullOrEmpty(err) ? "ロット分割に失敗しました。" : err);
         }
 
         return new DivideResult(
@@ -145,17 +149,4 @@ public sealed class LotDivideService(ITfMessageClient mq, IConfiguration cfg, IL
     }
 
     // ──────── ヘルパー ────────
-
-    private static TfMsg ParseOrEmpty(string? raw)
-    {
-        var text = (raw ?? string.Empty).Trim();
-        if (text.StartsWith("(", StringComparison.Ordinal))
-        {
-            try { return TfMsg.FromTfString(text); } catch { }
-        }
-        var e = new TfMsg();
-        e.AddString(Tags.Ret,    Tags.False);
-        e.AddString(Tags.ErrMsg, text.Length > 0 ? text : "空の応答");
-        return e;
-    }
 }
