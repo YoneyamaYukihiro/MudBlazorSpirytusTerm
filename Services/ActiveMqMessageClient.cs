@@ -12,6 +12,9 @@ public sealed class ActiveMqMessageClient : ITfMessageClient, IDisposable
     private readonly ILogger<ActiveMqMessageClient> _logger;
 
     private IConnection? _connection;
+    // サーバーはシングルスレッド処理のため同時リクエストを拒否する。
+    // クライアント側でシリアライズして競合を防ぐ。
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
     public bool IsAvailable { get; private set; }
     public string? LastError { get; private set; }
@@ -60,6 +63,7 @@ public sealed class ActiveMqMessageClient : ITfMessageClient, IDisposable
             return "ERR_MSG=\"subject is empty\" RET=\"1\"";
         }
 
+        await _semaphore.WaitAsync(cancellationToken);
         try
         {
             _logger.LogInformation("ActiveMQ SendMessageAsync subject={Subject}", sendSubject);
@@ -97,6 +101,10 @@ public sealed class ActiveMqMessageClient : ITfMessageClient, IDisposable
             _logger.LogError(ex, "ActiveMQ SendMessageAsync error subject={Subject}", sendSubject);
             return ex.ToString();
         }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public void Dispose()
@@ -112,5 +120,6 @@ public sealed class ActiveMqMessageClient : ITfMessageClient, IDisposable
             _logger.LogWarning(ex, "ActiveMQ connection dispose error.");
         }
         _connection = null;
+        _semaphore.Dispose();
     }
 }
