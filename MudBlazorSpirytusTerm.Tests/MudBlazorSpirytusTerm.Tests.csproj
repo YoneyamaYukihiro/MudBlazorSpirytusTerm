@@ -27,4 +27,14 @@
     <ProjectReference Include="..\MudBlazorSpirytusTerm.csproj" />
   </ItemGroup>
 
+  <!--
+    Blazor プロジェクト (Microsoft.NET.Sdk.Web) を参照すると、
+    staticwebassets.endpoints.json の伝播・コピーが発生しビルドエラーになる。
+    テストプロジェクトは静的 Web アセットを必要としないため、
+    参照プロジェクトからの伝播ターゲットをすべて無効化する。
+  -->
+  <Target Name="ResolveStaticWebAssetsFromReferencedProjects" />
+  <Target Name="_ResolveStaticWebAssetsManifest" />
+  <Target Name="CopyStaticWebAssetsToOutputDirectory" />
+
 </Project>
