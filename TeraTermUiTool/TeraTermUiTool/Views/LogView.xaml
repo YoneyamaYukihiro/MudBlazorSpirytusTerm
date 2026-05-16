@@ -1,0 +1,52 @@
+<UserControl x:Class="TeraTermUiTool.Views.LogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <GroupBox Header="ログ出力設定（次回の接続に適用されます）">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="ログファイル"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="PathBox" TextChanged="OnAnyChanged"/>
+                    <Button Grid.Row="0" Grid.Column="2" Content="参照..." Click="OnBrowse"/>
+
+                    <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="4,0,4,8"
+                               Foreground="Gray" TextWrapping="Wrap"
+                               Text="例: C:\logs\&amp;h_&amp;Y&amp;M&amp;D.log （&amp;h=ホスト名 / &amp;Y&amp;M&amp;D=日付 / &amp;h&amp;m&amp;s=時刻）"/>
+
+                    <CheckBox Grid.Row="2" Grid.Column="1" x:Name="AppendBox"
+                              Content="既存ファイルに追記する (Append)" Margin="4" Checked="OnAnyChanged" Unchecked="OnAnyChanged"/>
+                    <CheckBox Grid.Row="3" Grid.Column="1" x:Name="TimestampBox"
+                              Content="タイムスタンプを付与する" Margin="4" Checked="OnAnyChanged" Unchecked="OnAnyChanged"/>
+                    <CheckBox Grid.Row="4" Grid.Column="1" x:Name="BinaryBox"
+                              Content="バイナリモードで保存する" Margin="4" Checked="OnAnyChanged" Unchecked="OnAnyChanged"/>
+                    <CheckBox Grid.Row="5" Grid.Column="1" x:Name="HideDialogBox"
+                              Content="ログ保存ダイアログを表示しない" Margin="4" Checked="OnAnyChanged" Unchecked="OnAnyChanged"/>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Header="現在の適用状態">
+                <StackPanel>
+                    <TextBlock x:Name="StatusBox" TextWrapping="Wrap" Margin="8"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="解除" Click="OnDisable"/>
+                        <Button Content="適用" Click="OnApply" FontWeight="Bold" Background="#3478F6" Foreground="White"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

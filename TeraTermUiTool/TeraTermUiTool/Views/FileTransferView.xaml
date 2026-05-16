@@ -1,0 +1,61 @@
+<UserControl x:Class="TeraTermUiTool.Views.FileTransferView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <GroupBox Header="転送設定">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="140"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="プロトコル"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="ProtoBox" SelectionChanged="OnAnyChanged">
+                        <ComboBoxItem Content="SCP (SSHセッション必須)" Tag="SCP" IsSelected="True"/>
+                        <ComboBoxItem Content="ZMODEM (送信)" Tag="ZMODEM_SEND"/>
+                        <ComboBoxItem Content="ZMODEM (受信)" Tag="ZMODEM_RECV"/>
+                    </ComboBox>
+
+                    <Label Grid.Row="1" Grid.Column="0" Content="方向"/>
+                    <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" x:Name="DirBox" SelectionChanged="OnAnyChanged">
+                        <ComboBoxItem Content="ローカル → リモート (送信)" Tag="Upload" IsSelected="True"/>
+                        <ComboBoxItem Content="リモート → ローカル (受信)" Tag="Download"/>
+                    </ComboBox>
+
+                    <Label Grid.Row="2" Grid.Column="0" Content="ローカルファイル"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="LocalBox" TextChanged="OnAnyChanged"/>
+                    <Button Grid.Row="2" Grid.Column="2" Content="参照..." Click="OnBrowseLocal"/>
+
+                    <Label Grid.Row="3" Grid.Column="0" Content="リモートパス"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" x:Name="RemoteBox" TextChanged="OnAnyChanged"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Margin="4" Foreground="Gray"
+                               TextWrapping="Wrap"
+                               Text="※ SCP/ZMODEM はアクティブな Tera Term セッションに対して実行されます。先に「接続」タブで接続しておくか、生成マクロを ttpmacro で実行してください。"/>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Header="生成されるTTL">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="プレビュー更新" Click="OnRefresh"/>
+                        <Button Content="名前を付けて保存..." Click="OnSave"/>
+                        <Button Content="保存して実行" Click="OnRun" FontWeight="Bold" Background="#3478F6" Foreground="White"/>
+                    </StackPanel>
+                    <TextBox x:Name="PreviewBox" FontFamily="Consolas" Height="220"
+                             AcceptsReturn="True" IsReadOnly="True"
+                             VerticalScrollBarVisibility="Auto"/>
+                </DockPanel>
+            </GroupBox>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

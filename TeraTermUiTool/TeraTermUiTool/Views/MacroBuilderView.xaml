@@ -1,0 +1,78 @@
+<UserControl x:Class="TeraTermUiTool.Views.MacroBuilderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="200"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Grid.Row="0" Grid.Column="0" Header="ステップ一覧">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                    <Button Content="↑" Click="OnMoveUp" Width="40" MinWidth="40"/>
+                    <Button Content="↓" Click="OnMoveDown" Width="40" MinWidth="40"/>
+                    <Button Content="複製" Click="OnDuplicate"/>
+                    <Button Content="削除" Click="OnDeleteStep"/>
+                    <Button Content="クリア" Click="OnClear"/>
+                </StackPanel>
+                <ListBox x:Name="StepList" SelectionChanged="OnStepSelected"
+                         DisplayMemberPath="Description"/>
+            </DockPanel>
+        </GroupBox>
+
+        <GroupBox Grid.Row="0" Grid.Column="1" Header="ステップ追加">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <WrapPanel>
+                        <Button Content="接続(connect)"      Click="OnAddConnect"/>
+                        <Button Content="送信＋改行(sendln)" Click="OnAddSendLn"/>
+                        <Button Content="送信(send)"          Click="OnAddSend"/>
+                        <Button Content="待ち(wait)"          Click="OnAddWait"/>
+                        <Button Content="正規表現待ち"        Click="OnAddWaitRegex"/>
+                        <Button Content="秒待機(pause)"       Click="OnAddPause"/>
+                        <Button Content="ms待機(mpause)"      Click="OnAddMPause"/>
+                        <Button Content="ログ開始(logopen)"   Click="OnAddLogOpen"/>
+                        <Button Content="ログ停止(logclose)"  Click="OnAddLogClose"/>
+                        <Button Content="切断(disconnect)"    Click="OnAddDisconnect"/>
+                        <Button Content="コメント(;)"          Click="OnAddComment"/>
+                    </WrapPanel>
+
+                    <Separator Margin="4,8"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Label Grid.Row="0" Grid.Column="0" x:Name="Arg1Label" Content="引数"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="Arg1Box" TextChanged="OnArg1Changed"/>
+                        <Label Grid.Row="1" Grid.Column="0" x:Name="Arg2Label" Content="" Visibility="Collapsed"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="Arg2Box" TextChanged="OnArg2Changed" Visibility="Collapsed"/>
+                    </Grid>
+                </StackPanel>
+            </DockPanel>
+        </GroupBox>
+
+        <GroupBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Header="生成されるTTLマクロ">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="プレビュー更新" Click="OnRefreshPreview"/>
+                    <Button Content="名前を付けて保存..." Click="OnSaveMacro"/>
+                    <Button Content="保存して実行" Click="OnRunMacro" FontWeight="Bold" Background="#3478F6" Foreground="White"/>
+                </StackPanel>
+                <TextBox x:Name="PreviewBox" FontFamily="Consolas" AcceptsReturn="True"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         IsReadOnly="True"/>
+            </DockPanel>
+        </GroupBox>
+    </Grid>
+</UserControl>

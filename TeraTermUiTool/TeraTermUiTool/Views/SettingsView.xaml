@@ -1,0 +1,50 @@
+<UserControl x:Class="TeraTermUiTool.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <GroupBox Header="Tera Term の場所">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Label Grid.Row="0" Grid.Column="0" Content="ttermpro.exe"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="TermBox"/>
+                    <Button Grid.Row="0" Grid.Column="2" Content="参照..." Click="OnBrowseTerm"/>
+
+                    <Label Grid.Row="1" Grid.Column="0" Content="ttpmacro.exe"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="MacroBox"/>
+                    <Button Grid.Row="1" Grid.Column="2" Content="参照..." Click="OnBrowseMacro"/>
+
+                    <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                                Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Content="自動検出" Click="OnAutoDetect"/>
+                        <Button Content="保存" Click="OnSave" FontWeight="Bold" Background="#3478F6" Foreground="White"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Header="このツールについて">
+                <TextBlock Margin="8" TextWrapping="Wrap">
+                    Tera Term をフォーム入力で操作するためのフロントエンドです。<LineBreak/>
+                    ・「接続」タブ：プロファイルを作って ttermpro.exe を起動します。<LineBreak/>
+                    ・「マクロ作成」タブ：GUI で TTL マクロを組み立て、保存／実行できます。<LineBreak/>
+                    ・「ログ設定」タブ：次回接続のログ出力先を一括設定できます。<LineBreak/>
+                    ・「ファイル転送」タブ：SCP / ZMODEM の転送マクロを生成・実行します。<LineBreak/>
+                    <LineBreak/>
+                    <Bold>セキュリティ上の注意：</Bold>「パスワード保存」は Windows DPAPI でローカル暗号化されます。
+                    接続時のパスワードは /passwd 引数として ttermpro.exe に渡されるため、同じ PC のプロセス一覧から
+                    一時的に観測される可能性があります。本番運用では公開鍵認証を推奨します。
+                </TextBlock>
+            </GroupBox>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
